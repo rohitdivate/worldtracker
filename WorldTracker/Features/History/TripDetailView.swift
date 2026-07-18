@@ -14,6 +14,7 @@ struct TripDetailView: View {
     @State private var confirmDelete = false
     @State private var photos: [TripPhoto] = []
     @State private var thumbnails: [String: UIImage] = [:]
+    @State private var lightbox: LightboxSelection?
 
     struct TripPhoto: Identifiable {
         var id: String { assetID }
@@ -80,8 +81,11 @@ struct TripDetailView: View {
                             columns: Array(repeating: GridItem(.flexible(), spacing: 6), count: 3),
                             spacing: 6
                         ) {
-                            ForEach(photos) { photo in
+                            ForEach(Array(photos.enumerated()), id: \.element.id) { photoIndex, photo in
                                 photoTile(photo)
+                                    .onTapGesture {
+                                        lightbox = LightboxSelection(id: photoIndex)
+                                    }
                             }
                         }
                     }
@@ -134,6 +138,21 @@ struct TripDetailView: View {
         .onChange(of: store.changeToken) { _, _ in
             rederive()
             loadPhotos()
+        }
+        .fullScreenCover(item: $lightbox) { selection in
+            let (todayYear, _, _) = EpochDay(value: store.todayEpoch).civil()
+            PhotoLightboxView(
+                items: photos.map { photo in
+                    PhotoLightboxItem(
+                        assetID: photo.assetID,
+                        caption: [
+                            photo.city ?? countryName(displayed.countryCode),
+                            DayFormat.shortRange(photo.day, photo.day, todayYear: todayYear),
+                        ].joined(separator: " · ")
+                    )
+                },
+                initialIndex: selection.index
+            )
         }
         .sheet(isPresented: $showEditor) {
             TripEditorView(

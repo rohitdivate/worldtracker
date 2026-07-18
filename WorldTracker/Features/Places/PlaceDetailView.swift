@@ -12,6 +12,7 @@ struct PlaceDetailView: View {
     @State private var visits: [VisitSnapshot] = []
     @State private var isRenaming = false
     @State private var newName = ""
+    @State private var lightbox: LightboxSelection?
 
     var body: some View {
         ZStack {
@@ -35,9 +36,19 @@ struct PlaceDetailView: View {
                         Spacer()
                     }
 
-                    let assetIDs = visits.flatMap(\.assetIDs)
+                    let assetIDs = Array(visits.flatMap(\.assetIDs).prefix(24))
                     if !assetIDs.isEmpty {
-                        PhotoStrip(assetIDs: Array(assetIDs.prefix(24)))
+                        PhotoStrip(assetIDs: assetIDs) { index in
+                            lightbox = LightboxSelection(id: index)
+                        }
+                        .fullScreenCover(item: $lightbox) { selection in
+                            PhotoLightboxView(
+                                items: assetIDs.map {
+                                    PhotoLightboxItem(assetID: $0, caption: place.name)
+                                },
+                                initialIndex: selection.index
+                            )
+                        }
                     }
 
                     VStack(alignment: .leading, spacing: 8) {
@@ -160,6 +171,9 @@ struct PlaceDetailView: View {
 /// thumbnails (no iCloud downloads; missing originals just don't appear).
 struct PhotoStrip: View {
     let assetIDs: [String]
+    /// Tap on a tile → index into `assetIDs` (nil keeps tiles inert).
+    var onTap: ((Int) -> Void)? = nil
+
     @State private var images: [String: UIImage] = [:]
 
     var body: some View {
@@ -173,6 +187,11 @@ struct PhotoStrip: View {
                             .frame(width: 84, height: 84)
                             .clipShape(RoundedRectangle(cornerRadius: 12))
                             .transition(.opacity.combined(with: .scale(scale: 1.15)))
+                            .onTapGesture {
+                                if let index = assetIDs.firstIndex(of: id) {
+                                    onTap?(index)
+                                }
+                            }
                     }
                 }
             }

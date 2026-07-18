@@ -234,3 +234,11 @@ Tick them off before moving on.
 - [ ] Delete trip: days become "no data"; a border day shared with a
       neighboring trip keeps the other country; any day is restorable via
       its day editor ("Revert to automatic")
+
+## V4 — Photo lightbox
+
+- [ ] Places → a place → tap a photo: it expands full-screen; swipe left/
+      right pages through, pinch and double-tap zoom, drag down dismisses
+- [ ] iCloud-optimized originals stream in (corner spinner) over the
+      instant thumbnail
+- [ ] Trip detail photos open the same viewer with city · date captions
