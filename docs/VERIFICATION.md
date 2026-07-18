@@ -128,3 +128,16 @@ Tick them off before moving on.
       from Xcode → history comes back from your private iCloud
 - [ ] "Erase auto-detected data" keeps manual days and notes
 - [ ] "Delete all my data" leaves an empty app (then re-run the Time Machine)
+
+## M10–M14 — Imports
+
+- [ ] Settings → Import → Google Timeline: export from the Google Maps app
+      (steps shown in-app), pick the JSON — progress runs, done card shows
+      "Added N days across M countries"
+- [ ] Calendar: imported days carry the violet TIMELINE stamp in the day
+      editor; your GPS-tracked and manual days are untouched
+- [ ] Re-import the same file — day counts stay stable (replace, not double)
+- [ ] "Remove imported Timeline data" restores the pre-import calendar
+- [ ] Settings → Import → Flights: import a Flighty CSV (or a 3-column CSV);
+      an overnight long-haul credits the arrival day in the destination
+- [ ] Unknown airport codes are listed on the done card rather than failing

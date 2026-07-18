@@ -12,8 +12,9 @@ It stores **facts**: `CountryDayFact(epochDay, countryCode, source, confidence)`
 where source is `gps | visit | photo | manual | timezoneHint`.
 
 A pure resolver (`DayLedgerResolver`, in the Kit) turns facts into per-day
-verdicts at query time with the precedence **manual > gps/visit > photo >
-timezoneHint**, plus a configurable gap-fill policy (assume-stayed /
+verdicts at query time with the precedence **manual > gps/visit >
+importedTimeline/importedFlight > photo > timezoneHint**, plus a
+configurable gap-fill policy (assume-stayed /
 fill-short-gaps / leave-empty). Because verdicts are computed, changing a
 setting instantly re-renders all history, and photo re-scans can never
 clobber manual edits.
@@ -62,3 +63,13 @@ holds the device-specific `LocationSample` audit trail and scan checkpoints.
 Metal shaders (from M3), and shared components (flag chips, split flags,
 provenance stamps). Signature moments per screen are specified in the design
 mockups (see the project artifacts).
+
+## Bulk imports (M10–M14)
+
+Google Timeline (all three export shapes — the post-2024 on-device export,
+Takeout Records.json streamed in constant memory, and Semantic monthly
+files) and flight CSVs (Flighty or `date,origin,destination`) become
+`importedTimeline` / `importedFlight` facts. Each import REPLACES only its
+own origin's rows and can be undone the same way; a bundled ~9k-airport
+IATA database resolves flights, with arrival days bucketed in the arrival
+airport's timezone.

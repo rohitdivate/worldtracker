@@ -23,6 +23,7 @@ struct SettingsView: View {
                 profileSection
                 trackingSection
                 photosSection
+                importSection
                 dataSection
                 privacySection
                 developerSection
@@ -52,7 +53,7 @@ struct SettingsView: View {
                 }
                 Button("Cancel", role: .cancel) {}
             } message: {
-                Text("Removes GPS, photo and inferred history plus places. Manual entries and notes are kept. Photos can rebuild history again any time.")
+                Text("Removes GPS, photo, imported and inferred history plus places. Manual entries and notes are kept. Photos and imports can rebuild history again any time.")
             }
             .confirmationDialog(
                 "Delete ALL data?",
@@ -153,6 +154,43 @@ struct SettingsView: View {
                         .foregroundStyle(Theme.aurora2)
                 }
             }
+        }
+    }
+
+    private var importSection: some View {
+        Section {
+            NavigationLink {
+                ImportTimelineView()
+            } label: {
+                Label {
+                    VStack(alignment: .leading, spacing: 2) {
+                        Text("Google Timeline")
+                        Text("Import years of Location History")
+                            .font(.footnote)
+                            .foregroundStyle(Theme.ink3)
+                    }
+                } icon: {
+                    Image(systemName: "map.fill")
+                        .foregroundStyle(Theme.aurora2)
+                }
+            }
+            NavigationLink {
+                ImportFlightsView()
+            } label: {
+                Label {
+                    VStack(alignment: .leading, spacing: 2) {
+                        Text("Flights")
+                        Text("Flighty or CSV — closes airplane-mode gaps")
+                            .font(.footnote)
+                            .foregroundStyle(Theme.ink3)
+                    }
+                } icon: {
+                    Image(systemName: "airplane")
+                        .foregroundStyle(Theme.aurora2)
+                }
+            }
+        } header: {
+            Text("Import")
         }
     }
 
