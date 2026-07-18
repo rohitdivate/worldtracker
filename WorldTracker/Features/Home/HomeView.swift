@@ -1,34 +1,48 @@
 import SwiftUI
 import WorldTrackerKit
 
-/// Home: the living aurora header that answers "where am I, how long have I
-/// been here" before you ask.
+/// Home: the living aurora header + the year at a glance.
 struct HomeView: View {
     @Environment(LocationService.self) private var location
+    @State private var period: StatsPeriod = .thisYear
 
     private var store: LedgerStore { AppContainer.shared.ledgerStore }
 
     var body: some View {
         let _ = store.changeToken  // re-render when the ledger changes
-        ZStack {
-            AuroraBackground()
+        NavigationStack {
+            ZStack {
+                AuroraBackground()
 
-            ScrollView {
-                VStack(alignment: .leading, spacing: 16) {
-                    todayCard
-                        .padding(.top, 16)
+                ScrollView {
+                    VStack(alignment: .leading, spacing: 16) {
+                        todayCard
+                            .padding(.top, 8)
 
-                    quickStats
+                        PeriodChips(selection: $period)
 
-                    if store.currentStay() == nil {
-                        waitingCard
+                        statsRow
+
+                        topCountries
+
+                        if store.currentStay() == nil {
+                            waitingCard
+                        }
+
+                        Spacer(minLength: 110)
                     }
-
-                    Spacer(minLength: 110)
+                    .padding(.horizontal, 18)
                 }
-                .padding(.horizontal, 18)
+            }
+            .navigationTitle("Overview")
+            .navigationDestination(for: String.self) { code in
+                CountryDetailView(countryCode: code)
             }
         }
+    }
+
+    private var periodRange: ClosedRange<Int> {
+        period.range(today: store.todayEpoch, earliest: store.earliestDay)
     }
 
     private var todayCard: some View {
@@ -70,12 +84,8 @@ struct HomeView: View {
         .nightCard()
     }
 
-    private var quickStats: some View {
-        let today = store.todayEpoch
-        let (year, _, _) = EpochDay(value: today).civil()
-        let jan1 = EpochDay.daysFromCivil(year: year, month: 1, day: 1)
-        let stats = store.stats(in: jan1...today)
-
+    private var statsRow: some View {
+        let stats = store.stats(in: periodRange)
         return HStack(spacing: 10) {
             statTile(value: stats.countriesVisited, label: "Countries")
             statTile(value: stats.borderCrossings, label: "Crossings")
@@ -99,6 +109,66 @@ struct HomeView: View {
         .nightCard()
     }
 
+    private var topCountries: some View {
+        let stats = store.stats(in: periodRange)
+        let ranked = stats.daysPerCountry.sorted {
+            ($0.value, $1.key) > ($1.value, $0.key)
+        }
+        let maxDays = ranked.first?.value ?? 1
+
+        return VStack(alignment: .leading, spacing: 8) {
+            if !ranked.isEmpty {
+                Text("YOUR TOP")
+                    .font(.system(size: 10, weight: .bold))
+                    .tracking(1.8)
+                    .foregroundStyle(Theme.ink3)
+                    .padding(.top, 4)
+            }
+
+            ForEach(ranked.prefix(12), id: \.key) { code, days in
+                NavigationLink(value: code) {
+                    HStack(spacing: 11) {
+                        FlagChip(code: code, size: 34)
+                        VStack(alignment: .leading, spacing: 4) {
+                            HStack {
+                                Text(countryName(code))
+                                    .font(.system(size: 14, weight: .semibold))
+                                    .foregroundStyle(Theme.ink)
+                                if code == store.homeCountry {
+                                    Text("HOME")
+                                        .font(.system(size: 8, weight: .heavy, design: .monospaced))
+                                        .foregroundStyle(Theme.amber)
+                                }
+                                Spacer()
+                                Text("\(days)d")
+                                    .font(.system(size: 13, weight: .bold, design: .rounded))
+                                    .foregroundStyle(Theme.aurora1)
+                                    .contentTransition(.numericText())
+                            }
+                            GeometryReader { geo in
+                                Capsule()
+                                    .fill(Theme.hairline)
+                                    .overlay(alignment: .leading) {
+                                        Capsule()
+                                            .fill(Theme.auroraGradient)
+                                            .frame(width: geo.size.width * CGFloat(days) / CGFloat(maxDays))
+                                    }
+                            }
+                            .frame(height: 3)
+                        }
+                        Image(systemName: "chevron.right")
+                            .font(.system(size: 11, weight: .semibold))
+                            .foregroundStyle(Theme.ink3)
+                    }
+                    .padding(.vertical, 9)
+                    .padding(.horizontal, 12)
+                    .nightCard()
+                }
+                .buttonStyle(.plain)
+            }
+        }
+    }
+
     private var waitingCard: some View {
         VStack(alignment: .leading, spacing: 8) {
             Label {
@@ -110,7 +180,7 @@ struct HomeView: View {
                     .foregroundStyle(Theme.aurora1)
                     .symbolEffect(.pulse)
             }
-            Text("Keep the app installed and carry on with your day — the first significant-location event arrives on its own. Or open Settings → Tracking health to check permissions.")
+            Text("Keep the app installed and carry on with your day — the first significant-location event arrives on its own. Or rebuild your past from photos in Settings → Time Machine.")
                 .font(.system(size: 12.5))
                 .foregroundStyle(Theme.ink3)
         }

@@ -66,4 +66,16 @@ Tick them off before moving on.
       re-renders instantly (dashed cells appear/disappear); no re-scan needed
 - [ ] Run "Re-sync from photos" again — the numbers stay consistent
 
+## M5 — Stats & trips
+
+- [ ] Home is now "Overview": period chips (This year / Last 365 / Last year /
+      All time) re-scope the three stat tiles and the ranked "Your top" list
+      with animated number transitions
+- [ ] Tap a country in "Your top" — the country detail opens: big flag,
+      "N TRIPS · N TOTAL DAYS", trips grouped by year, "NOW" on the current stay
+- [ ] Calendar tab: the segmented control at the top switches to **Trips** —
+      every stay as a row (newest first, "NOW" for the ongoing one); tapping
+      opens the country detail
+- [ ] Numbers sanity-check against your own memory of the year
+
 *(Later milestones will append their checklists here.)*

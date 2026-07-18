@@ -11,6 +11,12 @@ struct SelectedDay: Identifiable {
 
 struct HistoryView: View {
     @State private var selectedDay: SelectedDay?
+    @State private var viewMode: ViewMode = .calendar
+
+    enum ViewMode: String, CaseIterable {
+        case calendar = "Calendar"
+        case list = "Trips"
+    }
 
     private var store: LedgerStore { AppContainer.shared.ledgerStore }
 
@@ -19,27 +25,49 @@ struct HistoryView: View {
             ZStack {
                 Theme.sky.ignoresSafeArea()
 
-                ScrollView {
-                    LazyVStack(spacing: 22) {
-                        ForEach(months) { month in
-                            MonthGridView(month: month) { day in
-                                selectedDay = SelectedDay(epochDay: day)
-                            }
-                        }
-                        legend
-                            .padding(.bottom, 90)
-                    }
-                    .padding(.horizontal, 16)
+                if viewMode == .calendar {
+                    calendarBody
+                } else {
+                    TripListView()
                 }
-                .defaultScrollAnchor(.bottom)
             }
             .navigationTitle("Calendar")
+            .toolbar {
+                ToolbarItem(placement: .principal) {
+                    Picker("View", selection: $viewMode) {
+                        ForEach(ViewMode.allCases, id: \.self) { mode in
+                            Text(mode.rawValue).tag(mode)
+                        }
+                    }
+                    .pickerStyle(.segmented)
+                    .frame(width: 190)
+                }
+            }
+            .navigationDestination(for: String.self) { code in
+                CountryDetailView(countryCode: code)
+            }
             .sheet(item: $selectedDay) { selection in
                 DayDetailSheet(epochDay: selection.epochDay)
                     .presentationDetents([.medium, .large])
                     .presentationBackground(Theme.skyRaised)
             }
         }
+    }
+
+    private var calendarBody: some View {
+        ScrollView {
+            LazyVStack(spacing: 22) {
+                ForEach(months) { month in
+                    MonthGridView(month: month) { day in
+                        selectedDay = SelectedDay(epochDay: day)
+                    }
+                }
+                legend
+                    .padding(.bottom, 90)
+            }
+            .padding(.horizontal, 16)
+        }
+        .defaultScrollAnchor(.bottom)
     }
 
     /// Months from the earliest recorded fact (min 6 months back) to now.
