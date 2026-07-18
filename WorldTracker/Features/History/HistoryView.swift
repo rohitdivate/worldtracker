@@ -12,6 +12,7 @@ struct SelectedDay: Identifiable {
 struct HistoryView: View {
     @State private var selectedDay: SelectedDay?
     @State private var viewMode: ViewMode = .calendar
+    @State private var showTripEditor = false
 
     enum ViewMode: String, CaseIterable {
         case calendar = "Calendar"
@@ -42,13 +43,25 @@ struct HistoryView: View {
                     .pickerStyle(.segmented)
                     .frame(width: 190)
                 }
+                ToolbarItem(placement: .primaryAction) {
+                    Button {
+                        showTripEditor = true
+                    } label: {
+                        Image(systemName: "plus")
+                            .fontWeight(.semibold)
+                            .foregroundStyle(Theme.aurora1)
+                    }
+                }
+            }
+            .sheet(isPresented: $showTripEditor) {
+                TripEditorView()
             }
             .navigationDestination(for: String.self) { code in
                 CountryDetailView(countryCode: code)
             }
             .sheet(item: $selectedDay) { selection in
-                DayDetailSheet(epochDay: selection.epochDay)
-                    .presentationDetents([.medium, .large])
+                DayEditorView(epochDay: selection.epochDay)
+                    .presentationDetents([.large])
                     .presentationBackground(Theme.skyRaised)
             }
         }
@@ -265,90 +278,6 @@ struct DayCellView: View {
         case .timezoneHint: return Theme.ink3.opacity(0.3)
         case nil: return Theme.hairline
         }
-    }
-}
-
-/// Read-only day sheet (the full editor lands in M6).
-struct DayDetailSheet: View {
-    let epochDay: Int
-
-    private var store: LedgerStore { AppContainer.shared.ledgerStore }
-
-    var body: some View {
-        let resolved = store.day(epochDay)
-        let (y, m, d) = EpochDay(value: epochDay).civil()
-
-        VStack(alignment: .leading, spacing: 16) {
-            Capsule()
-                .fill(Theme.ink3.opacity(0.4))
-                .frame(width: 38, height: 4)
-                .frame(maxWidth: .infinity)
-                .padding(.top, 10)
-
-            HStack(spacing: 10) {
-                Text(dateTitle(year: y, month: m, day: d))
-                    .font(.system(size: 22, weight: .heavy, design: .rounded))
-                    .foregroundStyle(Theme.ink)
-                Spacer()
-                if resolved.countryCodes.count >= 2 {
-                    SplitFlagChip(first: resolved.countryCodes[0], second: resolved.countryCodes[1], size: 34)
-                }
-            }
-
-            if resolved.countryCodes.isEmpty {
-                Text(resolved.isFilled ? "Inferred day" : "No data for this day")
-                    .font(.system(size: 14))
-                    .foregroundStyle(Theme.ink3)
-            } else {
-                ForEach(resolved.countryCodes, id: \.self) { code in
-                    HStack(spacing: 12) {
-                        FlagChip(code: code, size: 36)
-                        VStack(alignment: .leading, spacing: 2) {
-                            Text(countryName(code))
-                                .font(.system(size: 16, weight: .semibold))
-                                .foregroundStyle(Theme.ink)
-                            if resolved.countryCodes.count >= 2 {
-                                Text("Border-crossing day — counted in both")
-                                    .font(.system(size: 11))
-                                    .foregroundStyle(Theme.ink3)
-                            }
-                        }
-                        Spacer()
-                        if resolved.isFilled {
-                            Text("FILLED")
-                                .font(.system(size: 8.5, weight: .heavy, design: .monospaced))
-                                .foregroundStyle(Theme.aurora2)
-                                .padding(.horizontal, 6)
-                                .padding(.vertical, 2.5)
-                                .overlay(
-                                    RoundedRectangle(cornerRadius: 4)
-                                        .strokeBorder(Theme.aurora2.opacity(0.5), lineWidth: 1.2)
-                                )
-                        } else if let source = resolved.source {
-                            ProvenanceStamp(source: source)
-                        }
-                    }
-                    .padding(12)
-                    .frame(maxWidth: .infinity, alignment: .leading)
-                    .nightCard()
-                }
-            }
-
-            Spacer()
-
-            Text("Editing this day arrives in an upcoming update.")
-                .font(.system(size: 11))
-                .foregroundStyle(Theme.ink3)
-                .frame(maxWidth: .infinity)
-                .padding(.bottom, 18)
-        }
-        .padding(.horizontal, 20)
-    }
-
-    private func dateTitle(year: Int, month: Int, day: Int) -> String {
-        let formatter = DateFormatter()
-        let monthName = formatter.monthSymbols[month - 1]
-        return "\(monthName) \(day), \(year)"
     }
 }
 

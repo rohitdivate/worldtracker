@@ -78,4 +78,18 @@ Tick them off before moving on.
       opens the country detail
 - [ ] Numbers sanity-check against your own memory of the year
 
+## M6 — Editing
+
+- [ ] Tap any past day in the calendar — the editor opens with the verdict,
+      the evidence list (facts × source, photo places, location events), and
+      a note field
+- [ ] "Set country for this day" → picker (search, Popular, Recent) → the
+      calendar updates instantly with an amber MANUAL border on that day
+- [ ] Run Settings → Time Machine → Re-sync — the manual day SURVIVES
+- [ ] "Revert to automatic" brings the old evidence-based verdict back
+- [ ] "Mark as no data" empties the day and gap-fill doesn't cross it
+- [ ] Calendar → Trips → "+" adds a manual trip over a date range; it appears
+      in the calendar and the trip list
+- [ ] Add a note to a day — the amber dot appears under the day cell
+
 *(Later milestones will append their checklists here.)*

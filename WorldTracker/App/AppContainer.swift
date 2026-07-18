@@ -27,6 +27,7 @@ final class AppContainer {
     let locationService: LocationService
     let ledgerStore: LedgerStore
     let backfillEngine: PhotoBackfillEngine
+    let editService: EditService
 
     private init() {
         do {
@@ -46,6 +47,7 @@ final class AppContainer {
         locationService = LocationService(ingestor: ingestor, lookup: geoProvider)
         ledgerStore = LedgerStore(container: modelContainer)
         backfillEngine = PhotoBackfillEngine(container: modelContainer, geoProvider: geoProvider)
+        editService = EditService(container: modelContainer)
 
         // Warm the atlas so first lookups don't pay the load cost.
         let provider = geoProvider
