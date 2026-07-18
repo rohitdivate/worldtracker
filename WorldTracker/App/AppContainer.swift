@@ -25,6 +25,7 @@ final class AppContainer {
     let geoProvider: GeoLookupProvider
     let ingestor: LocationIngestor
     let locationService: LocationService
+    let ledgerStore: LedgerStore
 
     private init() {
         do {
@@ -39,6 +40,7 @@ final class AppContainer {
         geoProvider = GeoLookupProvider()
         ingestor = LocationIngestor(modelContainer: modelContainer)
         locationService = LocationService(ingestor: ingestor, lookup: geoProvider)
+        ledgerStore = LedgerStore(container: modelContainer)
 
         // Warm the atlas so first lookups don't pay the load cost.
         let provider = geoProvider

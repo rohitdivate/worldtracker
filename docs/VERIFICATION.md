@@ -38,4 +38,16 @@ Tick them off before moving on.
       opening the app
 - [ ] Toggle Smart tracking off and on — no crashes, log keeps working
 
+## M3 — Day ledger + Calendar
+
+- [ ] Home now shows "YOU'RE IN" with your flag and country once at least one
+      location sample exists (open the app once outdoors if it's empty)
+- [ ] "Day N of this stay · N days here this year" appears under the country
+- [ ] Calendar tab: month grids appear, today has an amber ring, today's cell
+      shows your flag
+- [ ] Tap today's cell — the day sheet opens with your country and a GPS
+      provenance stamp
+- [ ] Future days are dimmed dots; days before you installed are empty circles
+- [ ] Settings → Smart tracking off/on and reopening doesn't lose the calendar
+
 *(Later milestones will append their checklists here.)*

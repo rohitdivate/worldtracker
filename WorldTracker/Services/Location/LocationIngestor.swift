@@ -47,6 +47,7 @@ actor LocationIngestor {
         }
 
         try? modelContext.save()
+        notifyLedgerChanged()
         pruneIfNeeded()
     }
 
@@ -73,6 +74,13 @@ actor LocationIngestor {
             seenAt: timestamp
         )
         try? modelContext.save()
+        notifyLedgerChanged()
+    }
+
+    private func notifyLedgerChanged() {
+        Task { @MainActor in
+            NotificationCenter.default.post(name: .ledgerDidChange, object: nil)
+        }
     }
 
     private func upsertFact(

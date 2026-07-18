@@ -209,7 +209,13 @@ public struct DayLedgerResolver: Sendable {
             let cleared = annotationsByDay[day.day]?.isCleared == true
 
             if cleared {
-                // A cleared day hard-stops any running gap.
+                // A cleared day hard-stops the chain — but carry-forward
+                // filling still applies to the gap BEFORE it ("you stayed
+                // there until the day you marked unknown").
+                if let start = gapStart, let code = lastKnown,
+                   case .assumePreviousLocation = gapFill {
+                    fill(from: start, to: index - 1, with: code)
+                }
                 lastKnown = nil
                 gapStart = nil
                 continue
@@ -285,8 +291,6 @@ public struct DayLedgerResolver: Sendable {
     public static func stats(for days: [ResolvedDay], home: String?) -> TravelStats {
         var perCountry: [String: Int] = [:]
         var travelDays = 0
-        var crossings = 0
-        var previousLast: String?
 
         for day in days {
             guard !day.countryCodes.isEmpty else { continue }
@@ -296,14 +300,13 @@ public struct DayLedgerResolver: Sendable {
             if day.countryCodes != [home].compactMap({ $0 }) {
                 travelDays += 1
             }
-            // Crossings within a multi-country day…
-            crossings += max(0, day.countryCodes.count - 1)
-            // …and between consecutive known days.
-            if let prev = previousLast, let first = day.countryCodes.first, prev != first {
-                crossings += 1
-            }
-            previousLast = day.countryCodes.last
         }
+
+        // A crossing is a boundary between consecutive stays: the segment
+        // chain (which merges border-day overlaps) has exactly one fewer
+        // crossing than it has stays.
+        let stayCount = segments(from: days).count
+        let crossings = max(0, stayCount - 1)
 
         return TravelStats(
             countriesVisited: perCountry.keys.count,
