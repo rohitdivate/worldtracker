@@ -1,4 +1,5 @@
 import SwiftUI
+import WorldTrackerKit
 
 /// First-launch priming: earn trust, then ask for When-In-Use.
 /// The Always upgrade is requested later, in context, after tracking has
