@@ -295,3 +295,12 @@ Tick them off before moving on.
 - [ ] Tap a card → country detail; summary line shows countries · % world
       · travel days · crossings
 - [ ] Your World widget renders the identical dot world (shared painter)
+
+## X4 — The globe returns, upgraded
+
+- [ ] Map tab → Globe: DARK VECTOR earth (no satellite, no green overlay);
+      visited countries in aurora with glowing borders, home amber
+- [ ] Day-count chips sit ON the globe for your top 8 countries; tapping a
+      chip (or the country itself) flies over and opens the stat card
+- [ ] Fly-in from space on open; pulsing home beacon; layered arcs
+- [ ] Countries mode = the day-count ledger (bars, trips, since-dates)

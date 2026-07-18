@@ -1,11 +1,16 @@
 import SwiftUI
 import WorldTrackerKit
 
-/// Your world as a constellation: a glanceable dot-matrix world map in pure
-/// Night Flight tones (no satellite imagery, ever) with the day-count
-/// ledger in the same scroll. Numbers first; the map is the glance.
+/// Your world: the upgraded globe (dark vector earth, aurora glow, day-count
+/// chips) plus the numbers view — a ranked day-count ledger.
 struct WorldMapView: View {
-    @State private var dots: [WorldDotGrid.Dot] = []
+    @State private var shapes: WorldMapShapes?
+    @State private var mode: Mode = .globe
+
+    enum Mode: String, CaseIterable {
+        case globe = "Globe"
+        case countries = "Countries"
+    }
 
     private var store: LedgerStore { AppContainer.shared.ledgerStore }
 
@@ -21,23 +26,35 @@ struct WorldMapView: View {
             ZStack {
                 Theme.sky.ignoresSafeArea()
 
-                ScrollView {
-                    VStack(spacing: 14) {
-                        constellation(visited: stats.daysPerCountry, home: home)
-                            .aspectRatio(2.1, contentMode: .fit)
-                            .padding(.horizontal, 8)
-                            .padding(.top, 4)
-
-                        summary(stats: stats)
-
-                        ledger(ranked: ranked, home: home, today: today, earliest: earliest)
-
-                        Spacer(minLength: 100)
+                if mode == .globe {
+                    if let shapes {
+                        GlobeView(shapes: shapes)
+                    } else {
+                        ProgressView().tint(Theme.aurora1)
                     }
-                    .padding(.horizontal, 16)
+                } else {
+                    ScrollView {
+                        VStack(spacing: 14) {
+                            ledger(ranked: ranked, home: home, today: today, earliest: earliest)
+                            Spacer(minLength: 100)
+                        }
+                        .padding(.horizontal, 16)
+                        .padding(.top, 8)
+                    }
                 }
             }
             .navigationTitle("Your world")
+            .toolbar {
+                ToolbarItem(placement: .principal) {
+                    Picker("Mode", selection: $mode) {
+                        ForEach(Mode.allCases, id: \.self) { m in
+                            Text(m.rawValue).tag(m)
+                        }
+                    }
+                    .pickerStyle(.segmented)
+                    .frame(width: 190)
+                }
+            }
             .navigationDestination(for: String.self) { code in
                 CountryDetailView(countryCode: code)
             }
@@ -45,79 +62,10 @@ struct WorldMapView: View {
                 TripDetailView(segment: segment)
             }
             .task {
-                if dots.isEmpty {
-                    dots = await Task.detached {
-                        guard let shapes = try? WorldMapShapes() else { return [] }
-                        return WorldDotGrid.compute(shapes: shapes)
-                    }.value
+                if shapes == nil {
+                    shapes = try? await Task.detached { try WorldMapShapes() }.value
                 }
             }
-        }
-    }
-
-    // MARK: - The constellation
-
-    private func constellation(visited: [String: Int], home: String?) -> some View {
-        Canvas { context, size in
-            guard !dots.isEmpty else { return }
-            let maxDays = visited.values.max() ?? 1
-            let radius = min(size.width / 66 * 0.34, size.height / 30 * 0.34)
-
-            // Pass 1: soft glow halos under lit dots.
-            for dot in dots {
-                let isHome = dot.code == home
-                guard isHome || visited[dot.code] != nil else { continue }
-                let center = point(for: dot, in: size)
-                let halo = isHome ? radius * 3.2 : radius * 2.4
-                let color = isHome ? Theme.amber : Theme.aurora1
-                context.fill(
-                    Path(ellipseIn: CGRect(
-                        x: center.x - halo, y: center.y - halo,
-                        width: halo * 2, height: halo * 2
-                    )),
-                    with: .color(color.opacity(0.10))
-                )
-            }
-
-            // Pass 2: the dots themselves.
-            for dot in dots {
-                let center = point(for: dot, in: size)
-                let color: Color
-                var dotRadius = radius
-                if dot.code == home {
-                    color = Theme.amber
-                    dotRadius = radius * 1.15
-                } else if let days = visited[dot.code] {
-                    let ratio = Double(days) / Double(maxDays)
-                    color = Theme.aurora1.opacity(0.55 + 0.45 * ratio)
-                    dotRadius = radius * 1.05
-                } else {
-                    color = Theme.ink3.opacity(0.30)
-                }
-                context.fill(
-                    Path(ellipseIn: CGRect(
-                        x: center.x - dotRadius, y: center.y - dotRadius,
-                        width: dotRadius * 2, height: dotRadius * 2
-                    )),
-                    with: .color(color)
-                )
-            }
-        }
-    }
-
-    private func point(for dot: WorldDotGrid.Dot, in size: CGSize) -> CGPoint {
-        CGPoint(x: CGFloat(dot.unitX) * size.width, y: CGFloat(dot.unitY) * size.height)
-    }
-
-    private func summary(stats: TravelStats) -> some View {
-        let percent = Int((Double(stats.countriesVisited) / 195.0 * 100).rounded())
-        return VStack(spacing: 2) {
-            Text("\(stats.countriesVisited) countries · \(percent)% of the world")
-                .font(.system(size: 14, weight: .bold))
-                .foregroundStyle(Theme.ink)
-            Text("\(stats.travelDays) travel days · \(stats.borderCrossings) crossings")
-                .font(.system(size: 11.5))
-                .foregroundStyle(Theme.ink3)
         }
     }
 
