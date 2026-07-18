@@ -106,4 +106,14 @@ Tick them off before moving on.
       by iOS; same-day is normal, instant is not)
 - [ ] Category chips (Culture / Outdoors / Food…) filter the list
 
+## M8 — Map
+
+- [ ] Map tab opens on a realistic 3D globe centered on your home country
+- [ ] Every visited country is shaded (home in amber, others in teal scaled
+      by days spent); dashed flight arcs radiate from home to your countries
+- [ ] Pinch/rotate the globe — it's fully interactive; zooming in transitions
+      to satellite imagery
+- [ ] The pill shows "N countries · N% of the world"
+- [ ] Segmented → Countries: ranked list, tap-through to country detail
+
 *(Later milestones will append their checklists here.)*
