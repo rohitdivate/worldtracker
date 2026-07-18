@@ -24,16 +24,28 @@ final class AppDelegate: NSObject, UIApplicationDelegate {
     }
 }
 
+extension Notification.Name {
+    /// Posted when a notification tap should switch tabs; userInfo["tab"]
+    /// carries the same host strings as the beenthere:// widget links.
+    static let openTabDeepLink = Notification.Name("beenthere.openTab")
+}
+
 extension AppDelegate: UNUserNotificationCenterDelegate {
-    /// The Jan-1 reveal tap → straight into Wrapped.
+    /// Notification taps: "wrapped" → straight into the story, anything else
+    /// ("map", "calendar", …) → switch to that tab.
     func userNotificationCenter(
         _ center: UNUserNotificationCenter,
         didReceive response: UNNotificationResponse
     ) async {
         let info = response.notification.request.content.userInfo
-        if info["deeplink"] as? String == "wrapped" {
-            await MainActor.run {
+        guard let link = info["deeplink"] as? String else { return }
+        await MainActor.run {
+            if link == "wrapped" {
                 NotificationCenter.default.post(name: .openWrapped, object: nil)
+            } else {
+                NotificationCenter.default.post(
+                    name: .openTabDeepLink, object: nil, userInfo: ["tab": link]
+                )
             }
         }
     }

@@ -88,16 +88,31 @@ enum WorldTrackerSchemaV2: VersionedSchema {
     }
 }
 
+/// V3: scanGeneration on CountryDayFact/PhotoEvidence + richer
+/// BackfillCheckpoint (generation-swap backfill). Additive, defaulted.
+enum WorldTrackerSchemaV3: VersionedSchema {
+    static var versionIdentifier: Schema.Version { Schema.Version(3, 0, 0) }
+    static var models: [any PersistentModel.Type] {
+        [CountryDayFact.self, DayAnnotation.self, PhotoEvidence.self,
+         Place.self, PlaceVisit.self,
+         LocationSample.self, BackfillCheckpoint.self, ImportCheckpoint.self]
+    }
+}
+
 enum WorldTrackerMigrationPlan: SchemaMigrationPlan {
     static var schemas: [any VersionedSchema.Type] {
-        [WorldTrackerSchemaV1.self, WorldTrackerSchemaV2.self]
+        [WorldTrackerSchemaV1.self, WorldTrackerSchemaV2.self, WorldTrackerSchemaV3.self]
     }
     static var stages: [MigrationStage] {
         [
             MigrationStage.lightweight(
                 fromVersion: WorldTrackerSchemaV1.self,
                 toVersion: WorldTrackerSchemaV2.self
-            )
+            ),
+            MigrationStage.lightweight(
+                fromVersion: WorldTrackerSchemaV2.self,
+                toVersion: WorldTrackerSchemaV3.self
+            ),
         ]
     }
 }

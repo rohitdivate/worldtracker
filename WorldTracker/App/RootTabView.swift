@@ -27,12 +27,23 @@ struct RootTabView: View {
             .onChange(of: scenePhase) { _, phase in
                 if phase == .active {
                     celebration.presentIfPossible()
+                    AppContainer.shared.backfillEngine.resumeIfPaused()
                     Task {
                         if await AlwaysPromptGate.shouldOffer() {
                             AlwaysPromptGate.recordShown()
                             showAlwaysUpgrade = true
                         }
                     }
+                }
+            }
+            .onReceive(NotificationCenter.default.publisher(for: .openTabDeepLink)) { note in
+                switch note.userInfo?["tab"] as? String {
+                case "calendar": selectedTab = .calendar
+                case "map": selectedTab = .map
+                case "places": selectedTab = .places
+                case "settings": selectedTab = .settings
+                case .some: selectedTab = .home
+                case nil: break
                 }
             }
             .sheet(isPresented: $showAlwaysUpgrade) {

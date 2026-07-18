@@ -16,23 +16,57 @@ final class NotificationScheduler {
 
     private init() {}
 
+    /// Provisional-auth dance shared by every notification: silently
+    /// authorized, never a dialog. Returns false when delivery is impossible.
+    private func ensureAuthorized(_ center: UNUserNotificationCenter) async -> Bool {
+        let settings = await center.notificationSettings()
+        switch settings.authorizationStatus {
+        case .notDetermined:
+            return (try? await center.requestAuthorization(
+                options: [.alert, .sound, .provisional]
+            )) ?? false
+        case .denied:
+            return false
+        default:
+            return true
+        }
+    }
+
+    /// A backgrounded Time Machine scan finished — land the payoff.
+    /// Gated by "notifyBackfillDone" (default on).
+    func notifyBackfillComplete(days: Int, countries: Int) {
+        let defaults = UserDefaults.standard
+        if defaults.object(forKey: "notifyBackfillDone") != nil,
+           !defaults.bool(forKey: "notifyBackfillDone") { return }
+        guard days > 0 else { return }
+
+        Task {
+            let center = UNUserNotificationCenter.current()
+            guard await ensureAuthorized(center) else { return }
+
+            let content = UNMutableNotificationContent()
+            content.title = "Your history is rebuilt ✨"
+            content.body = countries == 1
+                ? "\(days) travel days reconstructed — your map is ready."
+                : "\(days) travel days across \(countries) countries — your map is lit."
+            content.sound = .default
+            content.userInfo = ["deeplink": "map"]
+
+            try? await center.add(
+                UNNotificationRequest(
+                    identifier: "backfill-done",
+                    content: content,
+                    trigger: nil
+                )
+            )
+        }
+    }
+
     /// Idempotent: same identifier replaces any previous request.
     func scheduleWrappedReveal() {
         Task {
             let center = UNUserNotificationCenter.current()
-            let settings = await center.notificationSettings()
-
-            switch settings.authorizationStatus {
-            case .notDetermined:
-                let granted = (try? await center.requestAuthorization(
-                    options: [.alert, .sound, .provisional]
-                )) ?? false
-                guard granted else { return }
-            case .denied:
-                return
-            default:
-                break
-            }
+            guard await ensureAuthorized(center) else { return }
 
             let content = UNMutableNotificationContent()
             content.title = "Your Year in Travel is ready ✨"

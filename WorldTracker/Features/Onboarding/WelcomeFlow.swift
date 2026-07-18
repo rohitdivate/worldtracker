@@ -233,12 +233,19 @@ struct WelcomeFlow: View {
             TimeMachineProgressView(progress: engine.progress)
                 .padding(.horizontal, 18)
             Spacer()
-            if case .done(let days, let photos) = engine.progress.stage {
+            if case .done(let days, let photos, let countries) = engine.progress.stage {
                 VStack(spacing: 10) {
-                    Text("✨ \(days) travel days reconstructed from \(photos.formatted()) photos")
-                        .font(.system(size: 15, weight: .semibold))
-                        .foregroundStyle(Theme.ink)
-                        .multilineTextAlignment(.center)
+                    if days == 0 && photos > 0 {
+                        Text("None of your \(photos.formatted()) photos carry location data — you can import Google Timeline anytime in Settings → Import.")
+                            .font(.system(size: 14))
+                            .foregroundStyle(Theme.ink2)
+                            .multilineTextAlignment(.center)
+                    } else {
+                        Text("✨ \(days) travel days · \(countries) countries — reconstructed from \(photos.formatted()) photos")
+                            .font(.system(size: 15, weight: .semibold))
+                            .foregroundStyle(Theme.ink)
+                            .multilineTextAlignment(.center)
+                    }
                     Button {
                         finishOnboarding()
                     } label: {
@@ -251,6 +258,25 @@ struct WelcomeFlow: View {
                     }
                 }
                 .padding(.horizontal, 24)
+                .padding(.bottom, 26)
+            } else if case .denied = engine.progress.stage {
+                VStack(spacing: 10) {
+                    Text("Photo access is off. You can turn it on in iOS Settings and re-run the scan from Settings → Time Machine.")
+                        .font(.system(size: 13))
+                        .foregroundStyle(Theme.ink2)
+                        .multilineTextAlignment(.center)
+                        .padding(.horizontal, 24)
+                    Button("Open iOS Settings") {
+                        openSystemSettings()
+                    }
+                    .font(.system(size: 15, weight: .bold))
+                    .foregroundStyle(Theme.aurora1)
+                    Button("Continue anyway") {
+                        finishOnboarding()
+                    }
+                    .font(.system(size: 14, weight: .semibold))
+                    .foregroundStyle(Theme.ink2)
+                }
                 .padding(.bottom, 26)
             } else if case .failed = engine.progress.stage {
                 Button("Continue anyway") {

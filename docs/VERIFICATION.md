@@ -304,3 +304,37 @@ Tick them off before moving on.
       chip (or the country itself) flies over and opens the stat card
 - [ ] Fly-in from space on open; pulsing home beacon; layered arcs
 - [ ] Countries mode = the day-count ledger (bars, trips, since-dates)
+
+## Y1 — Truthful tracking & home (v4)
+
+- [ ] Fresh install: onboarding asks "Where do you live?" with device-region
+      and timezone-country chips + full picker; picking one makes a home-only
+      day count 0 travel days on Home
+- [ ] Permission step copy is honest ("logs while you use it — we'll offer
+      background later"); no Always request during onboarding
+- [ ] Next day (or after the first tracked sample), reopening the app offers
+      the Always upgrade sheet — at most twice ever, ≥7 days apart, never on
+      install day, never over a celebration/backfill/import
+- [ ] "Tracking limited" pill under the Today card whenever auth is
+      While-Using or tracking is off; tapping routes to the upgrade sheet or
+      iOS Settings once the one-shot system prompt is spent
+- [ ] Settings → Tracking health upgrade button uses the same spent-prompt
+      routing
+
+## Y2 — Crash-safe backfill + payoff (v4)
+
+- [ ] Kill the app mid-scan → relaunch: no history lost, checkpoint shows
+      "Scan interrupted … nothing was lost" with Resume; foregrounding
+      auto-resumes and the flag stream re-seeds
+- [ ] Old photo-derived days remain visible in Calendar/Map during a re-scan
+      (generation swap — the wipe happens only at the end)
+- [ ] Backgrounding mid-scan: scan continues briefly (background grace), then
+      pauses cleanly; returning resumes without re-processing photos
+- [ ] Done card: "N travel days · M countries" + flag cascade, in both
+      Settings → Time Machine and onboarding
+- [ ] Zero-geotag library: distinct copy + "Try Google Timeline import" CTA
+      (Settings) / Settings-pointer copy (onboarding)
+- [ ] Photo permission denied → "Open iOS Settings" button in both surfaces
+- [ ] Scan finishing while app is backgrounded posts a local notification
+      ("backfill-done", deep-links to Map); store migrates V2→V3 in place
+      with all existing data intact (manual device check)

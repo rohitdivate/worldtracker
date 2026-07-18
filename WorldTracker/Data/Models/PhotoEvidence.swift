@@ -17,6 +17,8 @@ final class PhotoEvidence {
     var countryCode: String?
     var city: String?
     var timeZoneID: String?
+    /// Backfill generation (see CountryDayFact.scanGeneration).
+    var scanGeneration: Int = 0
 
     init(
         epochDay: Int,
@@ -44,12 +46,19 @@ final class PhotoEvidence {
 @Model
 final class BackfillCheckpoint {
     var id: UUID = UUID()
-    /// idle | running | done | failed
+    /// idle | running | paused | swapping | done | failed
     var statusRaw: String = "idle"
     var processedCount: Int = 0
     var totalCount: Int = 0
     var reconstructedDays: Int = 0
     var updatedAt: Date = Date()
+    /// Generation currently being written (or last completed).
+    var generation: Int = 0
+    /// creationDate of the last COMMITTED asset — the exact resume point.
+    var cursorTimestamp: Date?
+    var countriesCount: Int = 0
+    /// ≤24 country codes, comma-separated — feeds the done-card cascade.
+    var flagsCSV: String = ""
 
     init() {
         self.id = UUID()

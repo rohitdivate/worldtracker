@@ -68,5 +68,9 @@ final class AppContainer {
         Task.detached(priority: .utility) {
             _ = try? await provider.lookup()
         }
+
+        // A crash or eviction mid-backfill leaves a live checkpoint behind;
+        // finish an interrupted swap and mark stale scans resumable.
+        backfillEngine.recoverIfNeeded()
     }
 }

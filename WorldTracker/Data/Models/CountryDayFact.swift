@@ -20,6 +20,10 @@ final class CountryDayFact {
     var firstSeenAt: Date?
     var lastSeenAt: Date?
     var createdAt: Date = Date()
+    /// Photo-backfill generation this row belongs to (0 = pre-generation
+    /// data or non-photo sources). The generation-swap re-scan writes G+1
+    /// rows alongside G and deletes G only after a complete scan.
+    var scanGeneration: Int = 0
 
     init(
         epochDay: Int,

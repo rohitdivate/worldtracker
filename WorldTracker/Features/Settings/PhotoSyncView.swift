@@ -7,7 +7,7 @@ struct PhotoSyncView: View {
     private var store: LedgerStore { AppContainer.shared.ledgerStore }
     private var progress: BackfillProgress { engine.progress }
 
-    @State private var lastSync: (status: String, days: Int, photos: Int, at: Date)?
+    @State private var lastSync: BackfillCheckpointSnapshot?
 
     var body: some View {
         ZStack {
@@ -19,10 +19,14 @@ struct PhotoSyncView: View {
                         TimeMachineProgressView(progress: progress)
                     } else {
                         header
-                        if case .done(let days, let photos) = progress.stage {
-                            doneCard(days: days, photos: photos)
+                        if case .done(let days, let photos, let countries) = progress.stage {
+                            doneCard(days: days, photos: photos, countries: countries)
+                        } else if case .denied = progress.stage {
+                            deniedCard
                         } else if case .failed(let message) = progress.stage {
                             failedCard(message)
+                        } else if let lastSync, lastSync.status == "paused" {
+                            pausedCard(lastSync)
                         } else if let lastSync, lastSync.status == "done" {
                             lastSyncCard(lastSync)
                         }
@@ -36,7 +40,7 @@ struct PhotoSyncView: View {
             }
         }
         .navigationTitle("Time Machine")
-        .task {
+        .task(id: progress.stage) {
             lastSync = await engine.lastSync()
         }
     }
@@ -128,7 +132,7 @@ struct PhotoSyncView: View {
         Button {
             engine.run()
         } label: {
-            Text(lastSync?.status == "done" ? "Re-sync from photos" : "Rebuild my history")
+            Text(startButtonTitle)
                 .font(.system(size: 16, weight: .bold))
                 .foregroundStyle(Theme.sky)
                 .frame(maxWidth: .infinity)
@@ -137,18 +141,91 @@ struct PhotoSyncView: View {
         }
     }
 
-    private func doneCard(days: Int, photos: Int) -> some View {
-        VStack(spacing: 6) {
-            Text("✨ Re-sync complete")
-                .font(.system(size: 16, weight: .bold))
-                .foregroundStyle(Theme.ink)
-            Text("Reconstructed \(days) travel days from \(photos) photos. Your calendar and map are up to date.")
-                .font(.system(size: 13))
-                .foregroundStyle(Theme.ink2)
-                .multilineTextAlignment(.center)
+    private var startButtonTitle: String {
+        switch lastSync?.status {
+        case "paused": return "Start over instead"
+        case "done": return "Re-sync from photos"
+        default: return "Rebuild my history"
+        }
+    }
+
+    @ViewBuilder
+    private func doneCard(days: Int, photos: Int, countries: Int) -> some View {
+        if days == 0 && photos > 0 {
+            VStack(spacing: 10) {
+                Text("No locations in your photos")
+                    .font(.system(size: 16, weight: .bold))
+                    .foregroundStyle(Theme.ink)
+                Text("None of your \(photos.formatted()) photos carry location data — usually a camera setting, or a library imported without metadata. Google Timeline is the other great source of past travel.")
+                    .font(.system(size: 13))
+                    .foregroundStyle(Theme.ink2)
+                    .multilineTextAlignment(.center)
+                NavigationLink {
+                    ImportTimelineView()
+                } label: {
+                    Text("Try Google Timeline import")
+                        .font(.system(size: 14, weight: .bold))
+                        .foregroundStyle(Theme.sky)
+                        .frame(maxWidth: .infinity)
+                        .frame(height: 44)
+                        .background(Theme.auroraGradient, in: RoundedRectangle(cornerRadius: 13))
+                }
+            }
+            .padding(16)
+            .frame(maxWidth: .infinity)
+            .nightCard()
+        } else {
+            VStack(spacing: 8) {
+                Text("✨ Re-sync complete")
+                    .font(.system(size: 16, weight: .bold))
+                    .foregroundStyle(Theme.ink)
+                Text("**\(days)** travel days · **\(countries)** countries — reconstructed from \(photos.formatted()) photos.")
+                    .font(.system(size: 13))
+                    .foregroundStyle(Theme.ink2)
+                    .multilineTextAlignment(.center)
+                flagCascade
+            }
+            .padding(16)
+            .frame(maxWidth: .infinity)
+            .nightCard()
+        }
+    }
+
+    /// The wow row: every country the scan surfaced, from the checkpoint.
+    @ViewBuilder
+    private var flagCascade: some View {
+        if let flags = lastSync?.flags, !flags.isEmpty {
+            LazyVGrid(columns: Array(repeating: GridItem(.flexible(), spacing: 6), count: 8), spacing: 6) {
+                ForEach(flags, id: \.self) { code in
+                    Text(flagEmoji(code)).font(.system(size: 22))
+                }
+            }
+            .padding(.top, 2)
+        }
+    }
+
+    private var deniedCard: some View {
+        VStack(spacing: 10) {
+            Label {
+                Text("Photo access is off, so there's nothing to scan.")
+                    .font(.system(size: 13))
+                    .foregroundStyle(Theme.ink2)
+            } icon: {
+                Image(systemName: "exclamationmark.triangle.fill").foregroundStyle(Theme.alert)
+            }
+            Button {
+                openSystemSettings()
+            } label: {
+                Text("Open iOS Settings")
+                    .font(.system(size: 14, weight: .bold))
+                    .foregroundStyle(Theme.sky)
+                    .frame(maxWidth: .infinity)
+                    .frame(height: 44)
+                    .background(Theme.auroraGradient, in: RoundedRectangle(cornerRadius: 13))
+            }
         }
         .padding(16)
-        .frame(maxWidth: .infinity)
+        .frame(maxWidth: .infinity, alignment: .leading)
         .nightCard()
     }
 
@@ -163,13 +240,38 @@ struct PhotoSyncView: View {
         .nightCard()
     }
 
-    private func lastSyncCard(_ sync: (status: String, days: Int, photos: Int, at: Date)) -> some View {
+    private func pausedCard(_ sync: BackfillCheckpointSnapshot) -> some View {
+        VStack(spacing: 10) {
+            Label {
+                Text("Scan interrupted at \(sync.processed.formatted()) of \(sync.total.formatted()) photos — nothing was lost.")
+                    .font(.system(size: 13))
+                    .foregroundStyle(Theme.ink2)
+            } icon: {
+                Image(systemName: "pause.circle.fill").foregroundStyle(Theme.amber)
+            }
+            Button {
+                engine.resumeIfPaused()
+            } label: {
+                Text("Resume scan")
+                    .font(.system(size: 14, weight: .bold))
+                    .foregroundStyle(Theme.sky)
+                    .frame(maxWidth: .infinity)
+                    .frame(height: 44)
+                    .background(Theme.auroraGradient, in: RoundedRectangle(cornerRadius: 13))
+            }
+        }
+        .padding(16)
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .nightCard()
+    }
+
+    private func lastSyncCard(_ sync: BackfillCheckpointSnapshot) -> some View {
         LabeledContent {
             Text(sync.at.formatted(.relative(presentation: .named)))
                 .font(.system(size: 12))
                 .foregroundStyle(Theme.ink3)
         } label: {
-            Text("Last scan: \(sync.days) days from \(sync.photos) photos")
+            Text("Last scan: \(sync.days) days · \(sync.countries) countries from \(sync.processed.formatted()) photos")
                 .font(.system(size: 13))
                 .foregroundStyle(Theme.ink2)
         }
