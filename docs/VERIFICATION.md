@@ -285,3 +285,13 @@ Tick them off before moving on.
       stretched
 - [ ] Country picker: "Yours" chip row (home + most-visited) sits on top
       for one-tap picking
+
+## X3 — Constellation map (replaces the globe)
+
+- [ ] Map tab: dot-matrix world in Night Flight tones — no satellite
+      imagery; visited countries glow teal by days, home amber with halo
+- [ ] Day-count ledger under the map: flag, aurora bar, big day number,
+      "N trips · last ⟨date⟩" (home shows "Living here since ⟨move date⟩")
+- [ ] Tap a card → country detail; summary line shows countries · % world
+      · travel days · crossings
+- [ ] Your World widget renders the identical dot world (shared painter)

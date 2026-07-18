@@ -6,101 +6,15 @@ import WorldTrackerKit
 /// countries you've been to glow, home burns amber. Painted offline from
 /// the Kit's bundled 110m outlines — no network, ever.
 
-/// Precomputed once per widget process: which country owns each grid dot.
+/// Precomputed once per widget process, from the shared Kit painter.
 private enum DotGrid {
-    struct Dot {
-        let unitX: CGFloat
-        let unitY: CGFloat
-        let code: String
-    }
-
     static let columns = 66
     static let rows = 30
-    // Crop poles like every world dot-map does.
-    static let latMax = 74.0
-    static let latMin = -56.0
 
-    static let dots: [Dot] = compute()
-
-    private struct CountryRings {
-        let code: String
-        let minLat: Double
-        let maxLat: Double
-        let minLon: Double
-        let maxLon: Double
-        let rings: [[GeoPoint]]
-    }
-
-    private static func compute() -> [Dot] {
+    static let dots: [WorldDotGrid.Dot] = {
         guard let shapes = try? WorldMapShapes() else { return [] }
-
-        var index: [CountryRings] = []
-        for code in shapes.countryCodes {
-            let rings = shapes.rings(forCountry: code)
-            guard !rings.isEmpty else { continue }
-            var minLat = 90.0, maxLat = -90.0, minLon = 180.0, maxLon = -180.0
-            for ring in rings {
-                for point in ring {
-                    minLat = min(minLat, point.latitude)
-                    maxLat = max(maxLat, point.latitude)
-                    minLon = min(minLon, point.longitude)
-                    maxLon = max(maxLon, point.longitude)
-                }
-            }
-            index.append(CountryRings(
-                code: code,
-                minLat: minLat, maxLat: maxLat, minLon: minLon, maxLon: maxLon,
-                rings: rings
-            ))
-        }
-
-        var result: [Dot] = []
-        for row in 0..<rows {
-            let lat = latMax - (Double(row) + 0.5) / Double(rows) * (latMax - latMin)
-            for column in 0..<columns {
-                let lon = -180.0 + (Double(column) + 0.5) / Double(columns) * 360.0
-                if let code = owner(lat: lat, lon: lon, index: index) {
-                    result.append(Dot(
-                        unitX: CGFloat(column) / CGFloat(columns - 1),
-                        unitY: CGFloat(row) / CGFloat(rows - 1),
-                        code: code
-                    ))
-                }
-            }
-        }
-        return result
-    }
-
-    private static func owner(lat: Double, lon: Double, index: [CountryRings]) -> String? {
-        for entry in index {
-            guard lat >= entry.minLat, lat <= entry.maxLat,
-                  lon >= entry.minLon, lon <= entry.maxLon else { continue }
-            // Even-odd across every ring: holes cancel naturally.
-            var inside = false
-            for ring in entry.rings where pointInRing(ring, lat: lat, lon: lon) {
-                inside.toggle()
-            }
-            if inside { return entry.code }
-        }
-        return nil
-    }
-
-    private static func pointInRing(_ ring: [GeoPoint], lat: Double, lon: Double) -> Bool {
-        guard ring.count > 2 else { return false }
-        var inside = false
-        var j = ring.count - 1
-        for i in 0..<ring.count {
-            let a = ring[i]
-            let b = ring[j]
-            if (a.latitude > lat) != (b.latitude > lat) {
-                let crossing = (b.longitude - a.longitude)
-                    * (lat - a.latitude) / (b.latitude - a.latitude) + a.longitude
-                if lon < crossing { inside.toggle() }
-            }
-            j = i
-        }
-        return inside
-    }
+        return WorldDotGrid.compute(shapes: shapes, columns: columns, rows: rows)
+    }()
 }
 
 struct YourWorldWidgetView: View {
@@ -174,8 +88,8 @@ struct YourWorldWidgetView: View {
                     color = WTheme.ink3.opacity(0.32)
                 }
                 let center = CGPoint(
-                    x: dot.unitX * size.width,
-                    y: dot.unitY * size.height
+                    x: CGFloat(dot.unitX) * size.width,
+                    y: CGFloat(dot.unitY) * size.height
                 )
                 context.fill(
                     Path(ellipseIn: CGRect(
