@@ -120,6 +120,14 @@ one capability, added to both targets:
 Without the capability the app still works fine — the widget just shows its
 "open the app once" placeholder.
 
+**If widgets show no data:**
+- Settings → Data → **Widgets** row inside the app tells you exactly what's
+  wrong: "App Group missing" means the capability isn't on both targets;
+  "Synced HH:MM" means the data pipe is fine.
+- After adding the capability, press ▶ once more (profiles regenerate),
+  open the app once, then remove and re-add the widget.
+- Free Personal Teams DO support App Groups — no paid account needed here.
+
 ## 9. Troubleshooting
 
 | Problem | Fix |

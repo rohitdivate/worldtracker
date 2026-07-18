@@ -1,4 +1,5 @@
 import Foundation
+import UIKit
 
 /// Mirror of the app's SharedSnapshot
 /// (WorldTracker/Services/Widgets/SharedSnapshot.swift) — keep in sync.
@@ -7,6 +8,13 @@ struct WidgetSnapshot: Codable {
     struct CountryDays: Codable {
         let code: String
         let days: Int
+    }
+
+    struct OnThisDayEntry: Codable {
+        let yearsAgo: Int
+        let countryCode: String?
+        let city: String?
+        let hasPhoto: Bool
     }
 
     var generatedAt: Date
@@ -18,6 +26,10 @@ struct WidgetSnapshot: Codable {
     var travelDaysThisYear: Int
     var homeCountry: String?
     var countries: [CountryDays]
+    var travelDayFlags: [Bool]?
+    var onThisDay: [OnThisDayEntry]?
+    var lastNewCountryDay: Int?
+    var allTimeCountries: Int?
 }
 
 extension WidgetSnapshot {
@@ -37,7 +49,14 @@ extension WidgetSnapshot {
             .init(code: "ES", days: 9),
             .init(code: "FR", days: 8),
             .init(code: "DK", days: 3),
-        ]
+        ],
+        travelDayFlags: (0..<200).map { (20..<29).contains($0) || (60..<74).contains($0) || (150..<161).contains($0) },
+        onThisDay: [
+            .init(yearsAgo: 2, countryCode: "JP", city: "Kyoto", hasPhoto: false),
+            .init(yearsAgo: 5, countryCode: "IT", city: "Rome", hasPhoto: false),
+        ],
+        lastNewCountryDay: nil,
+        allTimeCountries: 14
     )
 }
 
@@ -52,17 +71,38 @@ enum WidgetSnapshotReader {
         return "group." + appID
     }
 
+    static var containerURL: URL? {
+        FileManager.default.containerURL(forSecurityApplicationGroupIdentifier: appGroupID)
+    }
+
+    /// False = the App Groups capability isn't in this target's signing —
+    /// the one failure the widget itself can diagnose.
+    static var hasAppGroup: Bool { containerURL != nil }
+
     static func load() -> WidgetSnapshot? {
         guard
-            let url = FileManager.default
-                .containerURL(forSecurityApplicationGroupIdentifier: appGroupID)?
-                .appendingPathComponent("snapshot.json"),
+            let url = containerURL?.appendingPathComponent("snapshot.json"),
             let data = try? Data(contentsOf: url)
         else { return nil }
         let decoder = JSONDecoder()
         decoder.dateDecodingStrategy = .iso8601
         return try? decoder.decode(WidgetSnapshot.self, from: data)
     }
+
+    /// The On This Day photo exported by the app, if present.
+    static func onThisDayImage() -> UIImage? {
+        guard let url = containerURL?.appendingPathComponent("onthisday.jpg"),
+              let data = try? Data(contentsOf: url) else { return nil }
+        return UIImage(data: data)
+    }
+}
+
+/// Honest empty-state copy: a missing App Group and a not-yet-written
+/// snapshot are different problems with different fixes.
+var widgetEmptyMessage: String {
+    WidgetSnapshotReader.hasAppGroup
+        ? "Open Been There once to light this up"
+        : "Finish widget setup in Xcode — README §8 (App Groups)"
 }
 
 func widgetCountryName(_ code: String) -> String {

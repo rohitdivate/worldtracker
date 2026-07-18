@@ -8,7 +8,16 @@ import WorldTrackerKit
 /// sync (any location wake or foreground) simply starts it again.
 @MainActor
 enum TravelLiveActivityManager {
+    /// User master switch (Settings → "Trip banner"). Absent = on.
+    static var isEnabled: Bool {
+        UserDefaults.standard.object(forKey: "liveActivityEnabled") as? Bool ?? true
+    }
+
     static func sync(store: LedgerStore) {
+        guard isEnabled else {
+            endAll()
+            return
+        }
         guard ActivityAuthorizationInfo().areActivitiesEnabled else { return }
 
         let stay = store.currentStay()
@@ -32,11 +41,31 @@ enum TravelLiveActivityManager {
         )
         let content = ActivityContent(state: state, staleDate: nextMidnight())
 
-        if let activity = Activity<TravelActivityAttributes>.activities
-            .first(where: { $0.attributes.countryCode == stay.countryCode }) {
+        // Only a genuinely LIVE activity can be updated in place. A banner
+        // the user swiped away lingers in .activities as .dismissed —
+        // updating it is invisible, which would strand the feature forever.
+        let all = Activity<TravelActivityAttributes>.activities
+        let live = all.filter {
+            $0.activityState == .active || $0.activityState == .stale
+        }
+        let dead = all.filter {
+            $0.activityState != .active && $0.activityState != .stale
+        }
+        Task {
+            for activity in dead {
+                await activity.end(nil, dismissalPolicy: .immediate)
+            }
+        }
+
+        if let activity = live.first(where: { $0.attributes.countryCode == stay.countryCode }) {
             Task { await activity.update(content) }
         } else {
-            endAll()  // a border hop retires the previous country's banner
+            // A border hop retires the previous country's banner.
+            Task {
+                for activity in live {
+                    await activity.end(nil, dismissalPolicy: .immediate)
+                }
+            }
             let attributes = TravelActivityAttributes(countryCode: stay.countryCode)
             _ = try? Activity.request(
                 attributes: attributes,

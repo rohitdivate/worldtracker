@@ -129,6 +129,26 @@ struct SettingsView: View {
             }
             .tint(Theme.aurora1)
 
+            Toggle(isOn: Binding(
+                get: { TravelLiveActivityManager.isEnabled },
+                set: { enabled in
+                    UserDefaults.standard.set(enabled, forKey: "liveActivityEnabled")
+                    if enabled {
+                        TravelLiveActivityManager.sync(store: store)
+                    } else {
+                        TravelLiveActivityManager.endAll()
+                    }
+                }
+            )) {
+                VStack(alignment: .leading, spacing: 2) {
+                    Text("Trip banner")
+                    Text("Lock Screen & Dynamic Island while you're abroad. If you swipe it away, it returns on the next location update or app open.")
+                        .font(.footnote)
+                        .foregroundStyle(Theme.ink3)
+                }
+            }
+            .tint(Theme.aurora1)
+
             NavigationLink {
                 TrackingHealthView()
             } label: {
@@ -220,6 +240,30 @@ struct SettingsView: View {
             }
             .tint(Theme.aurora1)
 
+            Button {
+                SharedSnapshotStore.write(from: store)
+                HapticsDirector.shared.tick()
+            } label: {
+                HStack {
+                    Label {
+                        VStack(alignment: .leading, spacing: 2) {
+                            Text("Widgets").foregroundStyle(Theme.ink)
+                            Text(widgetStatusLine)
+                                .font(.footnote)
+                                .foregroundStyle(SharedSnapshotStore.hasAppGroup ? Theme.ink3 : Theme.amber)
+                        }
+                    } icon: {
+                        Image(systemName: SharedSnapshotStore.hasAppGroup
+                              ? "square.grid.2x2.fill" : "exclamationmark.triangle.fill")
+                            .foregroundStyle(SharedSnapshotStore.hasAppGroup ? Theme.aurora1 : Theme.amber)
+                    }
+                    Spacer()
+                    Text("Refresh")
+                        .font(.system(size: 13, weight: .semibold))
+                        .foregroundStyle(Theme.aurora1)
+                }
+            }
+
             if let url = csvURL {
                 ShareLink(item: url) {
                     Label {
@@ -256,6 +300,16 @@ struct SettingsView: View {
         } footer: {
             Text("Exports include every resolved day with provenance — days recorded by iPhone location add credibility with authorities.")
         }
+    }
+
+    private var widgetStatusLine: String {
+        guard SharedSnapshotStore.hasAppGroup else {
+            return "App Group missing — add the capability to both targets (README §8)"
+        }
+        if let last = SharedSnapshotStore.lastWrite {
+            return "Synced \(last.formatted(date: .omitted, time: .shortened))"
+        }
+        return "Not synced yet — tap Refresh"
     }
 
     private func regenerateExports() {

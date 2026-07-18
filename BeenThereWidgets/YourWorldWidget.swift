@@ -204,9 +204,10 @@ struct YourWorldWidgetView: View {
     private var empty: some View {
         VStack(spacing: 8) {
             Text("🌍").font(.system(size: 34))
-            Text("Open Been There once to paint your world")
+            Text(widgetEmptyMessage)
                 .font(.system(size: 12, weight: .semibold))
                 .foregroundStyle(WTheme.ink2)
+                .multilineTextAlignment(.center)
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity)
     }

@@ -113,9 +113,10 @@ struct YoureInWidgetView: View {
             Spacer()
             Text("🌍")
                 .font(.system(size: 30))
-            Text("Open the app once to light this up")
+            Text(widgetEmptyMessage)
                 .font(.system(size: 11, weight: .semibold))
                 .foregroundStyle(WTheme.ink2)
+                .minimumScaleFactor(0.8)
             Spacer()
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .leading)

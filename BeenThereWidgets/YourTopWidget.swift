@@ -76,7 +76,9 @@ struct YourTopWidgetView: View {
     private var empty: some View {
         VStack(spacing: 6) {
             Text("🌍").font(.system(size: 28))
-            Text("Your top countries appear here after your first tracked days")
+            Text(entry.snapshot == nil
+                 ? widgetEmptyMessage
+                 : "Your top countries appear here after your first tracked days")
                 .font(.system(size: 11, weight: .semibold))
                 .foregroundStyle(WTheme.ink2)
                 .multilineTextAlignment(.center)

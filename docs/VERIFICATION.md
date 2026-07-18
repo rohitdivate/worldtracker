@@ -254,3 +254,21 @@ Tick them off before moving on.
       slides up (days overall/this year, trips, Open → country screen);
       tap the ocean or an unvisited country to fly back out
 - [ ] Stats pill shows countries · % world and travel days · crossings
+
+## X — Widget sync, Live Activity restore, new widgets (v3.1)
+
+- [ ] Settings → Data → Widgets row: shows "App Group missing…" in amber
+      until the capability is on both targets; after that, "Synced HH:MM"
+      after tapping Refresh (or opening the app)
+- [ ] Widgets show a precise empty state: "Finish widget setup (README §8)"
+      without the App Group vs "Open Been There once" without data
+- [ ] Trip banner: Settings → Tracking → toggle off ends the Live Activity
+      immediately; on restarts it if you're abroad. Swipe the banner away →
+      it returns on the next location update or app open (dismissed-state fix)
+- [ ] On This Day (small/medium): your photo from this date years ago with
+      "City, Country"; medium shows other anniversaries as flag chips;
+      taps into Calendar
+- [ ] Travel Graph (medium): the year's dot grid — travel days lit, the
+      future faint; taps into Calendar
+- [ ] Momentum (small): days since your last NEW country (amber past 180)
+      + "N more to X% of the world"; taps into Map
