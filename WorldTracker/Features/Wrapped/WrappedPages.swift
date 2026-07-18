@@ -630,10 +630,13 @@ struct WrappedPhotosPage: View {
                         if let image = data.thumbnails[moment.assetID] {
                             let flip = easeOutCubic(stage(p, 0.15 + Double(index) * 0.07,
                                                           0.4 + Double(index) * 0.07))
-                            Image(uiImage: image)
-                                .resizable()
-                                .aspectRatio(1, contentMode: .fill)
-                                .frame(minWidth: 0)
+                            Color.clear
+                                .aspectRatio(1, contentMode: .fit)
+                                .overlay(
+                                    Image(uiImage: image)
+                                        .resizable()
+                                        .scaledToFill()
+                                )
                                 .clipShape(RoundedRectangle(cornerRadius: 12, style: .continuous))
                                 .overlay(alignment: .bottomLeading) {
                                     if let country = moment.countryCode {

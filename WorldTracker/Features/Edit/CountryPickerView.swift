@@ -21,6 +21,23 @@ struct CountryPickerView: View {
         UserDefaults.standard.stringArray(forKey: "recentCountries") ?? []
     }
 
+    /// Home + your most-visited countries — the ones you actually pick.
+    private var yours: [String] {
+        let store = AppContainer.shared.ledgerStore
+        let today = store.todayEpoch
+        let earliest = min(store.earliestDay ?? today, today)
+        let ranked = store.stats(in: earliest...today).daysPerCountry
+            .sorted { ($0.value, $1.key) > ($1.value, $0.key) }
+            .map(\.key)
+        var result: [String] = []
+        if let home = store.homeCountry { result.append(home) }
+        for code in ranked where !result.contains(code) {
+            result.append(code)
+            if result.count == 5 { break }
+        }
+        return result
+    }
+
     private var filtered: [String] {
         guard !query.isEmpty else { return Self.allCodes }
         return Self.allCodes.filter {
@@ -33,13 +50,20 @@ struct CountryPickerView: View {
         NavigationStack {
             List {
                 if query.isEmpty {
+                    if !yours.isEmpty {
+                        Section("Yours") {
+                            yourChips
+                                .listRowBackground(Color.clear)
+                                .listRowInsets(EdgeInsets())
+                        }
+                    }
                     if !recent.isEmpty {
                         Section("Recent") {
                             ForEach(recent, id: \.self, content: row)
                         }
                     }
                     Section("Popular") {
-                        ForEach(Self.popular, id: \.self, content: row)
+                        ForEach(Self.popular.filter { !yours.contains($0) }, id: \.self, content: row)
                     }
                 }
                 Section(query.isEmpty ? "All countries" : "Results") {
@@ -59,13 +83,52 @@ struct CountryPickerView: View {
         }
     }
 
+    /// Big one-tap chips: home first, then your most-visited.
+    private var yourChips: some View {
+        ScrollView(.horizontal, showsIndicators: false) {
+            HStack(spacing: 8) {
+                ForEach(yours, id: \.self) { code in
+                    Button {
+                        pick(code)
+                    } label: {
+                        HStack(spacing: 6) {
+                            Text(flagEmoji(code)).font(.system(size: 18))
+                            Text(countryName(code))
+                                .font(.system(size: 13, weight: .bold))
+                                .foregroundStyle(Theme.ink)
+                                .lineLimit(1)
+                            if code == AppContainer.shared.ledgerStore.homeCountry {
+                                Text("HOME")
+                                    .font(.system(size: 7, weight: .heavy, design: .monospaced))
+                                    .foregroundStyle(Theme.amber)
+                            }
+                        }
+                        .padding(.horizontal, 13)
+                        .padding(.vertical, 10)
+                        .background(
+                            Capsule().fill(Theme.card)
+                                .overlay(Capsule().strokeBorder(Theme.aurora1.opacity(0.4), lineWidth: 1))
+                        )
+                    }
+                    .buttonStyle(.plain)
+                }
+            }
+            .padding(.horizontal, 16)
+            .padding(.vertical, 6)
+        }
+    }
+
+    private func pick(_ code: String) {
+        var recents = recent.filter { $0 != code }
+        recents.insert(code, at: 0)
+        UserDefaults.standard.set(Array(recents.prefix(6)), forKey: "recentCountries")
+        onPick(code)
+        dismiss()
+    }
+
     private func row(_ code: String) -> some View {
         Button {
-            var recents = recent.filter { $0 != code }
-            recents.insert(code, at: 0)
-            UserDefaults.standard.set(Array(recents.prefix(6)), forKey: "recentCountries")
-            onPick(code)
-            dismiss()
+            pick(code)
         } label: {
             HStack(spacing: 12) {
                 Text(flagEmoji(code)).font(.system(size: 22))

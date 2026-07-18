@@ -73,17 +73,21 @@ struct HistoryView: View {
     private var calendarBody: some View {
         ScrollView {
             LazyVStack(spacing: 22) {
-                ForEach(months) { month in
+                legend
+                    .padding(.top, 4)
+                // Newest month first: "now" lives at the top, so the system
+                // double-tap-the-tab scroll-to-top gesture jumps to today —
+                // not to some EXIF-glitch month in the year 2000.
+                ForEach(months.reversed()) { month in
                     MonthGridView(month: month) { day in
                         selectedDay = SelectedDay(epochDay: day)
                     }
                 }
-                legend
-                    .padding(.bottom, 90)
+                Spacer(minLength: 90)
             }
             .padding(.horizontal, 16)
         }
-        .defaultScrollAnchor(.bottom)
+        .defaultScrollAnchor(.top)
     }
 
     /// Months from the earliest recorded fact (min 6 months back) to now.

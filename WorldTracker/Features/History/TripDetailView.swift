@@ -188,15 +188,19 @@ struct TripDetailView: View {
     private func photoTile(_ photo: TripPhoto) -> some View {
         ZStack(alignment: .bottomLeading) {
             if let image = thumbnails[photo.assetID] {
-                Image(uiImage: image)
-                    .resizable()
-                    .aspectRatio(1, contentMode: .fill)
-                    .frame(minWidth: 0)
+                // Crop into the square — never squash the photo itself.
+                Color.clear
+                    .aspectRatio(1, contentMode: .fit)
+                    .overlay(
+                        Image(uiImage: image)
+                            .resizable()
+                            .scaledToFill()
+                    )
                     .clipShape(RoundedRectangle(cornerRadius: 10, style: .continuous))
             } else {
                 RoundedRectangle(cornerRadius: 10, style: .continuous)
                     .fill(Theme.card)
-                    .aspectRatio(1, contentMode: .fill)
+                    .aspectRatio(1, contentMode: .fit)
             }
             if photo.photoCount > 1 {
                 Text("\(photo.photoCount)")

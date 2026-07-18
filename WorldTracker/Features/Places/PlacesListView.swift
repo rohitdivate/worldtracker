@@ -2,10 +2,15 @@ import SwiftUI
 import WorldTrackerKit
 
 /// The differentiator: not just countries — the market, the museum, the park.
-/// Grouped by country → city, filterable by category.
+/// Organized like the best saved-places UIs: search, category filter, sort,
+/// and collapsible country sections instead of one endless feed.
 struct PlacesListView: View {
     @State private var places: [PlaceSnapshot] = []
     @State private var filter: CategoryFilter = .all
+    @State private var sort: SortMode = .mostVisited
+    @State private var query = ""
+    @State private var expandedCountries: Set<String> = []
+    @State private var didSeedExpansion = false
 
     enum CategoryFilter: String, CaseIterable, Identifiable {
         case all = "✦ All"
@@ -30,6 +35,21 @@ struct PlacesListView: View {
         }
     }
 
+    enum SortMode: String, CaseIterable, Identifiable {
+        case mostVisited = "Most visited"
+        case recent = "Recently visited"
+        case alphabetical = "A to Z"
+
+        var id: String { rawValue }
+        var icon: String {
+            switch self {
+            case .mostVisited: return "flame"
+            case .recent: return "clock"
+            case .alphabetical: return "textformat.abc"
+            }
+        }
+    }
+
     var body: some View {
         NavigationStack {
             ZStack {
@@ -37,6 +57,7 @@ struct PlacesListView: View {
 
                 ScrollView {
                     VStack(alignment: .leading, spacing: 12) {
+                        summaryStrip
                         categoryBar
 
                         if filtered.isEmpty {
@@ -51,6 +72,21 @@ struct PlacesListView: View {
                 }
             }
             .navigationTitle("Places")
+            .searchable(text: $query, prompt: "Search places and cities")
+            .toolbar {
+                ToolbarItem(placement: .primaryAction) {
+                    Menu {
+                        Picker("Sort", selection: $sort) {
+                            ForEach(SortMode.allCases) { mode in
+                                Label(mode.rawValue, systemImage: mode.icon).tag(mode)
+                            }
+                        }
+                    } label: {
+                        Image(systemName: "arrow.up.arrow.down")
+                            .fontWeight(.semibold)
+                    }
+                }
+            }
             .navigationDestination(for: PlaceSnapshot.self) { place in
                 PlaceDetailView(place: place, onChanged: reload)
             }
@@ -59,8 +95,56 @@ struct PlacesListView: View {
         }
     }
 
+    // MARK: - Data shaping
+
     private var filtered: [PlaceSnapshot] {
-        places.filter { filter.matches($0.categoryRaw) }
+        var result = places.filter { filter.matches($0.categoryRaw) }
+        if !query.isEmpty {
+            result = result.filter { place in
+                place.name.localizedCaseInsensitiveContains(query)
+                    || (place.city?.localizedCaseInsensitiveContains(query) ?? false)
+                    || (place.countryCode.map { countryName($0) }?
+                        .localizedCaseInsensitiveContains(query) ?? false)
+            }
+        }
+        return result
+    }
+
+    private func sorted(_ list: [PlaceSnapshot]) -> [PlaceSnapshot] {
+        switch sort {
+        case .mostVisited:
+            return list.sorted { ($0.visitCount, $1.name) > ($1.visitCount, $0.name) }
+        case .recent:
+            return list.sorted { ($0.lastVisit ?? .distantPast) > ($1.lastVisit ?? .distantPast) }
+        case .alphabetical:
+            return list.sorted { $0.name < $1.name }
+        }
+    }
+
+    private var summaryStrip: some View {
+        let cities = Set(places.compactMap(\.city)).count
+        let countries = Set(places.compactMap(\.countryCode)).count
+        return HStack(spacing: 0) {
+            summaryTile(value: places.count, label: "PLACES")
+            summaryTile(value: cities, label: "CITIES")
+            summaryTile(value: countries, label: "COUNTRIES")
+        }
+        .padding(.vertical, 10)
+        .nightCard()
+    }
+
+    private func summaryTile(value: Int, label: String) -> some View {
+        VStack(spacing: 1) {
+            Text("\(value)")
+                .font(.system(size: 20, weight: .heavy, design: .rounded))
+                .foregroundStyle(Theme.auroraGradient)
+                .contentTransition(.numericText())
+            Text(label)
+                .font(.system(size: 8, weight: .semibold))
+                .tracking(1.2)
+                .foregroundStyle(Theme.ink3)
+        }
+        .frame(maxWidth: .infinity)
     }
 
     private var categoryBar: some View {
@@ -90,39 +174,81 @@ struct PlacesListView: View {
         }
     }
 
+    // MARK: - Collapsible country sections
+
     private var groupedList: some View {
-        // country → city → places
         let byCountry = Dictionary(grouping: filtered) { $0.countryCode ?? "??" }
         let countryOrder = byCountry.keys.sorted {
             (byCountry[$0]?.count ?? 0, $1) > (byCountry[$1]?.count ?? 0, $0)
         }
+        // Searching or filtering auto-expands — hidden matches are useless.
+        let forceExpanded = !query.isEmpty || filter != .all
 
         return ForEach(countryOrder, id: \.self) { country in
             let countryPlaces = byCountry[country] ?? []
-            let byCity = Dictionary(grouping: countryPlaces) { $0.city ?? "Elsewhere" }
-            let cityOrder = byCity.keys.sorted {
-                (byCity[$0]?.count ?? 0, $1) > (byCity[$1]?.count ?? 0, $0)
-            }
+            let isExpanded = forceExpanded || expandedCountries.contains(country)
 
-            ForEach(cityOrder, id: \.self) { city in
-                VStack(alignment: .leading, spacing: 8) {
-                    HStack(spacing: 8) {
-                        Text(flagEmoji(country)).font(.system(size: 15))
-                        Text(city)
+            VStack(alignment: .leading, spacing: 8) {
+                Button {
+                    withAnimation(.spring(duration: 0.35)) {
+                        if expandedCountries.contains(country) {
+                            expandedCountries.remove(country)
+                        } else {
+                            expandedCountries.insert(country)
+                        }
+                        persistExpansion()
+                    }
+                } label: {
+                    HStack(spacing: 10) {
+                        Text(flagEmoji(country)).font(.system(size: 20))
+                        Text(countryName(country))
                             .font(.system(size: 16, weight: .bold))
                             .foregroundStyle(Theme.ink)
-                        Text("\(byCity[city]?.count ?? 0) PLACES")
-                            .font(.system(size: 9, weight: .bold, design: .monospaced))
+                        Text("\(countryPlaces.count)")
+                            .font(.system(size: 11, weight: .heavy, design: .rounded))
+                            .foregroundStyle(Theme.aurora1)
+                            .padding(.horizontal, 7)
+                            .padding(.vertical, 2)
+                            .background(Theme.card, in: Capsule())
+                        Spacer()
+                        Image(systemName: "chevron.down")
+                            .font(.system(size: 12, weight: .semibold))
                             .foregroundStyle(Theme.ink3)
+                            .rotationEffect(.degrees(isExpanded ? 0 : -90))
                     }
-                    .padding(.top, 8)
+                    .padding(.vertical, 11)
+                    .padding(.horizontal, 13)
+                    .nightCard()
+                }
+                .buttonStyle(.plain)
 
-                    ForEach(byCity[city] ?? []) { place in
-                        NavigationLink(value: place) {
-                            PlaceRow(place: place)
-                        }
-                        .buttonStyle(.plain)
+                if isExpanded {
+                    citySections(for: countryPlaces)
+                        .padding(.leading, 4)
+                }
+            }
+        }
+    }
+
+    private func citySections(for countryPlaces: [PlaceSnapshot]) -> some View {
+        let byCity = Dictionary(grouping: countryPlaces) { $0.city ?? "Elsewhere" }
+        let cityOrder = byCity.keys.sorted {
+            (byCity[$0]?.count ?? 0, $1) > (byCity[$1]?.count ?? 0, $0)
+        }
+
+        return ForEach(cityOrder, id: \.self) { city in
+            VStack(alignment: .leading, spacing: 7) {
+                Text("\(city.uppercased()) · \(byCity[city]?.count ?? 0)")
+                    .font(.system(size: 10, weight: .bold, design: .monospaced))
+                    .tracking(0.8)
+                    .foregroundStyle(Theme.ink3)
+                    .padding(.top, 4)
+
+                ForEach(sorted(byCity[city] ?? [])) { place in
+                    NavigationLink(value: place) {
+                        PlaceRow(place: place)
                     }
+                    .buttonStyle(.plain)
                 }
             }
         }
@@ -134,10 +260,12 @@ struct PlacesListView: View {
                 .font(.system(size: 38))
                 .foregroundStyle(Theme.auroraGradient)
                 .symbolEffect(.breathe)
-            Text("No places yet")
+            Text(query.isEmpty ? "No places yet" : "No matches")
                 .font(.system(size: 18, weight: .bold, design: .rounded))
                 .foregroundStyle(Theme.ink)
-            Text("Spend 30+ minutes somewhere with the app installed, or run the photo Time Machine — the shops, parks and museums you visit will collect here, named automatically.")
+            Text(query.isEmpty
+                 ? "Spend 30+ minutes somewhere with the app installed, or run the photo Time Machine — the shops, parks and museums you visit will collect here, named automatically."
+                 : "Nothing matches \"\(query)\" in this category.")
                 .font(.system(size: 13))
                 .foregroundStyle(Theme.ink3)
                 .multilineTextAlignment(.center)
@@ -147,10 +275,34 @@ struct PlacesListView: View {
         .padding(.top, 90)
     }
 
+    // MARK: - State
+
     private func reload() {
         Task {
             places = await AppContainer.shared.placesEngine.allPlaces()
+            seedExpansionIfNeeded()
         }
+    }
+
+    /// First launch of the screen: restore the saved expansion, or expand
+    /// just the biggest country so the list opens organized, not endless.
+    private func seedExpansionIfNeeded() {
+        guard !didSeedExpansion else { return }
+        didSeedExpansion = true
+        if let saved = UserDefaults.standard.stringArray(forKey: "placesExpanded") {
+            expandedCountries = Set(saved)
+            return
+        }
+        let byCountry = Dictionary(grouping: places) { $0.countryCode ?? "??" }
+        if byCountry.count <= 2 {
+            expandedCountries = Set(byCountry.keys)
+        } else if let biggest = byCountry.max(by: { $0.value.count < $1.value.count }) {
+            expandedCountries = [biggest.key]
+        }
+    }
+
+    private func persistExpansion() {
+        UserDefaults.standard.set(Array(expandedCountries), forKey: "placesExpanded")
     }
 }
 

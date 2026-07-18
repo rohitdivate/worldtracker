@@ -272,3 +272,16 @@ Tick them off before moving on.
       future faint; taps into Calendar
 - [ ] Momentum (small): days since your last NEW country (amber past 180)
       + "N more to X% of the world"; taps into Map
+
+## X2 — On-device feedback round 2 (v3.2)
+
+- [ ] Places: summary strip (places/cities/countries), search bar finds by
+      name/city/country, sort menu (most visited / recent / A-Z), countries
+      collapse under tappable headers with counts (searching auto-expands);
+      expansion state survives relaunch
+- [ ] Calendar: newest month at the top — double-tapping the Calendar tab
+      jumps to TODAY, never to an EXIF-glitch month decades back
+- [ ] Trip detail + Wrapped photos: photos crop into their squares — never
+      stretched
+- [ ] Country picker: "Yours" chip row (home + most-visited) sits on top
+      for one-tap picking
