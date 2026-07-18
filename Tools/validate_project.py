@@ -152,7 +152,11 @@ def check_plists():
         def snapshot_fields(path):
             with open(path, encoding="utf-8") as f:
                 text = f.read()
-            return re.findall(r"^\s+(?:var|let) (\w+):", text, re.M)
+            # Only the snapshot struct itself — the files also hold
+            # readers/providers whose fields are not part of the contract.
+            m = re.search(r"struct (?:Shared|Widget)Snapshot: Codable \{(.*?)\n\}", text, re.S)
+            body = m.group(1) if m else ""
+            return re.findall(r"^\s+(?:var|let) (\w+):", body, re.M)
         app_fields = snapshot_fields(app_side)[:20]
         widget_fields = snapshot_fields(widget_side)[:20]
         if app_fields != widget_fields:

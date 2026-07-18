@@ -29,6 +29,17 @@ struct RootTabView: View {
             .fullScreenCover(isPresented: $showOnboarding) {
                 WelcomeFlow()
             }
+            .onOpenURL { url in
+                // beenthere://<tab> — the widgets' deep links.
+                guard url.scheme == "beenthere" else { return }
+                switch url.host() {
+                case "calendar": selectedTab = .calendar
+                case "map": selectedTab = .map
+                case "places": selectedTab = .places
+                case "settings": selectedTab = .settings
+                default: selectedTab = .home
+                }
+            }
             .overlay {
                 if let current = celebration.current {
                     NewCountryCelebrationView(

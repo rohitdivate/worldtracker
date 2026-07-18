@@ -4,36 +4,8 @@ import WorldTrackerKit
 
 /// "You're In" — the flag under your feet, day of stay, days this year.
 /// The approved small-widget design from the Night Flight widget deck.
-
-struct YoureInEntry: TimelineEntry {
-    let date: Date
-    let snapshot: WidgetSnapshot?
-}
-
-struct YoureInProvider: TimelineProvider {
-    func placeholder(in context: Context) -> YoureInEntry {
-        YoureInEntry(date: Date(), snapshot: .sample)
-    }
-
-    func getSnapshot(in context: Context, completion: @escaping (YoureInEntry) -> Void) {
-        let snapshot = context.isPreview
-            ? .sample
-            : (WidgetSnapshotReader.load() ?? .sample)
-        completion(YoureInEntry(date: Date(), snapshot: snapshot))
-    }
-
-    func getTimeline(in context: Context, completion: @escaping (Timeline<YoureInEntry>) -> Void) {
-        let entry = YoureInEntry(date: Date(), snapshot: WidgetSnapshotReader.load())
-        // Day counters change at midnight; the app pushes reloads for the rest.
-        let nextMidnight = Calendar.current
-            .startOfDay(for: Date())
-            .addingTimeInterval(24 * 60 * 60 + 60)
-        completion(Timeline(entries: [entry], policy: .after(nextMidnight)))
-    }
-}
-
 struct YoureInWidgetView: View {
-    var entry: YoureInEntry
+    var entry: SnapshotEntry
 
     var body: some View {
         Group {
@@ -46,6 +18,7 @@ struct YoureInWidgetView: View {
         .containerBackground(for: .widget) {
             WTheme.background
         }
+        .widgetURL(URL(string: "beenthere://home"))
     }
 
     private func content(snapshot: WidgetSnapshot, code: String) -> some View {
@@ -105,7 +78,7 @@ struct YoureInWidget: Widget {
     let kind = "YoureInWidget"
 
     var body: some WidgetConfiguration {
-        StaticConfiguration(kind: kind, provider: YoureInProvider()) { entry in
+        StaticConfiguration(kind: kind, provider: SnapshotProvider()) { entry in
             YoureInWidgetView(entry: entry)
         }
         .configurationDisplayName("You're In")

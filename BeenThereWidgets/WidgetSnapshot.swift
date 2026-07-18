@@ -68,3 +68,35 @@ enum WidgetSnapshotReader {
 func widgetCountryName(_ code: String) -> String {
     Locale.current.localizedString(forRegionCode: code) ?? code
 }
+
+// MARK: - Shared provider
+
+import WidgetKit
+
+struct SnapshotEntry: TimelineEntry {
+    let date: Date
+    let snapshot: WidgetSnapshot?
+}
+
+/// One provider for every snapshot-driven widget: entry now, refresh just
+/// after midnight (day counters roll); the app pushes reloads for the rest.
+struct SnapshotProvider: TimelineProvider {
+    func placeholder(in context: Context) -> SnapshotEntry {
+        SnapshotEntry(date: Date(), snapshot: .sample)
+    }
+
+    func getSnapshot(in context: Context, completion: @escaping (SnapshotEntry) -> Void) {
+        let snapshot = context.isPreview
+            ? .sample
+            : (WidgetSnapshotReader.load() ?? .sample)
+        completion(SnapshotEntry(date: Date(), snapshot: snapshot))
+    }
+
+    func getTimeline(in context: Context, completion: @escaping (Timeline<SnapshotEntry>) -> Void) {
+        let entry = SnapshotEntry(date: Date(), snapshot: WidgetSnapshotReader.load())
+        let nextMidnight = Calendar.current
+            .startOfDay(for: Date())
+            .addingTimeInterval(24 * 60 * 60 + 60)
+        completion(Timeline(entries: [entry], policy: .after(nextMidnight)))
+    }
+}

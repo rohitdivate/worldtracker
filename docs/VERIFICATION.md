@@ -191,3 +191,14 @@ Tick them off before moving on.
       the widget reflects the new data
 - [ ] Without the App Group capability the widget shows the "open the app
       once" placeholder instead of breaking
+
+## G2 — The widget family
+
+- [ ] Widget gallery shows four Been There widgets: You're In (small),
+      Countries (small), Your Top (medium), Your World (large)
+- [ ] Your World paints the dot-map offline — land dim, your countries
+      glowing teal by days spent, home amber; footer shows countries /
+      travel days / % of the world
+- [ ] Tap any widget → the app opens on the right tab (Your World → Map)
+- [ ] Log a new day (or change gap-fill in Settings) → widgets re-color
+      within a minute; they also roll over on their own at midnight
