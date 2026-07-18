@@ -35,8 +35,24 @@ def check_pbxproj():
         err("pbxproj: unbalanced parens")
 
     n_targets = len(re.findall(r"isa = PBXNativeTarget;", text))
-    if n_targets != 1:
-        err(f"pbxproj: expected exactly 1 native target, found {n_targets}")
+    if n_targets != 2:
+        err(f"pbxproj: expected exactly 2 native targets (app + widgets), found {n_targets}")
+
+    # --- Two-target invariants (app + widget extension) ---
+    if 'productType = "com.apple.product-type.app-extension"' not in text:
+        err("pbxproj: widget target must be product type app-extension")
+    if "BeenThereWidgets.appex in Embed Foundation Extensions" not in text:
+        err("pbxproj: appex not embedded in the app's Embed Foundation Extensions phase")
+    if "dstSubfolderSpec = 13;" not in text:
+        err("pbxproj: embed phase must copy into PlugIns (dstSubfolderSpec 13)")
+    if len(re.findall(r"APP_BUNDLE_ID = ", text)) < 2:
+        err("pbxproj: APP_BUNDLE_ID must be defined in both project-level configs")
+    if text.count('PRODUCT_BUNDLE_IDENTIFIER = "$(APP_BUNDLE_ID)";') != 2:
+        err("pbxproj: app target must use $(APP_BUNDLE_ID) in both configs")
+    if text.count('PRODUCT_BUNDLE_IDENTIFIER = "$(APP_BUNDLE_ID).widgets";') != 2:
+        err("pbxproj: widget target must use $(APP_BUNDLE_ID).widgets in both configs")
+    if "isa = PBXTargetDependency;" not in text:
+        err("pbxproj: app target must depend on the widget target")
 
     root_match = re.search(r"rootObject = ([0-9A-F]{24})", text)
     if not root_match:
@@ -106,6 +122,44 @@ def check_plists():
         ):
             if key not in body:
                 err(f"Info.plist missing {key}")
+
+    widget_plist = os.path.join(ROOT, "Config", "WidgetInfo.plist")
+    if not os.path.isfile(widget_plist):
+        err("Config/WidgetInfo.plist missing")
+    else:
+        try:
+            ET.parse(widget_plist)
+        except ET.ParseError as e:
+            err(f"WidgetInfo.plist invalid XML: {e}")
+        with open(widget_plist, encoding="utf-8") as f:
+            if "com.apple.widgetkit-extension" not in f.read():
+                err("WidgetInfo.plist missing widgetkit NSExtensionPointIdentifier")
+
+    # Both entitlements must share the same App Group.
+    for name in ("WorldTracker.entitlements", "BeenThereWidgets.entitlements"):
+        path = os.path.join(ROOT, "Config", name)
+        if not os.path.isfile(path):
+            err(f"Config/{name} missing")
+            continue
+        with open(path, encoding="utf-8") as f:
+            if "group.$(APP_BUNDLE_ID)" not in f.read():
+                err(f"{name} missing the group.$(APP_BUNDLE_ID) App Group")
+
+    # The two Codable snapshot shapes must stay field-for-field in sync.
+    app_side = os.path.join(ROOT, "WorldTracker", "Services", "Widgets", "SharedSnapshot.swift")
+    widget_side = os.path.join(ROOT, "BeenThereWidgets", "WidgetSnapshot.swift")
+    if os.path.isfile(app_side) and os.path.isfile(widget_side):
+        def snapshot_fields(path):
+            with open(path, encoding="utf-8") as f:
+                text = f.read()
+            return re.findall(r"^\s+(?:var|let) (\w+):", text, re.M)
+        app_fields = snapshot_fields(app_side)[:20]
+        widget_fields = snapshot_fields(widget_side)[:20]
+        if app_fields != widget_fields:
+            err(
+                "SharedSnapshot/WidgetSnapshot field mismatch: "
+                f"app={app_fields} widget={widget_fields}"
+            )
 
 
 def check_assets():

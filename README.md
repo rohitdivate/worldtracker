@@ -49,9 +49,15 @@ resolves the built-in `WorldTrackerKit` package.
 2. In the middle pane select the **WorldTracker** target, then the
    **Signing & Capabilities** tab.
 3. Tick **Automatically manage signing** and pick your **Team** (your Apple ID
-   — add it via Xcode → Settings → Accounts if the menu is empty).
-4. Change the **Bundle Identifier** from `com.example.worldtracker` to
-   something unique to you, e.g. `com.rohitdivate.beenthere`.
+   — add it via Xcode → Settings → Accounts if the menu is empty). Do the
+   same for the **BeenThereWidgets** target.
+4. Set your bundle identifier **in one place**: select the blue project icon
+   (not a target) → **Build Settings** tab → type `APP_BUNDLE_ID` in the
+   search box → change `com.example.worldtracker` to something unique to
+   you, e.g. `com.rohitdivate.beenthere`.
+   Both targets follow automatically (the widget becomes
+   `<yours>.widgets`) — don't edit the per-target Bundle Identifier fields,
+   they're wired to this one setting.
    (Bundle IDs are globally unique across the App Store — the example one is a
    placeholder on purpose.)
 
@@ -94,11 +100,27 @@ The in-app "iCloud backup" toggle needs two capabilities added once in Xcode:
 Everything syncs to your personal private CloudKit database — invisible to
 everyone but your Apple account.
 
-## 8. Troubleshooting
+## 8. Enabling home-screen widgets (optional)
+
+The widgets read a tiny snapshot the app shares through an **App Group** —
+one capability, added to both targets:
+
+1. Select the **WorldTracker** target → **Signing & Capabilities** →
+   **+ Capability** → **App Groups** → **+** → it should offer
+   `group.<your bundle id>` — accept it.
+2. Select the **BeenThereWidgets** target and repeat — tick the **same**
+   `group.<your bundle id>`.
+3. Run the app once, then long-press your home screen → **Edit** → **Add
+   Widget** → search "Been There".
+
+Without the capability the app still works fine — the widget just shows its
+"open the app once" placeholder.
+
+## 9. Troubleshooting
 
 | Problem | Fix |
 | --- | --- |
-| "Failed to register bundle identifier" | Step 4.4 — pick your own bundle ID |
+| "Failed to register bundle identifier" | Step 4.4 — set your own APP_BUNDLE_ID |
 | "Untrusted Developer" on iPhone | Step 5.5 — trust your certificate |
 | "Developer Mode required" | Step 5.2 |
 | "Could not launch — the device is locked" | Unlock the phone, run again |
@@ -110,8 +132,9 @@ everyone but your Apple account.
 ```
 WorldTracker.xcodeproj    the Xcode project (open this)
 WorldTracker/             app source (SwiftUI, iOS 18+)
+BeenThereWidgets/         home-screen widget extension source
 WorldTrackerKit/          pure-logic Swift package (geocoding, day math) + tests
-Config/                   Info.plist & entitlements
+Config/                   Info.plists & entitlements (both targets)
 Tools/                    build/validation scripts (run Tools/check.sh)
 docs/                     architecture, setup, per-milestone verification
 ```

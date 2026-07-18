@@ -24,7 +24,7 @@ echo "== 2/4 swiftc -parse app sources"
 SWIFTC_BIN="${SWIFTC_BIN:-$(command -v swiftc || true)}"
 if [ -n "$SWIFTC_BIN" ]; then
   # -parse checks syntax only; imports of iOS-only frameworks are fine.
-  FILES=$(find "$ROOT/WorldTracker" -name '*.swift')
+  FILES=$(find "$ROOT/WorldTracker" "$ROOT/BeenThereWidgets" -name '*.swift')
   if ! "$SWIFTC_BIN" -parse $FILES 2>&1 | grep -v "^$" | sed 's/^/   /'; then
     true
   fi

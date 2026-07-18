@@ -75,6 +75,20 @@ final class LedgerStore {
         cache.removeAll()
         cachedEarliestDay = nil
         changeToken += 1
+        scheduleSnapshotWrite()
+    }
+
+    /// Debounced widget-snapshot refresh — bursts of ledger changes (backfill,
+    /// import) collapse into one write + one WidgetKit reload.
+    @ObservationIgnored private var snapshotTask: Task<Void, Never>?
+
+    private func scheduleSnapshotWrite() {
+        snapshotTask?.cancel()
+        snapshotTask = Task { @MainActor [weak self] in
+            try? await Task.sleep(nanoseconds: 800_000_000)
+            guard !Task.isCancelled, let self else { return }
+            SharedSnapshotStore.write(from: self)
+        }
     }
 
     // MARK: - Resolution

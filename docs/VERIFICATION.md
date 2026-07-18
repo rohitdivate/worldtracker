@@ -178,3 +178,16 @@ Tick them off before moving on.
       grid while the editor opens (Reduce Motion disables it)
 - [ ] Wrapped closer: a shine band sweeps the summary card once, right
       after the rows finish cascading
+
+## G1 — Widget foundation
+
+- [ ] Project opens with TWO targets (WorldTracker + BeenThereWidgets) and
+      builds with ▶ exactly as before
+- [ ] Add the App Groups capability to both targets (README §8), run the
+      app once
+- [ ] Add the "You're In" small widget to your home screen — flag, country,
+      Day N of stay, days-this-year line, Night Flight styling
+- [ ] Change something in the app (e.g. set Home base) → within a minute
+      the widget reflects the new data
+- [ ] Without the App Group capability the widget shows the "open the app
+      once" placeholder instead of breaking

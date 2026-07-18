@@ -8,10 +8,37 @@
 
 /* Begin PBXBuildFile section */
 		1C1000000000000000000001 /* WorldTrackerKit in Frameworks */ = {isa = PBXBuildFile; productRef = 1B1000000000000000000001 /* WorldTrackerKit */; };
+		1C1000000000000000000002 /* BeenThereWidgets.appex in Embed Foundation Extensions */ = {isa = PBXBuildFile; fileRef = DD1000000000000000000002 /* BeenThereWidgets.appex */; settings = {ATTRIBUTES = (RemoveHeadersOnCopy, ); }; };
+		1C1000000000000000000003 /* WorldTrackerKit in Frameworks */ = {isa = PBXBuildFile; productRef = 1B1000000000000000000002 /* WorldTrackerKit */; };
 /* End PBXBuildFile section */
+
+/* Begin PBXContainerItemProxy section */
+		2A1000000000000000000001 /* PBXContainerItemProxy */ = {
+			isa = PBXContainerItemProxy;
+			containerPortal = FF1000000000000000000001 /* Project object */;
+			proxyType = 1;
+			remoteGlobalIDString = EE1000000000000000000002;
+			remoteInfo = BeenThereWidgets;
+		};
+/* End PBXContainerItemProxy section */
+
+/* Begin PBXCopyFilesBuildPhase section */
+		BB1000000000000000000007 /* Embed Foundation Extensions */ = {
+			isa = PBXCopyFilesBuildPhase;
+			buildActionMask = 2147483647;
+			dstPath = "";
+			dstSubfolderSpec = 13;
+			files = (
+				1C1000000000000000000002 /* BeenThereWidgets.appex in Embed Foundation Extensions */,
+			);
+			name = "Embed Foundation Extensions";
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXCopyFilesBuildPhase section */
 
 /* Begin PBXFileReference section */
 		DD1000000000000000000001 /* WorldTracker.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = WorldTracker.app; sourceTree = BUILT_PRODUCTS_DIR; };
+		DD1000000000000000000002 /* BeenThereWidgets.appex */ = {isa = PBXFileReference; explicitFileType = "wrapper.app-extension"; includeInIndex = 0; path = BeenThereWidgets.appex; sourceTree = BUILT_PRODUCTS_DIR; };
 /* End PBXFileReference section */
 
 /* Begin PBXFileSystemSynchronizedRootGroup section */
@@ -33,6 +60,15 @@
 			path = Config;
 			sourceTree = "<group>";
 		};
+		AA1000000000000000000003 /* BeenThereWidgets */ = {
+			isa = PBXFileSystemSynchronizedRootGroup;
+			explicitFileTypes = {
+			};
+			explicitFolders = (
+			);
+			path = BeenThereWidgets;
+			sourceTree = "<group>";
+		};
 /* End PBXFileSystemSynchronizedRootGroup section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -44,6 +80,14 @@
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
+		BB1000000000000000000005 /* Frameworks */ = {
+			isa = PBXFrameworksBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				1C1000000000000000000003 /* WorldTrackerKit in Frameworks */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
 /* End PBXFrameworksBuildPhase section */
 
 /* Begin PBXGroup section */
@@ -51,6 +95,7 @@
 			isa = PBXGroup;
 			children = (
 				AA1000000000000000000001 /* WorldTracker */,
+				AA1000000000000000000003 /* BeenThereWidgets */,
 				AA1000000000000000000002 /* Config */,
 				CC1000000000000000000002 /* Products */,
 			);
@@ -60,6 +105,7 @@
 			isa = PBXGroup;
 			children = (
 				DD1000000000000000000001 /* WorldTracker.app */,
+				DD1000000000000000000002 /* BeenThereWidgets.appex */,
 			);
 			name = Products;
 			sourceTree = "<group>";
@@ -74,10 +120,12 @@
 				BB1000000000000000000002 /* Sources */,
 				BB1000000000000000000001 /* Frameworks */,
 				BB1000000000000000000003 /* Resources */,
+				BB1000000000000000000007 /* Embed Foundation Extensions */,
 			);
 			buildRules = (
 			);
 			dependencies = (
+				2B1000000000000000000001 /* PBXTargetDependency */,
 			);
 			fileSystemSynchronizedGroups = (
 				AA1000000000000000000001 /* WorldTracker */,
@@ -90,6 +138,29 @@
 			productReference = DD1000000000000000000001 /* WorldTracker.app */;
 			productType = "com.apple.product-type.application";
 		};
+		EE1000000000000000000002 /* BeenThereWidgets */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = 0B1000000000000000000004 /* Build configuration list for PBXNativeTarget "BeenThereWidgets" */;
+			buildPhases = (
+				BB1000000000000000000004 /* Sources */,
+				BB1000000000000000000005 /* Frameworks */,
+				BB1000000000000000000006 /* Resources */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+			);
+			fileSystemSynchronizedGroups = (
+				AA1000000000000000000003 /* BeenThereWidgets */,
+			);
+			name = BeenThereWidgets;
+			packageProductDependencies = (
+				1B1000000000000000000002 /* WorldTrackerKit */,
+			);
+			productName = BeenThereWidgets;
+			productReference = DD1000000000000000000002 /* BeenThereWidgets.appex */;
+			productType = "com.apple.product-type.app-extension";
+		};
 /* End PBXNativeTarget section */
 
 /* Begin PBXProject section */
@@ -101,6 +172,9 @@
 				LastUpgradeCheck = 1600;
 				TargetAttributes = {
 					EE1000000000000000000001 = {
+						CreatedOnToolsVersion = 16.0;
+					};
+					EE1000000000000000000002 = {
 						CreatedOnToolsVersion = 16.0;
 					};
 				};
@@ -124,12 +198,20 @@
 			projectRoot = "";
 			targets = (
 				EE1000000000000000000001 /* WorldTracker */,
+				EE1000000000000000000002 /* BeenThereWidgets */,
 			);
 		};
 /* End PBXProject section */
 
 /* Begin PBXResourcesBuildPhase section */
 		BB1000000000000000000003 /* Resources */ = {
+			isa = PBXResourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		BB1000000000000000000006 /* Resources */ = {
 			isa = PBXResourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
@@ -146,13 +228,29 @@
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
+		BB1000000000000000000004 /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
 /* End PBXSourcesBuildPhase section */
+
+/* Begin PBXTargetDependency section */
+		2B1000000000000000000001 /* PBXTargetDependency */ = {
+			isa = PBXTargetDependency;
+			target = EE1000000000000000000002 /* BeenThereWidgets */;
+			targetProxy = 2A1000000000000000000001 /* PBXContainerItemProxy */;
+		};
+/* End PBXTargetDependency section */
 
 /* Begin XCBuildConfiguration section */
 		0A1000000000000000000002 /* Debug */ = {
 			isa = XCBuildConfiguration;
 			buildSettings = {
 				ALWAYS_SEARCH_USER_PATHS = NO;
+				APP_BUNDLE_ID = com.example.worldtracker;
 				ASSETCATALOG_COMPILER_GENERATE_SWIFT_ASSET_SYMBOL_EXTENSIONS = YES;
 				CLANG_ANALYZER_NONNULL = YES;
 				CLANG_ANALYZER_NUMBER_OBJECT_CONVERSION = YES_AGGRESSIVE;
@@ -216,6 +314,7 @@
 			isa = XCBuildConfiguration;
 			buildSettings = {
 				ALWAYS_SEARCH_USER_PATHS = NO;
+				APP_BUNDLE_ID = com.example.worldtracker;
 				ASSETCATALOG_COMPILER_GENERATE_SWIFT_ASSET_SYMBOL_EXTENSIONS = YES;
 				CLANG_ANALYZER_NONNULL = YES;
 				CLANG_ANALYZER_NUMBER_OBJECT_CONVERSION = YES_AGGRESSIVE;
@@ -285,7 +384,7 @@
 					"@executable_path/Frameworks",
 				);
 				MARKETING_VERSION = 1.0;
-				PRODUCT_BUNDLE_IDENTIFIER = com.example.worldtracker;
+				PRODUCT_BUNDLE_IDENTIFIER = "$(APP_BUNDLE_ID)";
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				SWIFT_EMIT_LOC_STRINGS = YES;
 				SWIFT_VERSION = 5.0;
@@ -310,8 +409,58 @@
 					"@executable_path/Frameworks",
 				);
 				MARKETING_VERSION = 1.0;
-				PRODUCT_BUNDLE_IDENTIFIER = com.example.worldtracker;
+				PRODUCT_BUNDLE_IDENTIFIER = "$(APP_BUNDLE_ID)";
 				PRODUCT_NAME = "$(TARGET_NAME)";
+				SWIFT_EMIT_LOC_STRINGS = YES;
+				SWIFT_VERSION = 5.0;
+				TARGETED_DEVICE_FAMILY = 1;
+			};
+			name = Release;
+		};
+		0B1000000000000000000005 /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				CODE_SIGN_ENTITLEMENTS = Config/BeenThereWidgets.entitlements;
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 1;
+				DEVELOPMENT_TEAM = "";
+				ENABLE_PREVIEWS = YES;
+				GENERATE_INFOPLIST_FILE = NO;
+				INFOPLIST_FILE = Config/WidgetInfo.plist;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+					"@executable_path/../../Frameworks",
+				);
+				MARKETING_VERSION = 1.0;
+				PRODUCT_BUNDLE_IDENTIFIER = "$(APP_BUNDLE_ID).widgets";
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SKIP_INSTALL = YES;
+				SWIFT_EMIT_LOC_STRINGS = YES;
+				SWIFT_VERSION = 5.0;
+				TARGETED_DEVICE_FAMILY = 1;
+			};
+			name = Debug;
+		};
+		0B1000000000000000000006 /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				CODE_SIGN_ENTITLEMENTS = Config/BeenThereWidgets.entitlements;
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 1;
+				DEVELOPMENT_TEAM = "";
+				ENABLE_PREVIEWS = YES;
+				GENERATE_INFOPLIST_FILE = NO;
+				INFOPLIST_FILE = Config/WidgetInfo.plist;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+					"@executable_path/../../Frameworks",
+				);
+				MARKETING_VERSION = 1.0;
+				PRODUCT_BUNDLE_IDENTIFIER = "$(APP_BUNDLE_ID).widgets";
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SKIP_INSTALL = YES;
 				SWIFT_EMIT_LOC_STRINGS = YES;
 				SWIFT_VERSION = 5.0;
 				TARGETED_DEVICE_FAMILY = 1;
@@ -339,6 +488,15 @@
 			defaultConfigurationIsVisible = 0;
 			defaultConfigurationName = Release;
 		};
+		0B1000000000000000000004 /* Build configuration list for PBXNativeTarget "BeenThereWidgets" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				0B1000000000000000000005 /* Debug */,
+				0B1000000000000000000006 /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
 /* End XCConfigurationList section */
 
 /* Begin XCLocalSwiftPackageReference section */
@@ -350,6 +508,10 @@
 
 /* Begin XCSwiftPackageProductDependency section */
 		1B1000000000000000000001 /* WorldTrackerKit */ = {
+			isa = XCSwiftPackageProductDependency;
+			productName = WorldTrackerKit;
+		};
+		1B1000000000000000000002 /* WorldTrackerKit */ = {
 			isa = XCSwiftPackageProductDependency;
 			productName = WorldTrackerKit;
 		};
