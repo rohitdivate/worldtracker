@@ -428,41 +428,44 @@ struct WrappedLongestTripPage: View {
     /// The flight arc draws itself; the comet rides its tip.
     private func arc(draw: Double) -> some View {
         GeometryReader { geo in
-            let w = geo.size.width
-            let h = geo.size.height
-            let from = CGPoint(x: 0, y: h * 0.9)
-            let to = CGPoint(x: w, y: h * 0.9)
-            let control = CGPoint(x: w / 2, y: -h * 0.4)
-            var path = Path()
-            path.move(to: from)
-            path.addQuadCurve(to: to, control: control)
-
-            // Quadratic Bézier point at t — the comet's seat.
-            let t = draw
-            let mt = 1 - t
-            let tip = CGPoint(
-                x: mt * mt * from.x + 2 * mt * t * control.x + t * t * to.x,
-                y: mt * mt * from.y + 2 * mt * t * control.y + t * t * to.y
-            )
-
-            return ZStack {
-                path.trimmedPath(from: 0, to: max(0.001, t))
-                    .stroke(
-                        Theme.auroraGradient,
-                        style: StrokeStyle(lineWidth: 2, lineCap: .round, dash: [1, 7])
-                    )
-                Circle()
-                    .fill(Theme.aurora1)
-                    .frame(width: 8, height: 8)
-                    .position(tip)
-                    .shadow(color: Theme.aurora1.opacity(0.8), radius: 8)
-                    .opacity(draw > 0 ? 1 : 0)
-                Text("✈️")
-                    .font(.system(size: 20))
-                    .position(x: tip.x, y: tip.y - 16)
-                    .opacity(draw > 0.05 ? 1 : 0)
-            }
+            arcContent(size: geo.size, draw: CGFloat(draw))
         }
+    }
+
+    private func arcContent(size: CGSize, draw: CGFloat) -> some View {
+        let from = CGPoint(x: 0, y: size.height * 0.9)
+        let to = CGPoint(x: size.width, y: size.height * 0.9)
+        let control = CGPoint(x: size.width / 2, y: -size.height * 0.4)
+        var path = Path()
+        path.move(to: from)
+        path.addQuadCurve(to: to, control: control)
+        let tip = quadBezierPoint(from: from, control: control, to: to, t: draw)
+
+        return ZStack {
+            path.trimmedPath(from: 0, to: max(0.001, draw))
+                .stroke(
+                    Theme.auroraGradient,
+                    style: StrokeStyle(lineWidth: 2, lineCap: .round, dash: [1, 7])
+                )
+            Circle()
+                .fill(Theme.aurora1)
+                .frame(width: 8, height: 8)
+                .position(tip)
+                .shadow(color: Theme.aurora1.opacity(0.8), radius: 8)
+                .opacity(draw > 0 ? 1 : 0)
+            Text("✈️")
+                .font(.system(size: 20))
+                .position(x: tip.x, y: tip.y - 16)
+                .opacity(draw > 0.05 ? 1 : 0)
+        }
+    }
+
+    /// Quadratic Bézier point at t — the comet's seat.
+    private func quadBezierPoint(from: CGPoint, control: CGPoint, to: CGPoint, t: CGFloat) -> CGPoint {
+        let mt: CGFloat = 1 - t
+        let x: CGFloat = mt * mt * from.x + 2 * mt * t * control.x + t * t * to.x
+        let y: CGFloat = mt * mt * from.y + 2 * mt * t * control.y + t * t * to.y
+        return CGPoint(x: x, y: y)
     }
 }
 
