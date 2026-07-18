@@ -35,6 +35,26 @@ struct SettingsView: View {
                 }
 
                 Section {
+                    NavigationLink {
+                        PhotoSyncView()
+                    } label: {
+                        Label {
+                            VStack(alignment: .leading, spacing: 2) {
+                                Text("Time Machine")
+                                Text("Rebuild your history from photos")
+                                    .font(.footnote)
+                                    .foregroundStyle(Theme.ink3)
+                            }
+                        } icon: {
+                            Image(systemName: "photo.stack.fill")
+                                .foregroundStyle(Theme.aurora2)
+                        }
+                    }
+                } header: {
+                    Text("Photos")
+                }
+
+                Section {
                     Label {
                         Text("Everything stays on this device")
                             .foregroundStyle(Theme.ink2)

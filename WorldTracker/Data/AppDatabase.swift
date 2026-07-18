@@ -10,9 +10,11 @@ enum AppDatabase {
         let syncedSchema = Schema([
             CountryDayFact.self,
             DayAnnotation.self,
+            PhotoEvidence.self,
         ])
         let localSchema = Schema([
             LocationSample.self,
+            BackfillCheckpoint.self,
         ])
 
         let synced = ModelConfiguration(
@@ -29,7 +31,9 @@ enum AppDatabase {
         let allSchema = Schema([
             CountryDayFact.self,
             DayAnnotation.self,
+            PhotoEvidence.self,
             LocationSample.self,
+            BackfillCheckpoint.self,
         ])
         return try ModelContainer(
             for: allSchema,
@@ -42,7 +46,8 @@ enum AppDatabase {
 enum WorldTrackerSchemaV1: VersionedSchema {
     static var versionIdentifier: Schema.Version { Schema.Version(1, 0, 0) }
     static var models: [any PersistentModel.Type] {
-        [CountryDayFact.self, DayAnnotation.self, LocationSample.self]
+        [CountryDayFact.self, DayAnnotation.self, PhotoEvidence.self,
+         LocationSample.self, BackfillCheckpoint.self]
     }
 }
 

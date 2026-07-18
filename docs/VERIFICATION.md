@@ -50,4 +50,20 @@ Tick them off before moving on.
 - [ ] Future days are dimmed dots; days before you installed are empty circles
 - [ ] Settings → Smart tracking off/on and reopening doesn't lose the calendar
 
+## M4 — Photo Time Machine
+
+- [ ] Settings → Photos → **Time Machine** (or the onboarding offer on a
+      fresh install) → "Rebuild my history"
+- [ ] iOS asks for photo access — choose **Allow Full Access** (Limited works
+      but only sees selected photos)
+- [ ] The progress ring runs; found flags stream in as your history is read;
+      a 50k-photo library takes on the order of a minute
+- [ ] Completion shows "Reconstructed N travel days from M photos"
+- [ ] Calendar now shows YEARS of history — your real past trips with the
+      right flags on the right dates (spot-check a trip you remember)
+- [ ] Home's "days here this year" now reflects photo history too
+- [ ] Change "Days with no photos" between the three modes — the calendar
+      re-renders instantly (dashed cells appear/disappear); no re-scan needed
+- [ ] Run "Re-sync from photos" again — the numbers stay consistent
+
 *(Later milestones will append their checklists here.)*

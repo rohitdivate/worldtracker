@@ -26,6 +26,7 @@ final class AppContainer {
     let ingestor: LocationIngestor
     let locationService: LocationService
     let ledgerStore: LedgerStore
+    let backfillEngine: PhotoBackfillEngine
 
     private init() {
         do {
@@ -33,7 +34,10 @@ final class AppContainer {
         } catch {
             // A broken store on first run is unrecoverable dev-time state;
             // fall back to in-memory so the app still opens and can report.
-            let schema = Schema([CountryDayFact.self, DayAnnotation.self, LocationSample.self])
+            let schema = Schema([
+                CountryDayFact.self, DayAnnotation.self, PhotoEvidence.self,
+                LocationSample.self, BackfillCheckpoint.self,
+            ])
             let memory = ModelConfiguration(schema: schema, isStoredInMemoryOnly: true)
             modelContainer = try! ModelContainer(for: schema, configurations: [memory])
         }
@@ -41,6 +45,7 @@ final class AppContainer {
         ingestor = LocationIngestor(modelContainer: modelContainer)
         locationService = LocationService(ingestor: ingestor, lookup: geoProvider)
         ledgerStore = LedgerStore(container: modelContainer)
+        backfillEngine = PhotoBackfillEngine(container: modelContainer, geoProvider: geoProvider)
 
         // Warm the atlas so first lookups don't pay the load cost.
         let provider = geoProvider
