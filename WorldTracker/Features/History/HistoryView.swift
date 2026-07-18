@@ -192,6 +192,7 @@ struct MonthGridView: View {
 
     @State private var rippleOrigin: CGPoint = .zero
     @State private var rippleTrigger = 0
+    @State private var shareItem: ShareItem?
 
     private var store: LedgerStore { AppContainer.shared.ledgerStore }
 
@@ -199,6 +200,7 @@ struct MonthGridView: View {
         let range = month.firstEpochDay...(month.firstEpochDay + month.dayCount - 1)
         let days = store.resolvedDays(in: range)
         let today = store.todayEpoch
+        let hasData = days.contains { !$0.countryCodes.isEmpty }
 
         VStack(alignment: .leading, spacing: 8) {
             HStack(alignment: .firstTextBaseline, spacing: 8) {
@@ -208,6 +210,17 @@ struct MonthGridView: View {
                 Text(String(month.year))
                     .font(.system(size: 12, weight: .medium, design: .monospaced))
                     .foregroundStyle(Theme.ink3)
+                Spacer()
+                if hasData {
+                    Button {
+                        shareMonth(days: days, today: today)
+                    } label: {
+                        Image(systemName: "square.and.arrow.up")
+                            .font(.system(size: 13, weight: .semibold))
+                            .foregroundStyle(Theme.ink3)
+                    }
+                    .buttonStyle(.plain)
+                }
             }
 
             LazyVGrid(columns: Self.columns, spacing: 4) {
@@ -241,6 +254,34 @@ struct MonthGridView: View {
         }
         .padding(14)
         .nightCard()
+        .sheet(item: $shareItem) { item in
+            SharePreviewSheet(url: item.url)
+        }
+    }
+
+    /// Render the month card on tap — never eagerly for every scrolled month.
+    private func shareMonth(days: [ResolvedDay], today: Int) {
+        let timeline = store.homeTimeline
+        var countries: [String] = []
+        var travelDays = 0
+        for day in days {
+            let home = timeline.home(on: day.day)
+            for code in day.countryCodes where code != home && !countries.contains(code) {
+                countries.append(code)
+            }
+            if day.countryCodes.contains(where: { $0 != home }) { travelDays += 1 }
+        }
+        guard let url = ShareCardService.render(
+            MonthShareCard(
+                month: month,
+                days: days,
+                todayEpoch: today,
+                countries: countries,
+                travelDays: travelDays
+            ),
+            name: "BeenThere-\(month.year)-\(String(format: "%02d", month.month))"
+        ) else { return }
+        shareItem = ShareItem(url: url)
     }
 }
 

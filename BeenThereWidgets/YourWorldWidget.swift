@@ -55,6 +55,9 @@ struct YourWorldWidgetView: View {
 
             dotMap(visited: visited, home: snapshot.homeCountry)
                 .frame(maxHeight: .infinity)
+                .overlay(alignment: .bottomTrailing) {
+                    WTheme.Wordmark()
+                }
 
             HStack(spacing: 0) {
                 stat(value: "\(snapshot.countriesThisYear)", label: "COUNTRIES")

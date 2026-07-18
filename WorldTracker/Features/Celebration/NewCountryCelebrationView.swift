@@ -12,6 +12,7 @@ struct NewCountryCelebrationView: View {
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
     @State private var start = Date()
     @State private var finished = false
+    @State private var shareURL: URL?
 
     private let duration: Double = 2.2
 
@@ -29,7 +30,19 @@ struct NewCountryCelebrationView: View {
                 }
             }
         }
-        .onAppear { HapticsDirector.shared.celebrate() }
+        .onAppear {
+            HapticsDirector.shared.celebrate()
+            // Render during the stamp animation so the URL is ready before
+            // the buttons reveal (~1.6s in).
+            shareURL = ShareCardService.render(
+                CelebrationShareCard(
+                    code: celebration.countryCode,
+                    number: celebration.number,
+                    dateText: Date.now.formatted(date: .long, time: .omitted)
+                ),
+                name: "BeenThere-Country-\(celebration.number)"
+            )
+        }
     }
 
     private func content(_ p: Double) -> some View {
@@ -82,6 +95,22 @@ struct NewCountryCelebrationView: View {
                 }
                 .padding(.horizontal, 28)
                 .opacity(reveal(p, 0.7, 0.85))
+
+                if let shareURL {
+                    ShareLink(item: shareURL) {
+                        Label("Share this moment", systemImage: "square.and.arrow.up")
+                            .font(.system(size: 14, weight: .bold))
+                            .foregroundStyle(Theme.aurora1)
+                            .frame(maxWidth: .infinity)
+                            .frame(height: 44)
+                            .background(
+                                RoundedRectangle(cornerRadius: 14)
+                                    .strokeBorder(Theme.aurora1.opacity(0.5), lineWidth: 1)
+                            )
+                    }
+                    .padding(.horizontal, 28)
+                    .opacity(reveal(p, 0.72, 0.87))
+                }
 
                 Button("Keep exploring") {
                     onDismiss()

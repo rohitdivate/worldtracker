@@ -15,6 +15,7 @@ struct TripDetailView: View {
     @State private var photos: [TripPhoto] = []
     @State private var thumbnails: [String: UIImage] = [:]
     @State private var lightbox: LightboxSelection?
+    @State private var shareItem: ShareItem?
 
     struct TripPhoto: Identifiable {
         var id: String { assetID }
@@ -134,6 +135,19 @@ struct TripDetailView: View {
         .background(Theme.sky)
         .navigationTitle("Trip")
         .navigationBarTitleDisplayMode(.inline)
+        .toolbar {
+            ToolbarItem(placement: .primaryAction) {
+                Button {
+                    sharePostcard(todayYear: todayYear)
+                } label: {
+                    Image(systemName: "square.and.arrow.up")
+                        .foregroundStyle(Theme.aurora1)
+                }
+            }
+        }
+        .sheet(item: $shareItem) { item in
+            SharePreviewSheet(url: item.url)
+        }
         .task { loadPhotos() }
         .onChange(of: store.changeToken) { _, _ in
             rederive()
@@ -174,6 +188,24 @@ struct TripDetailView: View {
         } message: {
             Text("The days become 'no data'. Automatic GPS and photo evidence is hidden, not erased — any day can be restored from its day editor. Photos stay in your library.")
         }
+    }
+
+    /// Postcard from the already-loaded thumbnails — never touches Photos.
+    private func sharePostcard(todayYear: Int) {
+        let images = photos.prefix(3).compactMap { thumbnails[$0.assetID] }
+        guard let url = ShareCardService.render(
+            TripPostcardCard(
+                countryCode: displayed.countryCode,
+                dateRange: DayFormat.shortRange(
+                    displayed.startDay, displayed.endDay, todayYear: todayYear
+                ),
+                dayCount: displayed.dayCount,
+                cities: cities,
+                photos: Array(images)
+            ),
+            name: "BeenThere-Trip-\(displayed.countryCode)-\(displayed.startDay)"
+        ) else { return }
+        shareItem = ShareItem(url: url)
     }
 
     private var cities: [String] {

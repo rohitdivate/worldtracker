@@ -3,60 +3,8 @@ import WorldTrackerKit
 
 /// Dedicated share compositions — designed layouts, not screenshots.
 /// WrappedShareRenderer rasterizes them at 3×: the story card becomes
-/// 1080×1920, the square card 1080×1080.
-
-/// One deterministic aurora frame — ImageRenderer never sees a TimelineView.
-private struct StaticAurora: View {
-    var body: some View {
-        MeshGradient(
-            width: 3,
-            height: 3,
-            points: [
-                [0, 0], [0.5, 0], [1, 0],
-                [0, 0.5], [0.38, 0.32], [1, 0.5],
-                [0, 1], [0.7, 0.6], [1, 1],
-            ],
-            colors: [
-                Theme.sky, Theme.skyRaised, Theme.sky,
-                Theme.skyRaised,
-                Theme.aurora1.opacity(0.30),
-                Theme.aurora2.opacity(0.28),
-                Theme.sky, Theme.skyRaised, Theme.sky,
-            ]
-        )
-    }
-}
-
-private struct ShareWordmark: View {
-    var body: some View {
-        HStack(spacing: 7) {
-            MiniGlobe(size: 16, showsPlane: false)
-            Text("BEEN THERE")
-                .font(.system(size: 10, weight: .heavy, design: .monospaced))
-                .tracking(3)
-                .foregroundStyle(Theme.ink2)
-        }
-    }
-}
-
-private struct ShareStat: View {
-    let value: String
-    let label: String
-    var color: Color = Theme.aurora1
-
-    var body: some View {
-        VStack(spacing: 2) {
-            Text(value)
-                .font(.system(size: 30, weight: .heavy, design: .rounded))
-                .foregroundStyle(color)
-            Text(label)
-                .font(.system(size: 8.5, weight: .semibold))
-                .tracking(1.6)
-                .foregroundStyle(Theme.ink3)
-        }
-        .frame(maxWidth: .infinity)
-    }
-}
+/// 1080×1920, the square card 1080×1080. StaticAurora / ShareWordmark /
+/// ShareStat live in Features/Share/ShareComponents.swift.
 
 // MARK: - Story (9:16)
 
@@ -124,7 +72,7 @@ struct WrappedStoryCard: View {
 
                 Spacer()
 
-                ShareWordmark()
+                ShareWordmark(withHook: true)
                     .padding(.bottom, 34)
             }
         }
@@ -191,7 +139,7 @@ struct WrappedSquareCard: View {
 
                 Spacer()
 
-                ShareWordmark()
+                ShareWordmark(withHook: true)
                     .padding(.bottom, 20)
             }
         }
@@ -201,32 +149,15 @@ struct WrappedSquareCard: View {
 
 // MARK: - Renderer
 
-/// ImageRenderer at 3× → PNG files ready for ShareLink.
+/// Thin wrapper kept for its call sites — rendering lives in ShareCardService.
 @MainActor
 enum WrappedShareRenderer {
     static func renderCards(for data: YearInReviewBuilder.WrappedData) -> [URL] {
         let year = data.stats.year
         return [
-            render(WrappedStoryCard(data: data), name: "BeenThere-\(year)-story"),
-            render(WrappedSquareCard(data: data), name: "BeenThere-\(year)"),
+            ShareCardService.render(WrappedStoryCard(data: data), name: "BeenThere-\(year)-story"),
+            ShareCardService.render(WrappedSquareCard(data: data), name: "BeenThere-\(year)"),
         ].compactMap { $0 }
-    }
-
-    private static func render(_ view: some View, name: String) -> URL? {
-        let renderer = ImageRenderer(content: view)
-        renderer.scale = 3
-        renderer.isOpaque = true
-        guard let image = renderer.uiImage, let png = image.pngData() else { return nil }
-
-        let url = FileManager.default.temporaryDirectory
-            .appendingPathComponent("\(name).png")
-        try? FileManager.default.removeItem(at: url)
-        do {
-            try png.write(to: url)
-            return url
-        } catch {
-            return nil
-        }
     }
 }
 

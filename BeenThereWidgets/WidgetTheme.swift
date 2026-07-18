@@ -19,6 +19,17 @@ enum WTheme {
         endPoint: .bottomTrailing
     )
 
+    /// Tiny identity mark for widget corners — a stranger glancing at a
+    /// lock screen or home screen should be able to find the app.
+    struct Wordmark: View {
+        var body: some View {
+            Text("BEEN THERE")
+                .font(.system(size: 6.5, weight: .heavy, design: .monospaced))
+                .tracking(1.6)
+                .foregroundStyle(WTheme.ink3)
+        }
+    }
+
     /// The widget canvas: deep sky with a whisper of aurora in the corner.
     static var background: some View {
         LinearGradient(

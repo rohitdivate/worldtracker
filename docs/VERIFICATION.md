@@ -354,3 +354,18 @@ Tick them off before moving on.
       manually"
 - [ ] Release builds hide the Developer section but keep the version footer
       (check on device with a Release scheme if curious — Debug shows both)
+
+## Y4 — Share everywhere (v4)
+
+- [ ] COUNTRY #N celebration: "Share this moment" appears with the buttons
+      and produces the stamp card (flag, COUNTRY #N, date, BEEN THERE · FOR
+      iPHONE wordmark)
+- [ ] Calendar: share icon on each month with data → preview sheet → month
+      grid card with flags + travel-day count
+- [ ] Map toolbar share → dot-map world card with countries · % of world ·
+      travel days (disabled while empty)
+- [ ] Trip detail toolbar share → postcard with flag, dates, cities, up to
+      3 photos
+- [ ] Wrapped story + square cards now carry the FOR iPHONE hook line
+- [ ] Widgets: Your World + On This Day carry a small BEEN THERE mark; the
+      Live Activity lock-screen card shows it under the day count

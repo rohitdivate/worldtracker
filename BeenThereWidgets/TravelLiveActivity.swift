@@ -81,6 +81,8 @@ struct TravelLiveActivity: Widget {
                 Text("\(context.state.daysThisYear)d this year")
                     .font(.system(size: 10.5))
                     .foregroundStyle(WTheme.ink2)
+                WTheme.Wordmark()
+                    .padding(.top, 1)
             }
         }
         .padding(14)

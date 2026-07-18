@@ -6,6 +6,7 @@ import WorldTrackerKit
 struct WorldMapView: View {
     @State private var shapes: WorldMapShapes?
     @State private var mode: Mode = .globe
+    @State private var shareItem: ShareItem?
 
     enum Mode: String, CaseIterable {
         case globe = "Globe"
@@ -65,6 +66,18 @@ struct WorldMapView: View {
                     .pickerStyle(.segmented)
                     .frame(width: 190)
                 }
+                ToolbarItem(placement: .primaryAction) {
+                    Button {
+                        shareWorld(ranked: ranked, home: home, travelDays: stats.travelDays)
+                    } label: {
+                        Image(systemName: "square.and.arrow.up")
+                            .foregroundStyle(Theme.aurora1)
+                    }
+                    .disabled(ranked.isEmpty || shapes == nil)
+                }
+            }
+            .sheet(item: $shareItem) { item in
+                SharePreviewSheet(url: item.url)
             }
             .navigationDestination(for: String.self) { code in
                 CountryDetailView(countryCode: code)
@@ -78,6 +91,20 @@ struct WorldMapView: View {
                 }
             }
         }
+    }
+
+    /// Dot-map card, rendered on tap from the already-loaded shapes.
+    private func shareWorld(
+        ranked: [(key: String, value: Int)], home: String?, travelDays: Int
+    ) {
+        guard let shapes else { return }
+        let dots = WorldDotGrid.compute(shapes: shapes, columns: 66, rows: 30)
+        let visited = Dictionary(uniqueKeysWithValues: ranked.map { ($0.key, $0.value) })
+        guard let url = ShareCardService.render(
+            WorldShareCard(dots: dots, visited: visited, home: home, travelDays: travelDays),
+            name: "BeenThere-World"
+        ) else { return }
+        shareItem = ShareItem(url: url)
     }
 
     // MARK: - The ledger

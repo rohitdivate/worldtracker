@@ -47,12 +47,16 @@ struct OnThisDayWidgetView: View {
 
     private func content(_ memory: WidgetSnapshot.OnThisDayEntry) -> some View {
         VStack(alignment: .leading, spacing: 0) {
-            Text("ON THIS DAY · \(memory.yearsAgo) \(memory.yearsAgo == 1 ? "YEAR" : "YEARS") AGO")
-                .font(.system(size: 8.5, weight: .bold))
-                .tracking(1.4)
-                .foregroundStyle(WTheme.aurora1)
-                .lineLimit(1)
-                .minimumScaleFactor(0.8)
+            HStack {
+                Text("ON THIS DAY · \(memory.yearsAgo) \(memory.yearsAgo == 1 ? "YEAR" : "YEARS") AGO")
+                    .font(.system(size: 8.5, weight: .bold))
+                    .tracking(1.4)
+                    .foregroundStyle(WTheme.aurora1)
+                    .lineLimit(1)
+                    .minimumScaleFactor(0.8)
+                Spacer()
+                WTheme.Wordmark()
+            }
 
             Spacer()
 
