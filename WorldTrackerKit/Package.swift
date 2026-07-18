@@ -11,10 +11,14 @@ let package = Package(
         .library(name: "WorldTrackerKit", targets: ["WorldTrackerKit"])
     ],
     targets: [
-        .target(name: "WorldTrackerKit"),
+        .target(
+            name: "WorldTrackerKit",
+            resources: [.copy("GeoData")]
+        ),
         .testTarget(
             name: "WorldTrackerKitTests",
-            dependencies: ["WorldTrackerKit"]
+            dependencies: ["WorldTrackerKit"],
+            resources: [.copy("Fixtures")]
         ),
     ]
 )

@@ -2,25 +2,9 @@ import SwiftUI
 
 struct SettingsView: View {
     var body: some View {
-        ZStack {
-            Theme.sky.ignoresSafeArea()
-
-            VStack(alignment: .leading, spacing: 16) {
-                Text("Settings")
-                    .font(.system(size: 32, weight: .heavy, design: .rounded))
-                    .foregroundStyle(Theme.ink)
-                    .padding(.top, 24)
-
-                VStack(alignment: .leading, spacing: 12) {
-                    Label {
-                        Text("Version 0.1 · Milestone 0")
-                            .foregroundStyle(Theme.ink2)
-                    } icon: {
-                        Image(systemName: "hammer.fill")
-                            .foregroundStyle(Theme.aurora1)
-                    }
-                    .font(.system(size: 14))
-
+        NavigationStack {
+            List {
+                Section {
                     Label {
                         Text("Everything stays on this device")
                             .foregroundStyle(Theme.ink2)
@@ -29,14 +13,30 @@ struct SettingsView: View {
                             .foregroundStyle(Theme.aurora1)
                     }
                     .font(.system(size: 14))
+                } header: {
+                    Text("Privacy")
                 }
-                .padding(18)
-                .frame(maxWidth: .infinity, alignment: .leading)
-                .nightCard()
 
-                Spacer()
+                Section {
+                    NavigationLink {
+                        DeveloperGeoView()
+                    } label: {
+                        Label {
+                            Text("Geo lookup tester")
+                        } icon: {
+                            Image(systemName: "globe.desk")
+                                .foregroundStyle(Theme.aurora2)
+                        }
+                    }
+                } header: {
+                    Text("Developer")
+                } footer: {
+                    Text("Version 0.1 · Milestone 1 — offline world atlas")
+                }
             }
-            .padding(.horizontal, 20)
+            .navigationTitle("Settings")
+            .scrollContentBackground(.hidden)
+            .background(Theme.sky)
         }
     }
 }

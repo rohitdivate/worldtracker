@@ -11,10 +11,15 @@ Tick them off before moving on.
 - [ ] Five tabs are present: Home, Calendar, Map, Places, Settings
 - [ ] The app icon (night globe with amber arc) appears on your home screen
 
-## M1 — Offline geocoder (coming)
+## M1 — Offline geocoder
 
-- [ ] Settings → Developer → Geo lookup: canned coordinates resolve to
-      the right country/city/timezone with airplane mode ON
+- [ ] Turn ON airplane mode
+- [ ] Settings tab → Developer → **Geo lookup tester**
+- [ ] "Countries: 237" appears (the atlas loaded)
+- [ ] London → GB 🇬🇧 Europe/London; Paris → FR; Barcelona → ES;
+      Marrakech → MA; Tokyo → JP; Mid-Atlantic → 🌊 none
+- [ ] Enter your own home coordinates under "Custom coordinate" — the right
+      country, city and timezone come back with airplane mode still on
 
 ## M2 — Tracking (coming)
 
