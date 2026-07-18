@@ -34,7 +34,7 @@ struct TripListView: View {
                 }
 
                 ForEach(segments) { segment in
-                    NavigationLink(value: segment.countryCode) {
+                    NavigationLink(value: segment) {
                         HStack(spacing: 12) {
                             FlagChip(code: segment.countryCode, size: 36)
                             VStack(alignment: .leading, spacing: 3) {

@@ -44,30 +44,36 @@ struct CountryDetailView: View {
                                 .foregroundStyle(Theme.ink2)
 
                             ForEach(byYear[year] ?? []) { segment in
-                                HStack {
-                                    VStack(alignment: .leading, spacing: 3) {
-                                        Text("\(segment.dayCount) \(segment.dayCount == 1 ? "day" : "days")")
-                                            .font(.system(size: 18, weight: .bold, design: .rounded))
-                                            .foregroundStyle(Theme.ink)
-                                        Text(DayFormat.shortRange(segment.startDay, segment.endDay, todayYear: todayYear))
-                                            .font(.system(size: 11, weight: .medium, design: .monospaced))
+                                NavigationLink(value: segment) {
+                                    HStack {
+                                        VStack(alignment: .leading, spacing: 3) {
+                                            Text("\(segment.dayCount) \(segment.dayCount == 1 ? "day" : "days")")
+                                                .font(.system(size: 18, weight: .bold, design: .rounded))
+                                                .foregroundStyle(Theme.ink)
+                                            Text(DayFormat.shortRange(segment.startDay, segment.endDay, todayYear: todayYear))
+                                                .font(.system(size: 11, weight: .medium, design: .monospaced))
+                                                .foregroundStyle(Theme.ink3)
+                                        }
+                                        Spacer()
+                                        if segment.endDay >= today {
+                                            Text("NOW")
+                                                .font(.system(size: 9, weight: .heavy, design: .monospaced))
+                                                .foregroundStyle(Theme.amber)
+                                                .padding(.horizontal, 7)
+                                                .padding(.vertical, 3)
+                                                .overlay(
+                                                    RoundedRectangle(cornerRadius: 4)
+                                                        .strokeBorder(Theme.amber.opacity(0.5), lineWidth: 1.2)
+                                                )
+                                        }
+                                        Image(systemName: "chevron.right")
+                                            .font(.system(size: 11, weight: .semibold))
                                             .foregroundStyle(Theme.ink3)
                                     }
-                                    Spacer()
-                                    if segment.endDay >= today {
-                                        Text("NOW")
-                                            .font(.system(size: 9, weight: .heavy, design: .monospaced))
-                                            .foregroundStyle(Theme.amber)
-                                            .padding(.horizontal, 7)
-                                            .padding(.vertical, 3)
-                                            .overlay(
-                                                RoundedRectangle(cornerRadius: 4)
-                                                    .strokeBorder(Theme.amber.opacity(0.5), lineWidth: 1.2)
-                                            )
-                                    }
+                                    .padding(14)
+                                    .nightCard()
                                 }
-                                .padding(14)
-                                .nightCard()
+                                .buttonStyle(.plain)
                             }
                         }
                         .frame(maxWidth: .infinity, alignment: .leading)

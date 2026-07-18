@@ -59,6 +59,9 @@ struct HomeView: View {
             .navigationDestination(for: String.self) { code in
                 CountryDetailView(countryCode: code)
             }
+            .navigationDestination(for: TripSegment.self) { segment in
+                TripDetailView(segment: segment)
+            }
             .task { wrappedYears = AppContainer.shared.wrappedBuilder.availableYears() }
             .onChange(of: store.changeToken) {
                 wrappedYears = AppContainer.shared.wrappedBuilder.availableYears()

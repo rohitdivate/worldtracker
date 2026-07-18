@@ -53,6 +53,75 @@ final class EditService {
         save()
     }
 
+    /// Edit an existing trip: purge manual facts across the union of the
+    /// old and new ranges (so a shrunk/moved trip leaves no orphans), then
+    /// write manual facts for `code` over the new range only.
+    func replaceTrip(originalRange: ClosedRange<Int>, with code: String, newRange: ClosedRange<Int>) {
+        let unionStart = min(originalRange.lowerBound, newRange.lowerBound)
+        let unionEnd = max(originalRange.upperBound, newRange.upperBound)
+        removeManualFacts(days: Array(unionStart...unionEnd))
+        for day in newRange {
+            context.insert(
+                CountryDayFact(
+                    epochDay: day,
+                    countryCode: code,
+                    sourceRaw: FactSource.manual.rawValue,
+                    confidence: 1.0,
+                    seenAt: Date()
+                )
+            )
+            uncleara(day: day)
+        }
+        save()
+    }
+
+    /// Delete a trip per a caller-computed plan. Solo days are cleared
+    /// (automatic evidence hidden, not erased — each day is individually
+    /// revertible in the day editor); border days keep their surviving
+    /// countries as manual facts so the deleted one can't resurface.
+    struct TripDeletionPlan {
+        let countryCode: String
+        let range: ClosedRange<Int>
+        /// Days that showed ONLY this country.
+        let clearDays: [Int]
+        /// Border days: pin the other countries that remain.
+        let overrideDays: [(day: Int, codes: [String])]
+    }
+
+    func deleteTrip(_ plan: TripDeletionPlan) {
+        let manual = FactSource.manual.rawValue
+        let code = plan.countryCode
+        let lower = plan.range.lowerBound
+        let upper = plan.range.upperBound
+        let predicate = #Predicate<CountryDayFact> {
+            $0.epochDay >= lower && $0.epochDay <= upper
+                && $0.countryCode == code && $0.sourceRaw == manual
+        }
+        for fact in (try? context.fetch(FetchDescriptor(predicate: predicate))) ?? [] {
+            context.delete(fact)
+        }
+        for day in plan.clearDays {
+            removeManualFacts(days: [day])
+            annotation(for: day).isCleared = true
+        }
+        for entry in plan.overrideDays {
+            removeManualFacts(days: [entry.day])
+            for survivor in entry.codes {
+                context.insert(
+                    CountryDayFact(
+                        epochDay: entry.day,
+                        countryCode: survivor,
+                        sourceRaw: manual,
+                        confidence: 1.0,
+                        seenAt: Date()
+                    )
+                )
+            }
+            uncleara(day: entry.day)
+        }
+        save()
+    }
+
     /// Mark a day as "no data": hides all automatic evidence and blocks
     /// gap-fill through it.
     func clearDay(_ day: Int) {

@@ -1,12 +1,31 @@
 import SwiftUI
 import WorldTrackerKit
 
-/// Manual trip entry: country + date range → manual facts for every day.
+/// Manual trip entry/editing: country + date range → manual facts for every
+/// day. When prefilled with an existing trip, saving replaces the old range
+/// (no orphaned days when a trip shrinks or moves).
 struct TripEditorView: View {
+    struct Prefill {
+        let countryCode: String
+        let startDay: Int
+        let endDay: Int
+    }
+
+    private let prefill: Prefill?
+    private let onDelete: (() -> Void)?
+
+    init(prefill: Prefill? = nil, onDelete: (() -> Void)? = nil) {
+        self.prefill = prefill
+        self.onDelete = onDelete
+        _countryCode = State(initialValue: prefill?.countryCode)
+        _startDate = State(initialValue: prefill.map { Self.date(fromEpochDay: $0.startDay) } ?? Date())
+        _endDate = State(initialValue: prefill.map { Self.date(fromEpochDay: $0.endDay) } ?? Date())
+    }
+
     @Environment(\.dismiss) private var dismiss
     @State private var countryCode: String?
-    @State private var startDate = Date()
-    @State private var endDate = Date()
+    @State private var startDate: Date
+    @State private var endDate: Date
     @State private var showCountryPicker = false
 
     private var edit: EditService { AppContainer.shared.editService }
@@ -33,10 +52,21 @@ struct TripEditorView: View {
                     DatePicker("Start date", selection: $startDate, displayedComponents: .date)
                     DatePicker("End date", selection: $endDate, in: startDate..., displayedComponents: .date)
                 } footer: {
-                    Text("Every day in the range is marked with this country. Manual entries outrank automatic tracking and survive photo re-syncs.")
+                    Text(prefill == nil
+                         ? "Every day in the range is marked with this country. Manual entries outrank automatic tracking and survive photo re-syncs."
+                         : "Saving rewrites the whole trip as manual days — they outrank automatic tracking and survive photo re-syncs.")
+                }
+
+                if let onDelete {
+                    Section {
+                        Button("Delete trip", role: .destructive) {
+                            onDelete()
+                            dismiss()
+                        }
+                    }
                 }
             }
-            .navigationTitle("New trip")
+            .navigationTitle(prefill == nil ? "New trip" : "Edit trip")
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
                 ToolbarItem(placement: .cancellationAction) {
@@ -65,8 +95,27 @@ struct TripEditorView: View {
         let tz = TimeZone.current
         let start = EpochDay(date: startDate, timeZone: tz).value
         let end = EpochDay(date: endDate, timeZone: tz).value
-        edit.setCountry(code, from: min(start, end), to: max(start, end))
+        let range = min(start, end)...max(start, end)
+        if let prefill {
+            edit.replaceTrip(
+                originalRange: prefill.startDay...prefill.endDay,
+                with: code,
+                newRange: range
+            )
+        } else {
+            edit.setCountry(code, from: range.lowerBound, to: range.upperBound)
+        }
         dismiss()
+    }
+
+    private static func date(fromEpochDay day: Int) -> Date {
+        let (year, month, dayOfMonth) = EpochDay(value: day).civil()
+        var components = DateComponents()
+        components.year = year
+        components.month = month
+        components.day = dayOfMonth
+        components.hour = 12
+        return Calendar.current.date(from: components) ?? Date()
     }
 }
 

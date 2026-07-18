@@ -43,6 +43,9 @@ struct WorldMapView: View {
             .navigationDestination(for: String.self) { code in
                 CountryDetailView(countryCode: code)
             }
+            .navigationDestination(for: TripSegment.self) { segment in
+                TripDetailView(segment: segment)
+            }
             .task {
                 if shapes == nil {
                     shapes = try? await Task.detached { try WorldMapShapes() }.value

@@ -59,6 +59,9 @@ struct HistoryView: View {
             .navigationDestination(for: String.self) { code in
                 CountryDetailView(countryCode: code)
             }
+            .navigationDestination(for: TripSegment.self) { segment in
+                TripDetailView(segment: segment)
+            }
             .sheet(item: $selectedDay) { selection in
                 DayEditorView(epochDay: selection.epochDay)
                     .presentationDetents([.large])

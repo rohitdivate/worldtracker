@@ -216,3 +216,21 @@ Tick them off before moving on.
       day, rectangular country + stay + year line
 - [ ] After iOS's 8-hour activity limit, the banner returns on the next
       location wake or app open (restart-on-wake)
+
+## V1–V3 — Home history + honest trips + trip detail
+
+- [ ] Settings → Home base → set "Originally from" = United States, add a
+      move to the United Kingdom on your actual moving date
+- [ ] Home stat tiles recompute: days living in the US no longer count as
+      travel days; a US visit AFTER the move still does
+- [ ] Calendar → Trips: home stays are gone; the "Show home stays" chip
+      brings them back with per-period HOME badges
+- [ ] Wrapped for a pre-move year: the US is treated as that year's home
+      (arc origin, "days away" dots)
+- [ ] Tap a trip → detail screen: flag, dates, day count, cities line, and
+      the photos taken on that trip
+- [ ] Edit trip: change the country or dates → the calendar and list update;
+      shrinking a trip leaves no orphaned days
+- [ ] Delete trip: days become "no data"; a border day shared with a
+      neighboring trip keeps the other country; any day is restorable via
+      its day editor ("Revert to automatic")
