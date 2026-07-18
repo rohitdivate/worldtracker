@@ -153,7 +153,7 @@ final class PhotoBackfillEngine {
     }
 
     private func execute() async {
-        let status = await PHPhotoLibrary.requestAuthorization(for: .readOnly)
+        let status = await PHPhotoLibrary.requestAuthorization(for: .readWrite)
         guard status == .authorized || status == .limited else {
             await MainActor.run {
                 progress.stage = .failed("Photo access was not granted. You can enable it in iOS Settings → Privacy → Photos.")
