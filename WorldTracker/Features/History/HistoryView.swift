@@ -175,6 +175,9 @@ struct MonthGridView: View {
     private static let columns = Array(repeating: GridItem(.flexible(), spacing: 4), count: 7)
     private static let dowSymbols = ["M", "T", "W", "T", "F", "S", "S"]
 
+    @State private var rippleOrigin: CGPoint = .zero
+    @State private var rippleTrigger = 0
+
     private var store: LedgerStore { AppContainer.shared.ledgerStore }
 
     var body: some View {
@@ -210,12 +213,16 @@ struct MonthGridView: View {
                         isToday: day.day == today,
                         isFuture: day.day > today
                     )
-                    .onTapGesture {
+                    .onTapGesture(coordinateSpace: .named("monthGrid")) { location in
                         guard day.day <= today else { return }
+                        rippleOrigin = location
+                        rippleTrigger += 1
                         onSelect(day.day)
                     }
                 }
             }
+            .coordinateSpace(.named("monthGrid"))
+            .rippleEffect(at: rippleOrigin, trigger: rippleTrigger)
         }
         .padding(14)
         .nightCard()

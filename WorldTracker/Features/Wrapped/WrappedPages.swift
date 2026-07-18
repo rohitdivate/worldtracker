@@ -709,6 +709,7 @@ struct WrappedCloserPage: View {
                     }
                     .padding(.vertical, 6)
                     .nightCard()
+                    .shineEffect(progress: stage(p, 0.72, 0.98))
                     .padding(.horizontal, 40)
 
                     Text("BEEN THERE")

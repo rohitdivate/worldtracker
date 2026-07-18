@@ -171,3 +171,10 @@ Tick them off before moving on.
       country: full-screen stamp + "COUNTRY #N" + burst, exactly once;
       "See your world →" jumps to the Map tab
 - [ ] Photo backfill and Timeline import never trigger celebrations
+
+## W7 — Metal polish
+
+- [ ] Calendar: tapping a day sends a soft water ripple through the month
+      grid while the editor opens (Reduce Motion disables it)
+- [ ] Wrapped closer: a shine band sweeps the summary card once, right
+      after the rows finish cascading
