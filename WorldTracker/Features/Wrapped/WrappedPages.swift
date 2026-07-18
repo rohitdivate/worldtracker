@@ -716,9 +716,7 @@ struct WrappedCloserPage: View {
                         .opacity(stage(p, 0.8, 1))
 
                     if !shareURLs.isEmpty {
-                        ShareLink(items: shareURLs) { _ in
-                            SharePreview("Your \(String(data.stats.year)) in Travel")
-                        } label: {
+                        ShareLink(items: shareURLs) {
                             Label("Share your year", systemImage: "square.and.arrow.up")
                                 .font(.system(size: 16, weight: .bold))
                                 .foregroundStyle(Theme.sky)

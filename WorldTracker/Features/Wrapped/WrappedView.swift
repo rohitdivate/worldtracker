@@ -26,6 +26,7 @@ struct WrappedView: View {
     @State private var progress: Double = 0
     @State private var isPaused = false
     @State private var dragOffset: CGFloat = 0
+    @State private var shareURLs: [URL] = []
 
     private let pageDuration: Double = 7
     private let tick = Timer.publish(every: 1.0 / 30.0, on: .main, in: .common).autoconnect()
@@ -89,6 +90,11 @@ struct WrappedView: View {
             progress += (1.0 / 30.0) / pageDuration
             if progress >= 1 { advance() }
         }
+        .task {
+            // Let the opener land before paying the ImageRenderer cost.
+            try? await Task.sleep(nanoseconds: 600_000_000)
+            shareURLs = WrappedShareRenderer.renderCards(for: data)
+        }
     }
 
     @ViewBuilder
@@ -102,7 +108,7 @@ struct WrappedView: View {
         case .firstVisits: WrappedFirstVisitsPage(data: data)
         case .map: WrappedMapPage(data: data)
         case .photos: WrappedPhotosPage(data: data)
-        case .closer: WrappedCloserPage(data: data)
+        case .closer: WrappedCloserPage(data: data, shareURLs: shareURLs)
         }
     }
 
@@ -148,6 +154,17 @@ struct WrappedView: View {
 
             HStack {
                 Spacer()
+                if !shareURLs.isEmpty {
+                    ShareLink(items: shareURLs) {
+                        Image(systemName: "square.and.arrow.up")
+                            .font(.system(size: 14, weight: .bold))
+                            .foregroundStyle(Color.white.opacity(0.75))
+                            .frame(width: 38, height: 38)
+                            .background(Color.black.opacity(0.25), in: Circle())
+                    }
+                    .simultaneousGesture(TapGesture().onEnded { isPaused = true })
+                    .padding(.top, 6)
+                }
                 Button {
                     dismiss()
                 } label: {
