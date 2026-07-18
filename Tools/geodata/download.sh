@@ -13,4 +13,5 @@ curl -sL -o ne_110m.geojson \
 curl -sL -o cities1000.zip "https://download.geonames.org/export/dump/cities1000.zip"
 curl -sL -o admin1.txt "https://download.geonames.org/export/dump/admin1CodesASCII.txt"
 curl -sL -o timeZones.txt "https://download.geonames.org/export/dump/timeZones.txt"
+curl -sL -o airports.csv "https://davidmegginson.github.io/ourairports-data/airports.csv"
 ls -la

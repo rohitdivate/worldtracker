@@ -224,9 +224,41 @@ def resolve(countries, cities, lat, lon):
     return code, city, tz, fallback
 
 
+def check_airports():
+    path = os.path.join(GEO, "airports.bin")
+    with open(path, "rb") as f:
+        data = f.read()
+    assert data[:4] == b"WTA1", "airports.bin bad magic"
+    (count,) = struct.unpack_from("<I", data, 4)
+    recs = {}
+    off = 8
+    for _ in range(count):
+        iata, lat, lon, cc = struct.unpack_from("<3sff2s", data, off)
+        recs[iata.decode()] = (lat, lon, cc.decode())
+        off += 13
+    goldens = [
+        ("LHR", "GB", 51.47, -0.46),
+        ("JFK", "US", 40.64, -73.78),
+        ("HND", "JP", 35.55, 139.78),
+        ("GIG", "BR", -22.81, -43.25),
+        ("BCN", "ES", 41.30, 2.08),
+    ]
+    failures = []
+    for code, cc, lat, lon in goldens:
+        got = recs.get(code)
+        if not got or got[2] != cc or abs(got[0] - lat) > 0.2 or abs(got[1] - lon) > 0.2:
+            failures.append(f"airport {code}: got {got}, want ({lat},{lon},{cc})")
+    if failures:
+        for f_ in failures:
+            print(f"FAIL {f_}")
+        sys.exit(1)
+    print(f"golden_check: {count} airports, {len(goldens)} airport goldens passed")
+
+
 def main():
     countries = Countries(os.path.join(GEO, "countries50m.bin"))
     cities = Cities(os.path.join(GEO, "cities.bin"))
+    check_airports()
     with open(FIXTURES, encoding="utf-8") as f:
         fixtures = json.load(f)
 
