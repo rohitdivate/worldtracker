@@ -35,10 +35,12 @@ enum SharedSnapshotStore {
             .appendingPathComponent("snapshot.json")
     }
 
-    /// No-op until the user adds the App Groups capability (README §8) —
-    /// containerURL is nil without it and the widget shows its placeholder.
+    /// The widget file is a no-op until the user adds the App Groups
+    /// capability (README §8) — the Live Activity needs no App Group, so it
+    /// syncs regardless.
     @MainActor
     static func write(from store: LedgerStore) {
+        TravelLiveActivityManager.sync(store: store)
         guard let url = fileURL else { return }
 
         let today = store.todayEpoch

@@ -8,5 +8,6 @@ struct BeenThereWidgetsBundle: WidgetBundle {
         CountriesWidget()
         YourTopWidget()
         YourWorldWidget()
+        TravelLiveActivity()
     }
 }

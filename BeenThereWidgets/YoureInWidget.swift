@@ -7,18 +7,66 @@ import WorldTrackerKit
 struct YoureInWidgetView: View {
     var entry: SnapshotEntry
 
+    @Environment(\.widgetFamily) private var family
+
     var body: some View {
         Group {
-            if let snapshot = entry.snapshot, let code = snapshot.currentCountry {
-                content(snapshot: snapshot, code: code)
-            } else {
-                waiting
+            switch family {
+            case .accessoryCircular:
+                accessoryCircular
+            case .accessoryRectangular:
+                accessoryRectangular
+            default:
+                if let snapshot = entry.snapshot, let code = snapshot.currentCountry {
+                    content(snapshot: snapshot, code: code)
+                } else {
+                    waiting
+                }
             }
         }
         .containerBackground(for: .widget) {
-            WTheme.background
+            if family == .accessoryCircular || family == .accessoryRectangular {
+                AccessoryWidgetBackground()
+            } else {
+                WTheme.background
+            }
         }
         .widgetURL(URL(string: "beenthere://home"))
+    }
+
+    // MARK: - Lock-screen accessories (system-tinted, so no custom colors)
+
+    private var accessoryCircular: some View {
+        VStack(spacing: 0) {
+            if let snapshot = entry.snapshot, let code = snapshot.currentCountry {
+                Text(flagEmoji(code)).font(.system(size: 20))
+                Text("D\(max(1, snapshot.dayOfStay))")
+                    .font(.system(size: 12, weight: .heavy, design: .rounded))
+            } else {
+                Text("🌍").font(.system(size: 22))
+            }
+        }
+    }
+
+    private var accessoryRectangular: some View {
+        VStack(alignment: .leading, spacing: 1) {
+            if let snapshot = entry.snapshot, let code = snapshot.currentCountry {
+                Text("\(flagEmoji(code)) \(widgetCountryName(code))")
+                    .font(.system(size: 13, weight: .heavy, design: .rounded))
+                    .lineLimit(1)
+                Text("Day \(max(1, snapshot.dayOfStay)) of this stay")
+                    .font(.system(size: 11))
+                Text("\(snapshot.countriesThisYear) countries this year")
+                    .font(.system(size: 11))
+                    .opacity(0.7)
+            } else {
+                Text("Been There")
+                    .font(.system(size: 13, weight: .heavy, design: .rounded))
+                Text("Open the app to light this up")
+                    .font(.system(size: 11))
+            }
+        }
+        .frame(maxWidth: .infinity, alignment: .leading)
     }
 
     private func content(snapshot: WidgetSnapshot, code: String) -> some View {
@@ -83,6 +131,6 @@ struct YoureInWidget: Widget {
         }
         .configurationDisplayName("You're In")
         .description("The country under your feet, at a glance.")
-        .supportedFamilies([.systemSmall])
+        .supportedFamilies([.systemSmall, .accessoryCircular, .accessoryRectangular])
     }
 }

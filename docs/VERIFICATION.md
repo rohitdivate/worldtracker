@@ -202,3 +202,17 @@ Tick them off before moving on.
 - [ ] Tap any widget → the app opens on the right tab (Your World → Map)
 - [ ] Log a new day (or change gap-fill in Settings) → widgets re-color
       within a minute; they also roll over on their own at midnight
+
+## G3 — Live Activity + Dynamic Island
+
+- [ ] Simulate being abroad: set Home base to a country you're NOT in →
+      within a minute a Live Activity appears on the lock screen (aurora
+      flag ring, Day N, days-this-year, trip dots)
+- [ ] On a Dynamic Island iPhone: compact shows flag + D-counter; press
+      and hold expands to the full card; minimal shows the flag
+- [ ] Tap the activity → the app opens
+- [ ] Set Home base back to your actual country → the banner retires
+- [ ] Lock screen widgets (iOS Customize → widgets area): circular flag +
+      day, rectangular country + stay + year line
+- [ ] After iOS's 8-hour activity limit, the banner returns on the next
+      location wake or app open (restart-on-wake)
