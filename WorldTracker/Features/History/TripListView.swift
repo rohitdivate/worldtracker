@@ -5,6 +5,7 @@ import WorldTrackerKit
 /// Bounded's List view, with border days shared between neighboring rows.
 struct TripListView: View {
     @State private var showHomeStays = false
+    @State private var showTripEditor = false
 
     private var store: LedgerStore { AppContainer.shared.ledgerStore }
 
@@ -25,12 +26,16 @@ struct TripListView: View {
                 }
 
                 if segments.isEmpty {
-                    Text(showHomeStays
-                         ? "No stays yet — they'll appear as tracking and photo history fill in."
-                         : "No trips yet — time at home doesn't count as a trip.")
-                        .font(.system(size: 13))
-                        .foregroundStyle(Theme.ink3)
-                        .padding(.top, 60)
+                    EmptyStateCTAs(
+                        icon: "airplane.departure",
+                        title: showHomeStays ? "No stays yet" : "No trips yet",
+                        message: showHomeStays
+                            ? "Stays appear as tracking and history fill in — or rebuild the past right now."
+                            : "Time at home doesn't count as a trip. Rebuild your past travels in a minute.",
+                        extraTitle: "Add a trip manually",
+                        extraAction: { showTripEditor = true }
+                    )
+                    .padding(.top, 30)
                 }
 
                 ForEach(segments) { segment in
@@ -80,6 +85,9 @@ struct TripListView: View {
             }
             .padding(.horizontal, 16)
             .padding(.top, 8)
+        }
+        .sheet(isPresented: $showTripEditor) {
+            TripEditorView()
         }
     }
 

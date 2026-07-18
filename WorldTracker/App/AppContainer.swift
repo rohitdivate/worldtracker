@@ -34,6 +34,8 @@ final class AppContainer {
     let importEngine: ImportEngine
     let wrappedBuilder: YearInReviewBuilder
     let celebrationCoordinator = CelebrationCoordinator()
+    let router = AppRouter()
+    let setupChecklist = SetupChecklist()
 
     private init() {
         do {

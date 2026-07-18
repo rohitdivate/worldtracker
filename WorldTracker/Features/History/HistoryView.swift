@@ -73,6 +73,14 @@ struct HistoryView: View {
     private var calendarBody: some View {
         ScrollView {
             LazyVStack(spacing: 22) {
+                if store.earliestDay == nil {
+                    EmptyStateCTAs(
+                        icon: "calendar.badge.plus",
+                        title: "Your calendar is waiting",
+                        message: "Every day you travel gets a flag. Fill in the past right now — no waiting required."
+                    )
+                    .padding(.top, 8)
+                }
                 legend
                     .padding(.top, 4)
                 // Newest month first: "now" lives at the top, so the system

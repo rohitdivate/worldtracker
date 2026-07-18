@@ -23,6 +23,8 @@ struct HomeView: View {
     }
 
     private var store: LedgerStore { AppContainer.shared.ledgerStore }
+    private var checklist: SetupChecklist { AppContainer.shared.setupChecklist }
+    private var router: AppRouter { AppContainer.shared.router }
 
     /// January only: last year's story, until it's been seen.
     private var heroYear: Int? {
@@ -46,7 +48,17 @@ struct HomeView: View {
                         todayCard
                             .padding(.top, 8)
 
-                        if let limitation = trackingLimitation {
+                        if checklist.isVisible {
+                            // The checklist owns every setup nag while it's
+                            // up — no pill double-teaming the location row.
+                            SetupChecklistCard(
+                                checklist: checklist,
+                                onLocation: { fixLocation() },
+                                onHome: { router.showHomePicker = true },
+                                onPhotos: { router.open(tab: .settings, settings: .timeMachine) },
+                                onTimeline: { router.open(tab: .settings, settings: .importTimeline) }
+                            )
+                        } else if let limitation = trackingLimitation {
                             HStack {
                                 TrackingStatusPill(status: limitation) {
                                     if limitation == .off {
@@ -71,7 +83,7 @@ struct HomeView: View {
 
                         wrappedRows
 
-                        if store.currentStay() == nil {
+                        if store.currentStay() == nil && !checklist.isVisible {
                             waitingCard
                         }
 
@@ -87,9 +99,13 @@ struct HomeView: View {
             .navigationDestination(for: TripSegment.self) { segment in
                 TripDetailView(segment: segment)
             }
-            .task { wrappedYears = AppContainer.shared.wrappedBuilder.availableYears() }
+            .task {
+                wrappedYears = AppContainer.shared.wrappedBuilder.availableYears()
+                await checklist.refresh()
+            }
             .onChange(of: store.changeToken) {
                 wrappedYears = AppContainer.shared.wrappedBuilder.availableYears()
+                Task { await checklist.refresh() }
             }
             .onReceive(NotificationCenter.default.publisher(for: .openWrapped)) { _ in
                 if let year = wrappedYears.first {
@@ -322,6 +338,19 @@ struct HomeView: View {
                 }
                 .buttonStyle(.plain)
             }
+        }
+    }
+
+    /// Checklist location row: the next sensible step for wherever auth is.
+    private func fixLocation() {
+        if !location.smartTrackingEnabled {
+            location.smartTrackingEnabled = true
+        }
+        switch location.authorizationStatus {
+        case .notDetermined: location.requestWhenInUse()
+        case .authorizedWhenInUse: showAlwaysSheet = true
+        case .denied, .restricted: openSystemSettings()
+        default: break
         }
     }
 

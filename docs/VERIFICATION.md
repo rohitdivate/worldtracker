@@ -338,3 +338,19 @@ Tick them off before moving on.
 - [ ] Scan finishing while app is backgrounded posts a local notification
       ("backfill-done", deep-links to Map); store migrates V2→V3 in place
       with all existing data intact (manual device check)
+
+## Y3 — Guided value: router, checklist, teaching empty states (v4)
+
+- [ ] Home shows a "Finish setting up" card until location (Always or
+      While-Using), home country, and photo history are settled and Timeline
+      is imported or skipped; each row deep-links to its fix; X dismisses
+      forever; the Y1 tracking pill and waiting card stay hidden while the
+      checklist is up
+- [ ] beenthere://settings/timeline|flights|photos|health deep-links land on
+      the right Settings screen (test from Notes with the URL)
+- [ ] Empty calendar shows "Your calendar is waiting" with working Rebuild
+      from photos / Import Google Timeline buttons; empty Map (globe +
+      countries) and empty Trips show the same CTAs; Trips adds "Add a trip
+      manually"
+- [ ] Release builds hide the Developer section but keep the version footer
+      (check on device with a Release scheme if curious — Debug shows both)

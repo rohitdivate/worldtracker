@@ -15,10 +15,12 @@ struct SettingsView: View {
     private var store: LedgerStore { AppContainer.shared.ledgerStore }
     private var edit: EditService { AppContainer.shared.editService }
     private var export: ExportService { AppContainer.shared.exportService }
+    private var router: AppRouter { AppContainer.shared.router }
 
     var body: some View {
         let _ = store.changeToken
-        NavigationStack {
+        @Bindable var router = router
+        NavigationStack(path: $router.settingsPath) {
             List {
                 profileSection
                 trackingSection
@@ -26,11 +28,21 @@ struct SettingsView: View {
                 importSection
                 dataSection
                 privacySection
+                #if DEBUG
                 developerSection
+                #endif
             }
             .navigationTitle("Settings")
             .scrollContentBackground(.hidden)
             .background(Theme.sky)
+            .navigationDestination(for: AppRouter.SettingsRoute.self) { route in
+                switch route {
+                case .trackingHealth: TrackingHealthView()
+                case .timeMachine: PhotoSyncView()
+                case .importTimeline: ImportTimelineView()
+                case .importFlights: ImportFlightsView()
+                }
+            }
             .task { regenerateExports() }
             .onChange(of: store.changeToken) { _, _ in regenerateExports() }
             .sheet(isPresented: $showHomePicker) {
@@ -149,9 +161,7 @@ struct SettingsView: View {
             }
             .tint(Theme.aurora1)
 
-            NavigationLink {
-                TrackingHealthView()
-            } label: {
+            NavigationLink(value: AppRouter.SettingsRoute.trackingHealth) {
                 Label {
                     Text("Tracking health")
                 } icon: {
@@ -164,9 +174,7 @@ struct SettingsView: View {
 
     private var photosSection: some View {
         Section("Photos") {
-            NavigationLink {
-                PhotoSyncView()
-            } label: {
+            NavigationLink(value: AppRouter.SettingsRoute.timeMachine) {
                 Label {
                     VStack(alignment: .leading, spacing: 2) {
                         Text("Time Machine")
@@ -184,9 +192,7 @@ struct SettingsView: View {
 
     private var importSection: some View {
         Section {
-            NavigationLink {
-                ImportTimelineView()
-            } label: {
+            NavigationLink(value: AppRouter.SettingsRoute.importTimeline) {
                 Label {
                     VStack(alignment: .leading, spacing: 2) {
                         Text("Google Timeline")
@@ -199,9 +205,7 @@ struct SettingsView: View {
                         .foregroundStyle(Theme.aurora2)
                 }
             }
-            NavigationLink {
-                ImportFlightsView()
-            } label: {
+            NavigationLink(value: AppRouter.SettingsRoute.importFlights) {
                 Label {
                     VStack(alignment: .leading, spacing: 2) {
                         Text("Flights")
@@ -318,7 +322,7 @@ struct SettingsView: View {
     }
 
     private var privacySection: some View {
-        Section("Privacy") {
+        Section {
             Label {
                 Text("No accounts, no servers, no analytics. Your data lives on this device (and your own iCloud if backup is on).")
                     .foregroundStyle(Theme.ink2)
@@ -327,9 +331,16 @@ struct SettingsView: View {
                     .foregroundStyle(Theme.aurora1)
             }
             .font(.system(size: 13))
+        } header: {
+            Text("Privacy")
+        } footer: {
+            // Lives here (not the DEBUG-only developer section) so the
+            // version line survives Release builds.
+            Text("Been There v1.0 · Night Flight")
         }
     }
 
+    #if DEBUG
     private var developerSection: some View {
         Section {
             NavigationLink {
@@ -354,10 +365,9 @@ struct SettingsView: View {
             }
         } header: {
             Text("Developer")
-        } footer: {
-            Text("Been There v1.0 · Night Flight")
         }
     }
+    #endif
 }
 
 #Preview {

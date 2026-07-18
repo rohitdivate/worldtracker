@@ -29,6 +29,17 @@ struct WorldMapView: View {
                 if mode == .globe {
                     if let shapes {
                         GlobeView(shapes: shapes)
+                            .overlay(alignment: .bottom) {
+                                if ranked.isEmpty {
+                                    EmptyStateCTAs(
+                                        icon: "globe.europe.africa.fill",
+                                        title: "Light up your world",
+                                        message: "Countries you've been to will glow here."
+                                    )
+                                    .padding(16)
+                                    .padding(.bottom, 70)
+                                }
+                            }
                     } else {
                         ProgressView().tint(Theme.aurora1)
                     }
@@ -81,16 +92,12 @@ struct WorldMapView: View {
 
         return VStack(spacing: 9) {
             if ranked.isEmpty {
-                VStack(spacing: 12) {
-                    Image(systemName: "sparkles")
-                        .font(.system(size: 34))
-                        .foregroundStyle(Theme.auroraGradient)
-                    Text("Your constellation lights up as tracking and photo history fill in.")
-                        .font(.system(size: 13))
-                        .foregroundStyle(Theme.ink3)
-                        .multilineTextAlignment(.center)
-                }
-                .padding(.top, 40)
+                EmptyStateCTAs(
+                    icon: "sparkles",
+                    title: "No countries yet",
+                    message: "Your ranked country ledger builds itself from tracking — or fill it in from the past right now."
+                )
+                .padding(.top, 30)
             }
 
             ForEach(ranked, id: \.key) { code, days in

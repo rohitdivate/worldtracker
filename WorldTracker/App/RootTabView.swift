@@ -8,14 +8,16 @@ struct RootTabView: View {
     @AppStorage("onboardingDone") private var onboardingDone = false
     @State private var showOnboarding = false
     @State private var showAlwaysUpgrade = false
-    @State private var selectedTab: AppTab = .home
     @Environment(\.scenePhase) private var scenePhase
 
     private var celebration: CelebrationCoordinator {
         AppContainer.shared.celebrationCoordinator
     }
 
+    private var router: AppRouter { AppContainer.shared.router }
+
     var body: some View {
+        @Bindable var router = router
         tabs
             .onAppear { showOnboarding = !onboardingDone }
             .onChange(of: onboardingDone) { _, done in
@@ -37,38 +39,30 @@ struct RootTabView: View {
                 }
             }
             .onReceive(NotificationCenter.default.publisher(for: .openTabDeepLink)) { note in
-                switch note.userInfo?["tab"] as? String {
-                case "calendar": selectedTab = .calendar
-                case "map": selectedTab = .map
-                case "places": selectedTab = .places
-                case "settings": selectedTab = .settings
-                case .some: selectedTab = .home
-                case nil: break
-                }
+                guard let tab = note.userInfo?["tab"] as? String,
+                      let url = URL(string: "beenthere://\(tab)") else { return }
+                router.handle(url)
             }
             .sheet(isPresented: $showAlwaysUpgrade) {
                 AlwaysUpgradeSheet()
+            }
+            .sheet(isPresented: $router.showHomePicker) {
+                HomeHistoryView()
             }
             .fullScreenCover(isPresented: $showOnboarding) {
                 WelcomeFlow()
             }
             .onOpenURL { url in
-                // beenthere://<tab> — the widgets' deep links.
-                guard url.scheme == "beenthere" else { return }
-                switch url.host() {
-                case "calendar": selectedTab = .calendar
-                case "map": selectedTab = .map
-                case "places": selectedTab = .places
-                case "settings": selectedTab = .settings
-                default: selectedTab = .home
-                }
+                // beenthere://<tab> and beenthere://settings/<route> —
+                // widgets, notifications, and the setup checklist.
+                router.handle(url)
             }
             .overlay {
                 if let current = celebration.current {
                     NewCountryCelebrationView(
                         celebration: current,
                         onSeeWorld: {
-                            selectedTab = .map
+                            router.open(tab: .map)
                             celebration.dismissCurrent()
                         },
                         onDismiss: { celebration.dismissCurrent() }
@@ -80,7 +74,8 @@ struct RootTabView: View {
     }
 
     private var tabs: some View {
-        TabView(selection: $selectedTab) {
+        @Bindable var router = router
+        return TabView(selection: $router.selectedTab) {
             Tab("Home", systemImage: "house.fill", value: AppTab.home) {
                 HomeView()
             }
