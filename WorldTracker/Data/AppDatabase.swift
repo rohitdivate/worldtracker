@@ -17,6 +17,7 @@ enum AppDatabase {
         let localSchema = Schema([
             LocationSample.self,
             BackfillCheckpoint.self,
+            ImportCheckpoint.self,
         ])
 
         // Private-iCloud backup. Applied at launch; if the CloudKit container
@@ -43,6 +44,7 @@ enum AppDatabase {
             PlaceVisit.self,
             LocationSample.self,
             BackfillCheckpoint.self,
+            ImportCheckpoint.self,
         ])
         do {
             return try ModelContainer(
@@ -77,9 +79,25 @@ enum WorldTrackerSchemaV1: VersionedSchema {
     }
 }
 
+enum WorldTrackerSchemaV2: VersionedSchema {
+    static var versionIdentifier: Schema.Version { Schema.Version(2, 0, 0) }
+    static var models: [any PersistentModel.Type] {
+        [CountryDayFact.self, DayAnnotation.self, PhotoEvidence.self,
+         Place.self, PlaceVisit.self,
+         LocationSample.self, BackfillCheckpoint.self, ImportCheckpoint.self]
+    }
+}
+
 enum WorldTrackerMigrationPlan: SchemaMigrationPlan {
     static var schemas: [any VersionedSchema.Type] {
-        [WorldTrackerSchemaV1.self]
+        [WorldTrackerSchemaV1.self, WorldTrackerSchemaV2.self]
     }
-    static var stages: [MigrationStage] { [] }
+    static var stages: [MigrationStage] {
+        [
+            MigrationStage.lightweight(
+                fromVersion: WorldTrackerSchemaV1.self,
+                toVersion: WorldTrackerSchemaV2.self
+            )
+        ]
+    }
 }

@@ -31,6 +31,7 @@ final class AppContainer {
     let placesEngine: PlacesEngine
     let placeNamer: PlaceNamer
     let exportService: ExportService
+    let importEngine: ImportEngine
 
     private init() {
         do {
@@ -41,7 +42,7 @@ final class AppContainer {
             let schema = Schema([
                 CountryDayFact.self, DayAnnotation.self, PhotoEvidence.self,
                 Place.self, PlaceVisit.self,
-                LocationSample.self, BackfillCheckpoint.self,
+                LocationSample.self, BackfillCheckpoint.self, ImportCheckpoint.self,
             ])
             let memory = ModelConfiguration(schema: schema, isStoredInMemoryOnly: true)
             modelContainer = try! ModelContainer(for: schema, configurations: [memory])
@@ -55,6 +56,7 @@ final class AppContainer {
         backfillEngine = PhotoBackfillEngine(container: modelContainer, geoProvider: geoProvider, places: placesEngine)
         editService = EditService(container: modelContainer)
         exportService = ExportService(store: ledgerStore)
+        importEngine = ImportEngine(container: modelContainer, geoProvider: geoProvider)
 
         // Warm the atlas so first lookups don't pay the load cost.
         let provider = geoProvider
