@@ -43,7 +43,7 @@ struct HomeHistoryView: View {
                     Text("Your home from the beginning of your history until your first move.")
                 }
 
-                Section("Moves") {
+                Section {
                     if moves.isEmpty {
                         Text("No moves — one home for your whole history.")
                             .font(.system(size: 13))
@@ -76,6 +76,8 @@ struct HomeHistoryView: View {
                         Label("I moved", systemImage: "plus")
                             .foregroundStyle(Theme.aurora1)
                     }
+                } header: {
+                    Text("Moves")
                 } footer: {
                     Text("Each move sets your home from that date until the next move. Travel stats, the trips list, and your Year in Travel all follow this history.")
                 }
