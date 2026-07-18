@@ -82,9 +82,10 @@ final class YearInReviewBuilder {
         let thumbnails = await loadThumbnails(for: moments.map(\.assetID))
 
         let range = yearRange(year)
-        let homeCodes = [home].compactMap { $0 }
+        // Per-day home: a dot only ignites for days genuinely away.
         let travelDayFlags = store.resolvedDays(in: range).map {
-            !$0.countryCodes.isEmpty && $0.countryCodes != homeCodes
+            !$0.countryCodes.isEmpty
+                && $0.countryCodes != [store.homeOn($0.day)].compactMap({ $0 })
         }
 
         return WrappedData(
@@ -111,12 +112,12 @@ final class YearInReviewBuilder {
     private func quickStats(year: Int) -> YearInReviewStats {
         let range = yearRange(year)
         guard range.lowerBound <= range.upperBound else {
-            return YearInReview.compute(year: year, days: [], homeCountry: nil, priorCountryCodes: [])
+            return YearInReview.compute(year: year, days: [], homeTimeline: .empty, priorCountryCodes: [])
         }
         return YearInReview.compute(
             year: year,
             days: store.resolvedDays(in: range),
-            homeCountry: store.homeCountry,
+            homeTimeline: store.homeTimeline,
             priorCountryCodes: priorCountries(before: range.lowerBound)
         )
     }
@@ -124,12 +125,12 @@ final class YearInReviewBuilder {
     private func fullStats(year: Int) async -> YearInReviewStats {
         let range = yearRange(year)
         guard range.lowerBound <= range.upperBound else {
-            return YearInReview.compute(year: year, days: [], homeCountry: nil, priorCountryCodes: [])
+            return YearInReview.compute(year: year, days: [], homeTimeline: .empty, priorCountryCodes: [])
         }
         return YearInReview.compute(
             year: year,
             days: store.resolvedDays(in: range),
-            homeCountry: store.homeCountry,
+            homeTimeline: store.homeTimeline,
             priorCountryCodes: priorCountries(before: range.lowerBound),
             places: await placeInputs()
         )

@@ -22,13 +22,38 @@ final class LedgerStore {
     @ObservationIgnored private var cache: [String: [ResolvedDay]] = [:]
     @ObservationIgnored private var cachedEarliestDay: Int??
 
-    var homeCountry: String? {
-        get { UserDefaults.standard.string(forKey: "homeCountry") }
+    /// The full where-I-lived history. Legacy single-home installs are read
+    /// as one open-ended period; every write mirrors the current home back
+    /// into the old "homeCountry" key so raw readers stay truthful.
+    var homeTimeline: HomeTimeline {
+        get {
+            if let cached = cachedTimeline { return cached }
+            let timeline: HomeTimeline
+            if let data = UserDefaults.standard.data(forKey: "homeTimeline"),
+               let decoded = try? JSONDecoder().decode(HomeTimeline.self, from: data) {
+                timeline = decoded
+            } else {
+                timeline = .single(UserDefaults.standard.string(forKey: "homeCountry"))
+            }
+            cachedTimeline = timeline
+            return timeline
+        }
         set {
-            UserDefaults.standard.set(newValue, forKey: "homeCountry")
+            UserDefaults.standard.set(try? JSONEncoder().encode(newValue), forKey: "homeTimeline")
+            UserDefaults.standard.set(newValue.current, forKey: "homeCountry")
+            cachedTimeline = newValue
             invalidate()
         }
     }
+
+    @ObservationIgnored private var cachedTimeline: HomeTimeline?
+
+    /// Today's home — what badges, the map camera, widgets, and the Live
+    /// Activity mean by "home".
+    var homeCountry: String? { homeTimeline.current }
+
+    /// Home on a specific day — what stats and trip classification use.
+    func homeOn(_ day: Int) -> String? { homeTimeline.home(on: day) }
 
     /// "leaveEmpty" | "assume" | "short"
     var gapFillModeRaw: String {
@@ -94,7 +119,7 @@ final class LedgerStore {
     // MARK: - Resolution
 
     func resolvedDays(in range: ClosedRange<Int>) -> [ResolvedDay] {
-        let key = "\(range.lowerBound)-\(range.upperBound)-\(gapFillModeRaw)-\(gapFillMaxDays)-\(homeCountry ?? "-")"
+        let key = "\(range.lowerBound)-\(range.upperBound)-\(gapFillModeRaw)-\(gapFillMaxDays)-\(homeTimeline.cacheKey)"
         if let hit = cache[key] { return hit }
 
         let context = container.mainContext
@@ -182,10 +207,15 @@ final class LedgerStore {
     }
 
     func stats(in range: ClosedRange<Int>) -> TravelStats {
-        DayLedgerResolver.stats(for: resolvedDays(in: range), home: homeCountry)
+        DayLedgerResolver.stats(for: resolvedDays(in: range), homeTimeline: homeTimeline)
     }
 
     func segments(in range: ClosedRange<Int>) -> [TripSegment] {
         DayLedgerResolver.segments(from: resolvedDays(in: range))
+    }
+
+    /// Segments that are actually TRIPS — stays in that day's home are gone.
+    func tripSegments(in range: ClosedRange<Int>) -> [TripSegment] {
+        DayLedgerResolver.tripSegments(from: resolvedDays(in: range), homeTimeline: homeTimeline)
     }
 }

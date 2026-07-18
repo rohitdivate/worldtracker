@@ -34,9 +34,7 @@ struct SettingsView: View {
             .task { regenerateExports() }
             .onChange(of: store.changeToken) { _, _ in regenerateExports() }
             .sheet(isPresented: $showHomePicker) {
-                CountryPickerView { code in
-                    store.homeCountry = code
-                }
+                HomeHistoryView()
             }
             .alert("iCloud backup", isPresented: $showCloudNote) {
                 Button("OK") {}
@@ -76,7 +74,14 @@ struct SettingsView: View {
                 showHomePicker = true
             } label: {
                 HStack {
-                    Text("Home base").foregroundStyle(Theme.ink)
+                    VStack(alignment: .leading, spacing: 2) {
+                        Text("Home base").foregroundStyle(Theme.ink)
+                        if store.homeTimeline.periods.count > 1 {
+                            Text("\(store.homeTimeline.periods.count) home periods")
+                                .font(.system(size: 11))
+                                .foregroundStyle(Theme.ink3)
+                        }
+                    }
                     Spacer()
                     if let home = store.homeCountry {
                         Text("\(flagEmoji(home)) \(countryName(home))")
