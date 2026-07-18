@@ -7,7 +7,6 @@ import WorldTrackerKit
 struct WorldMapView: View {
     @State private var shapes: WorldMapShapes?
     @State private var mode: Mode = .globe
-    @State private var position: MapCameraPosition = .automatic
 
     enum Mode: String, CaseIterable {
         case globe = "Globe"
@@ -23,7 +22,11 @@ struct WorldMapView: View {
                 Theme.sky.ignoresSafeArea()
 
                 if mode == .globe {
-                    globe
+                    if let shapes {
+                        GlobeView(shapes: shapes)
+                    } else {
+                        ProgressView().tint(Theme.aurora1)
+                    }
                 } else {
                     countriesList
                 }
@@ -50,101 +53,17 @@ struct WorldMapView: View {
                 if shapes == nil {
                     shapes = try? await Task.detached { try WorldMapShapes() }.value
                 }
-                setInitialCamera()
             }
         }
     }
 
-    // MARK: - Globe
+    // MARK: - Countries list
 
     private var visitedDays: [String: Int] {
         let today = store.todayEpoch
         let earliest = min(store.earliestDay ?? today, today)
         return store.stats(in: earliest...today).daysPerCountry
     }
-
-    private var globe: some View {
-        let visited = visitedDays
-        let maxDays = visited.values.max() ?? 1
-        let home = store.homeCountry ?? store.currentStay()?.countryCode
-        let homeCenter = home.flatMap { shapes?.centroid(forCountry: $0) }
-
-        return ZStack(alignment: .bottom) {
-            Map(position: $position) {
-                if let shapes {
-                    // Visited countries, shaded by time spent.
-                    ForEach(Array(visited.keys), id: \.self) { code in
-                        let isHome = code == home
-                        let intensity = 0.25 + 0.5 * Double(visited[code] ?? 0) / Double(maxDays)
-                        ForEach(Array(shapes.rings(forCountry: code).enumerated()), id: \.offset) { _, ring in
-                            MapPolygon(coordinates: ring.map {
-                                CLLocationCoordinate2D(latitude: $0.latitude, longitude: $0.longitude)
-                            })
-                            .foregroundStyle(
-                                (isHome ? Theme.amber : Theme.aurora1)
-                                    .opacity(isHome ? 0.42 : intensity)
-                            )
-                        }
-                    }
-
-                    // Flight arcs: home → the countries you've visited.
-                    if let homeCenter, let home {
-                        ForEach(Array(visited.keys.filter { $0 != home }.prefix(14)), id: \.self) { code in
-                            if let target = shapes.centroid(forCountry: code) {
-                                MapPolyline(coordinates: greatCircleArc(from: homeCenter, to: target).map {
-                                    CLLocationCoordinate2D(latitude: $0.latitude, longitude: $0.longitude)
-                                })
-                                .stroke(
-                                    Theme.aurora2.opacity(0.75),
-                                    style: StrokeStyle(lineWidth: 1.6, lineCap: .round, dash: [5, 5])
-                                )
-                            }
-                        }
-                    }
-                }
-            }
-            .mapStyle(.imagery(elevation: .realistic))
-            .ignoresSafeArea(edges: .bottom)
-
-            statsPill
-                .padding(.bottom, 96)
-        }
-    }
-
-    private var statsPill: some View {
-        let visited = visitedDays
-        let percent = Int((Double(visited.count) / 195.0 * 100).rounded())
-        return HStack(spacing: 6) {
-            Text("\(visited.count) countries")
-                .fontWeight(.bold)
-                .foregroundStyle(Theme.ink)
-            Text("·").foregroundStyle(Theme.ink3)
-            Text("\(percent)% of the world")
-                .foregroundStyle(Theme.ink2)
-        }
-        .font(.system(size: 13))
-        .padding(.horizontal, 16)
-        .padding(.vertical, 9)
-        .background(.ultraThinMaterial, in: Capsule())
-        .overlay(Capsule().strokeBorder(Theme.hairline2, lineWidth: 1))
-    }
-
-    private func setInitialCamera() {
-        let home = store.homeCountry ?? store.currentStay()?.countryCode
-        let center = home.flatMap { shapes?.centroid(forCountry: $0) }
-            ?? GeoPoint(latitude: 30, longitude: 0)
-        position = .camera(
-            MapCamera(
-                centerCoordinate: CLLocationCoordinate2D(
-                    latitude: center.latitude,
-                    longitude: center.longitude
-                ),
-                distance: 28_000_000
-            )
-        )
-    }
-
-    // MARK: - Countries list
 
     private var countriesList: some View {
         let visited = visitedDays

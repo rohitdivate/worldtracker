@@ -242,3 +242,15 @@ Tick them off before moving on.
 - [ ] iCloud-optimized originals stream in (corner spinner) over the
       instant thumbnail
 - [ ] Trip detail photos open the same viewer with city · date captions
+
+## V5 — Cinematic globe
+
+- [ ] Map tab: the globe flies in from space to your home (Reduce Motion
+      skips straight there)
+- [ ] Visited countries are unmissable — hot aurora fill + glowing
+      borders, home amber with a pulsing beacon
+- [ ] Flight arcs are layered (soft glow under a bright core), no dashes
+- [ ] Tap a visited country → the camera flies over it and a stat card
+      slides up (days overall/this year, trips, Open → country screen);
+      tap the ocean or an unvisited country to fly back out
+- [ ] Stats pill shows countries · % world and travel days · crossings
