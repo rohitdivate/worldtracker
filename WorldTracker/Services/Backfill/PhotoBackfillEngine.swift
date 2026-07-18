@@ -370,7 +370,7 @@ final class PhotoBackfillEngine {
 
         let checkpoint = await writer.checkpointState()
         let resuming = resume
-            && checkpoint?.cursorTimestamp != nil
+            && checkpoint?.cursor != nil
             && (checkpoint?.status == "paused" || checkpoint?.status == "running")
         let generation = resuming ? (checkpoint?.generation ?? 1)
                                   : (checkpoint?.generation ?? 0) + 1
@@ -379,7 +379,7 @@ final class PhotoBackfillEngine {
 
         let options = PHFetchOptions()
         options.sortDescriptors = [NSSortDescriptor(key: "creationDate", ascending: true)]
-        if resuming, let cursor = checkpoint?.cursorTimestamp {
+        if resuming, let cursor = checkpoint?.cursor {
             // Exact resume: chunk boundaries never split a creationDate tie,
             // so strictly-after is lossless.
             options.predicate = NSPredicate(format: "creationDate > %@", cursor as NSDate)
