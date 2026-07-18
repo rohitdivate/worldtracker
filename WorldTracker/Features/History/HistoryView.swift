@@ -273,6 +273,7 @@ struct DayCellView: View {
         if resolved.isFilled { return Theme.aurora2.opacity(0.5) }
         switch resolved.source {
         case .photo: return Theme.aurora2.opacity(0.35)
+        case .importedTimeline, .importedFlight: return Theme.aurora2.opacity(0.3)
         case .manual: return Theme.amber.opacity(0.4)
         case .gps, .visit: return Theme.aurora1.opacity(0.25)
         case .timezoneHint: return Theme.ink3.opacity(0.3)

@@ -154,6 +154,7 @@ public struct DayLedgerResolver: Sendable {
         let tiers: [[FactSource]] = [
             [.manual],
             [.gps, .visit],
+            [.importedTimeline, .importedFlight],
             [.photo],
             [.timezoneHint],
         ]
@@ -175,6 +176,9 @@ public struct DayLedgerResolver: Sendable {
                 source = .manual
             } else if tier.contains(.gps) {
                 source = tierFacts.contains { $0.source == .gps } ? .gps : .visit
+            } else if tier.contains(.importedTimeline) {
+                source = tierFacts.contains { $0.source == .importedTimeline }
+                    ? .importedTimeline : .importedFlight
             } else {
                 source = tierFacts[0].source
             }

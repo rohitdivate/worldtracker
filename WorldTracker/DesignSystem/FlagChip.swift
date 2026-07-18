@@ -67,6 +67,8 @@ struct ProvenanceStamp: View {
         case .photo: return ("PHOTOS", Theme.aurora2)
         case .manual: return ("MANUAL", Theme.amber)
         case .timezoneHint: return ("TIMEZONE", Theme.ink3)
+        case .importedTimeline: return ("TIMELINE", Theme.aurora2)
+        case .importedFlight: return ("FLIGHT", Theme.aurora2)
         }
     }
 

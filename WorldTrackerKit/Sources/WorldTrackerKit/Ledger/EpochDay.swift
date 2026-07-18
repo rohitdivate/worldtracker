@@ -61,11 +61,15 @@ public struct EpochDay: Hashable, Comparable, Sendable, Codable {
 }
 
 /// Where a fact about a day came from. Precedence when resolving a day:
-/// manual > gps/visit > photo > timezoneHint.
+/// manual > gps/visit > importedTimeline/importedFlight > photo > timezoneHint.
 public enum FactSource: String, Sendable, Codable, CaseIterable {
     case gps
     case visit
     case photo
     case manual
     case timezoneHint
+    /// Bulk import from a Google Timeline / Location History export.
+    case importedTimeline = "importTimeline"
+    /// Bulk import from a flight history CSV (Flighty or generic).
+    case importedFlight = "importFlight"
 }

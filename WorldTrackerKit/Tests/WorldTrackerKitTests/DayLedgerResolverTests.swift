@@ -154,6 +154,41 @@ final class DayLedgerResolverTests: XCTestCase {
         XCTAssertEqual(stats.travelDays, 0)
     }
 
+    func testImportedBeatsPhotoLosesToGpsAndManual() {
+        let days = plain.resolve(
+            facts: [
+                fact(1, "FR", .photo, evidence: 40),
+                fact(1, "ES", .importedTimeline),
+                fact(2, "DE", .importedTimeline, evidence: 40),
+                fact(2, "PT", .gps),
+                fact(3, "IT", .importedFlight, evidence: 40),
+                fact(3, "NL", .manual),
+            ],
+            annotations: [],
+            range: 1...3
+        )
+        XCTAssertEqual(days[0].countryCodes, ["ES"])
+        XCTAssertEqual(days[0].source, .importedTimeline)
+        XCTAssertEqual(days[1].countryCodes, ["PT"])
+        XCTAssertEqual(days[1].source, .gps)
+        XCTAssertEqual(days[2].countryCodes, ["NL"])
+        XCTAssertEqual(days[2].source, .manual)
+    }
+
+    func testTimelineAndFlightMergeAsBorderDay() {
+        let days = plain.resolve(
+            facts: [
+                fact(5, "GB", .importedFlight),
+                fact(5, "ES", .importedTimeline, evidence: 3),
+            ],
+            annotations: [],
+            range: 5...5
+        )
+        XCTAssertEqual(Set(days[0].countryCodes), Set(["GB", "ES"]))
+        XCTAssertEqual(days[0].countryCodes.first, "ES") // higher evidence first
+        XCTAssertEqual(days[0].source, .importedTimeline) // deterministic display
+    }
+
     func testNotePropagates() {
         let days = plain.resolve(
             facts: [fact(1, "GB", .gps)],
