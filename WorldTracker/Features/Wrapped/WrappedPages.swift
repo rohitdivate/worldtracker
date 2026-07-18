@@ -1,14 +1,55 @@
 import SwiftUI
 import WorldTrackerKit
 
-/// The nine Wrapped pages. W2 lands them static-first: real layout, real data,
-/// a simple appear fade. W3 layers on the full choreography (roll-ups,
-/// stamp-slams, particles, haptics) behind the same `progress` value.
-///
-/// Every page takes `externalProgress` so a future video exporter can drive
-/// the exact frames; nil means "animate yourself on appear".
+/// The nine Wrapped pages, fully choreographed. Every page is a pure function
+/// of a 0…1 progress value: internally a TimelineView clock drives it (and
+/// pauses when the choreography completes); externally a video exporter can
+/// hand in exact frames via `externalProgress`.
 
-// MARK: - Shared bits
+// MARK: - Choreography plumbing
+
+/// Time-driven page progress. Ticks at display rate until the choreography
+/// finishes, then freezes so a resting page costs nothing.
+private struct WrappedPageClock<Content: View>: View {
+    var externalProgress: Double?
+    var duration: Double
+    @ViewBuilder var content: (Double) -> Content
+
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
+    @State private var start = Date()
+    @State private var finished = false
+
+    var body: some View {
+        if let externalProgress {
+            content(externalProgress)
+        } else if reduceMotion {
+            content(1)
+        } else {
+            TimelineView(.animation(paused: finished)) { timeline in
+                let p = min(1, timeline.date.timeIntervalSince(start) / duration)
+                content(p)
+                    .onChange(of: p >= 1) { _, done in
+                        if done { finished = true }
+                    }
+            }
+        }
+    }
+}
+
+/// Maps overall page progress onto a sub-animation's 0…1 window.
+private func stage(_ p: Double, _ from: Double, _ to: Double) -> Double {
+    guard to > from else { return p >= to ? 1 : 0 }
+    return min(1, max(0, (p - from) / (to - from)))
+}
+
+private func easeOutCubic(_ x: Double) -> Double { 1 - pow(1 - x, 3) }
+
+/// Overshoot-and-settle — the stamp-slam curve.
+private func easeOutBack(_ x: Double) -> Double {
+    let c1 = 1.70158
+    let c3 = c1 + 1
+    return 1 + c3 * pow(x - 1, 3) + c1 * pow(x - 1, 2)
+}
 
 private struct WrappedKicker: View {
     let text: String
@@ -22,40 +63,31 @@ private struct WrappedKicker: View {
     }
 }
 
-private struct WrappedBigNumber: View {
+/// Rolling counter: recomputed per frame, so it counts up honestly.
+private struct RollingNumber: View {
     let value: Int
+    let reveal: Double
     var size: CGFloat = 96
 
     var body: some View {
-        Text("\(value)")
+        Text("\(Int((Double(value) * easeOutCubic(reveal)).rounded()))")
             .font(.system(size: size, weight: .heavy, design: .rounded))
             .foregroundStyle(Theme.auroraGradient)
-            .contentTransition(.numericText())
             .minimumScaleFactor(0.5)
             .lineLimit(1)
+            .monospacedDigit()
     }
 }
 
-/// Appear-driven progress with the external override every page honors.
-private struct PageReveal: ViewModifier {
-    let externalProgress: Double?
-    @State private var appeared = false
-
-    private var p: Double { externalProgress ?? (appeared ? 1 : 0) }
+/// Fires a haptic exactly once per threshold crossing of a counter.
+private struct HapticOnStep: ViewModifier {
+    let step: Int
+    let sound: () -> Void
 
     func body(content: Content) -> some View {
-        content
-            .opacity(0.25 + 0.75 * p)
-            .offset(y: (1 - p) * 18)
-            .onAppear {
-                withAnimation(.spring(duration: 0.7)) { appeared = true }
-            }
-    }
-}
-
-private extension View {
-    func pageReveal(_ externalProgress: Double?) -> some View {
-        modifier(PageReveal(externalProgress: externalProgress))
+        content.onChange(of: step) { old, new in
+            if new > old { sound() }
+        }
     }
 }
 
@@ -68,23 +100,34 @@ struct WrappedOpenerPage: View {
     var externalProgress: Double? = nil
 
     var body: some View {
-        VStack(spacing: 22) {
-            Spacer()
-            MiniGlobe(size: 118)
-            WrappedKicker(text: "YOUR YEAR IN TRAVEL")
-            Text(String(data.stats.year))
-                .font(.system(size: 92, weight: .heavy, design: .rounded))
-                .foregroundStyle(Theme.auroraGradient)
-            Text(data.isPartialYear
-                 ? "So far — the year is still writing itself."
-                 : "\(data.stats.trackedDays) days, remembered for you.")
-                .font(.system(size: 15))
-                .foregroundStyle(Theme.ink2)
-            Spacer()
-            Spacer()
+        WrappedPageClock(externalProgress: externalProgress, duration: 2.0) { p in
+            ZStack {
+                ParticleField(opacity: stage(p, 0.3, 1))
+
+                VStack(spacing: 22) {
+                    Spacer()
+                    MiniGlobe(size: 118)
+                        .scaleEffect(0.4 + 0.6 * easeOutBack(stage(p, 0, 0.4)))
+                        .opacity(stage(p, 0, 0.25))
+                    WrappedKicker(text: "YOUR YEAR IN TRAVEL")
+                        .opacity(stage(p, 0.25, 0.45))
+                    Text(String(data.stats.year))
+                        .font(.system(size: 92, weight: .heavy, design: .rounded))
+                        .foregroundStyle(Theme.auroraGradient)
+                        .opacity(stage(p, 0.35, 0.6))
+                        .offset(y: (1 - easeOutBack(stage(p, 0.35, 0.7))) * 46)
+                    Text(data.isPartialYear
+                         ? "So far — the year is still writing itself."
+                         : "\(data.stats.trackedDays) days, remembered for you.")
+                        .font(.system(size: 15))
+                        .foregroundStyle(Theme.ink2)
+                        .opacity(stage(p, 0.65, 0.9))
+                    Spacer()
+                    Spacer()
+                }
+                .padding(.horizontal, 32)
+            }
         }
-        .padding(.horizontal, 32)
-        .pageReveal(externalProgress)
     }
 }
 
@@ -95,88 +138,124 @@ struct WrappedCountriesPage: View {
     var externalProgress: Double? = nil
 
     var body: some View {
-        VStack(spacing: 18) {
-            Spacer()
-            WrappedKicker(text: "YOU SET FOOT IN")
-            WrappedBigNumber(value: data.stats.countriesVisited, size: 120)
-            Text(data.stats.countriesVisited == 1 ? "country" : "countries")
-                .font(.system(size: 22, weight: .bold, design: .rounded))
-                .foregroundStyle(Theme.ink)
+        WrappedPageClock(externalProgress: externalProgress, duration: 2.4) { p in
+            let flags = Array(data.stats.firstAppearanceOrder.prefix(24))
+            let flagsShown = Int(easeOutCubic(stage(p, 0.4, 0.95)) * Double(flags.count))
 
-            LazyVGrid(
-                columns: [GridItem(.adaptive(minimum: 44), spacing: 10)],
-                spacing: 10
-            ) {
-                ForEach(data.stats.firstAppearanceOrder.prefix(24), id: \.self) { code in
-                    FlagChip(code: code, size: 42)
+            VStack(spacing: 18) {
+                Spacer()
+                WrappedKicker(text: "YOU SET FOOT IN")
+                    .opacity(stage(p, 0, 0.2))
+                RollingNumber(value: data.stats.countriesVisited,
+                              reveal: stage(p, 0.1, 0.55), size: 120)
+                    .modifier(HapticOnStep(step: p >= 0.55 ? 1 : 0) {
+                        HapticsDirector.shared.stampSlam()
+                    })
+                Text(data.stats.countriesVisited == 1 ? "country" : "countries")
+                    .font(.system(size: 22, weight: .bold, design: .rounded))
+                    .foregroundStyle(Theme.ink)
+                    .opacity(stage(p, 0.3, 0.5))
+
+                LazyVGrid(
+                    columns: [GridItem(.adaptive(minimum: 44), spacing: 10)],
+                    spacing: 10
+                ) {
+                    ForEach(Array(flags.enumerated()), id: \.element) { index, code in
+                        let shown = index < flagsShown
+                        FlagChip(code: code, size: 42)
+                            .scaleEffect(shown ? 1 : 0.3)
+                            .opacity(shown ? 1 : 0)
+                            .animation(.spring(duration: 0.35), value: shown)
+                    }
                 }
-            }
-            .padding(.horizontal, 30)
-            .padding(.top, 8)
+                .padding(.horizontal, 30)
+                .padding(.top, 8)
 
-            if data.stats.borderCrossings > 0 {
-                Text("\(data.stats.borderCrossings) border \(data.stats.borderCrossings == 1 ? "crossing" : "crossings")")
-                    .font(.system(size: 14, weight: .semibold))
-                    .foregroundStyle(Theme.ink2)
-                    .padding(.top, 6)
+                if data.stats.borderCrossings > 0 {
+                    Text("\(data.stats.borderCrossings) border \(data.stats.borderCrossings == 1 ? "crossing" : "crossings")")
+                        .font(.system(size: 14, weight: .semibold))
+                        .foregroundStyle(Theme.ink2)
+                        .padding(.top, 6)
+                        .opacity(stage(p, 0.85, 1))
+                }
+                Spacer()
+                Spacer()
             }
-            Spacer()
-            Spacer()
         }
-        .pageReveal(externalProgress)
     }
 }
 
-// MARK: - 3 · Travel days (dot grid)
+// MARK: - 3 · Travel days (dot-grid ignition)
 
 struct WrappedTravelDaysPage: View {
     let data: YearInReviewBuilder.WrappedData
     var externalProgress: Double? = nil
 
     var body: some View {
-        VStack(spacing: 18) {
-            Spacer()
-            WrappedKicker(text: "DAYS AWAY FROM HOME")
-            WrappedBigNumber(value: data.stats.travelDays, size: 110)
+        WrappedPageClock(externalProgress: externalProgress, duration: 2.8) { p in
+            let stampIn = stage(p, 0.82, 0.95)
 
-            dotGrid
-                .frame(height: 150)
-                .padding(.horizontal, 34)
-                .padding(.top, 4)
+            VStack(spacing: 18) {
+                Spacer()
+                WrappedKicker(text: "DAYS AWAY FROM HOME")
+                    .opacity(stage(p, 0, 0.2))
+                RollingNumber(value: data.stats.travelDays,
+                              reveal: stage(p, 0.1, 0.6), size: 110)
 
-            if let busiest = data.stats.busiestMonth,
-               busiest.month >= 1, busiest.month <= monthNames.count {
-                Text("BUSIEST · \(monthNames[busiest.month - 1].uppercased()) · \(busiest.travelDays) DAYS")
-                    .font(.system(size: 10.5, weight: .heavy, design: .monospaced))
-                    .tracking(1)
-                    .padding(.horizontal, 10)
-                    .padding(.vertical, 5)
-                    .foregroundStyle(Theme.amber)
-                    .overlay(
-                        RoundedRectangle(cornerRadius: 5)
-                            .strokeBorder(Theme.amber.opacity(0.55), lineWidth: 1.2)
-                    )
-                    .rotationEffect(.degrees(-2))
-                    .padding(.top, 10)
+                dotGrid(ignition: easeOutCubic(stage(p, 0.2, 0.8)))
+                    .frame(height: 150)
+                    .padding(.horizontal, 34)
+                    .padding(.top, 4)
+                    .opacity(stage(p, 0.1, 0.3))
+
+                if let busiest = data.stats.busiestMonth,
+                   busiest.month >= 1, busiest.month <= monthNames.count {
+                    Text("BUSIEST · \(monthNames[busiest.month - 1].uppercased()) · \(busiest.travelDays) DAYS")
+                        .font(.system(size: 10.5, weight: .heavy, design: .monospaced))
+                        .tracking(1)
+                        .padding(.horizontal, 10)
+                        .padding(.vertical, 5)
+                        .foregroundStyle(Theme.amber)
+                        .overlay(
+                            RoundedRectangle(cornerRadius: 5)
+                                .strokeBorder(Theme.amber.opacity(0.55), lineWidth: 1.2)
+                        )
+                        .rotationEffect(.degrees(-8 + 6 * easeOutBack(stampIn)))
+                        .scaleEffect(0.4 + 0.6 * easeOutBack(stampIn))
+                        .opacity(stampIn)
+                        .padding(.top, 10)
+                        .modifier(HapticOnStep(step: stampIn >= 1 ? 1 : 0) {
+                            HapticsDirector.shared.stampSlam()
+                        })
+                }
+                Spacer()
+                Spacer()
             }
-            Spacer()
-            Spacer()
         }
-        .pageReveal(externalProgress)
     }
 
-    /// The whole year as dots — travel days lit, in true calendar positions.
-    private var dotGrid: some View {
+    /// The whole year as dots in true calendar positions; travel days ignite
+    /// chronologically as `ignition` sweeps 0→1.
+    private func dotGrid(ignition: Double) -> some View {
         Canvas { context, size in
             let flags = data.travelDayFlags
             guard !flags.isEmpty else { return }
+            let travelTotal = max(1, flags.lazy.filter { $0 }.count)
+            let litTravel = Int((Double(travelTotal) * ignition).rounded())
+
             let columns = 26
             let rows = Int((Double(flags.count) / Double(columns)).rounded(.up))
             let cell = min(size.width / CGFloat(columns), size.height / CGFloat(rows))
             let dot = cell * 0.55
             let xInset = (size.width - cell * CGFloat(columns)) / 2
 
+            var travelSeen = 0
             for (i, isTravel) in flags.enumerated() {
+                var lit = false
+                if isTravel {
+                    travelSeen += 1
+                    lit = travelSeen <= litTravel
+                }
                 let col = i % columns
                 let row = i / columns
                 let rect = CGRect(
@@ -187,8 +266,15 @@ struct WrappedTravelDaysPage: View {
                 )
                 context.fill(
                     Path(ellipseIn: rect),
-                    with: .color(isTravel ? Theme.aurora1 : Theme.hairline2)
+                    with: .color(lit ? Theme.aurora1 : Theme.hairline2)
                 )
+                if lit, travelSeen == litTravel, ignition < 1 {
+                    // The freshly-lit dot glows.
+                    context.fill(
+                        Path(ellipseIn: rect.insetBy(dx: -dot * 0.5, dy: -dot * 0.5)),
+                        with: .color(Theme.aurora1.opacity(0.35))
+                    )
+                }
             }
         }
     }
@@ -201,68 +287,83 @@ struct WrappedPodiumPage: View {
     var externalProgress: Double? = nil
 
     var body: some View {
-        let top = Array(data.stats.topCountries.prefix(3))
-        // Podium order: 2nd, 1st, 3rd.
-        let arranged: [(rank: Int, entry: YearInReviewStats.RankedCountry)] = {
-            switch top.count {
-            case 0: return []
-            case 1: return [(1, top[0])]
-            case 2: return [(2, top[1]), (1, top[0])]
-            default: return [(2, top[1]), (1, top[0]), (3, top[2])]
-            }
-        }()
-        let maxDays = top.first?.days ?? 1
+        WrappedPageClock(externalProgress: externalProgress, duration: 2.4) { p in
+            let top = Array(data.stats.topCountries.prefix(3))
+            let arranged: [(rank: Int, entry: YearInReviewStats.RankedCountry)] = {
+                switch top.count {
+                case 0: return []
+                case 1: return [(1, top[0])]
+                case 2: return [(2, top[1]), (1, top[0])]
+                default: return [(2, top[1]), (1, top[0]), (3, top[2])]
+                }
+            }()
+            let maxDays = top.first?.days ?? 1
+            let crownIn = stage(p, 0.75, 0.95)
 
-        return VStack(spacing: 20) {
-            Spacer()
-            WrappedKicker(text: "WHERE YOUR YEAR LIVED")
+            VStack(spacing: 20) {
+                Spacer()
+                WrappedKicker(text: "WHERE YOUR YEAR LIVED")
+                    .opacity(stage(p, 0, 0.2))
 
-            HStack(alignment: .bottom, spacing: 14) {
-                ForEach(arranged, id: \.entry.code) { rank, entry in
-                    VStack(spacing: 8) {
-                        if rank == 1 {
-                            Image(systemName: "crown.fill")
-                                .font(.system(size: 20))
-                                .foregroundStyle(Theme.amber)
+                HStack(alignment: .bottom, spacing: 14) {
+                    ForEach(arranged, id: \.entry.code) { rank, entry in
+                        // Bars rise in podium-ceremony order: 3rd, 2nd, then 1st.
+                        let riseStart = rank == 1 ? 0.45 : (rank == 2 ? 0.3 : 0.15)
+                        let rise = easeOutBack(stage(p, riseStart, riseStart + 0.3))
+
+                        VStack(spacing: 8) {
+                            if rank == 1 {
+                                Image(systemName: "crown.fill")
+                                    .font(.system(size: 20))
+                                    .foregroundStyle(Theme.amber)
+                                    .offset(y: (1 - easeOutBack(crownIn)) * -26)
+                                    .opacity(crownIn)
+                                    .modifier(HapticOnStep(step: crownIn >= 1 ? 1 : 0) {
+                                        HapticsDirector.shared.celebrate()
+                                    })
+                            }
+                            FlagChip(code: entry.code, size: rank == 1 ? 52 : 40)
+                                .opacity(stage(p, riseStart, riseStart + 0.2))
+                            Text("\(entry.days)d")
+                                .font(.system(size: 15, weight: .heavy, design: .rounded))
+                                .foregroundStyle(rank == 1 ? Theme.amber : Theme.aurora1)
+                                .opacity(stage(p, riseStart + 0.1, riseStart + 0.3))
+                            RoundedRectangle(cornerRadius: 8, style: .continuous)
+                                .fill(
+                                    rank == 1
+                                        ? AnyShapeStyle(Theme.auroraGradient)
+                                        : AnyShapeStyle(Theme.cardRaised)
+                                )
+                                .frame(
+                                    width: 74,
+                                    height: max(6, max(34, 150 * CGFloat(entry.days) / CGFloat(maxDays)) * rise)
+                                )
+                                .overlay(
+                                    RoundedRectangle(cornerRadius: 8, style: .continuous)
+                                        .strokeBorder(Theme.hairline2, lineWidth: 1)
+                                )
+                            Text(countryName(entry.code))
+                                .font(.system(size: 12, weight: .semibold))
+                                .foregroundStyle(Theme.ink2)
+                                .lineLimit(1)
+                                .frame(width: 84)
+                                .opacity(stage(p, riseStart, riseStart + 0.25))
                         }
-                        FlagChip(code: entry.code, size: rank == 1 ? 52 : 40)
-                        Text("\(entry.days)d")
-                            .font(.system(size: 15, weight: .heavy, design: .rounded))
-                            .foregroundStyle(rank == 1 ? Theme.amber : Theme.aurora1)
-                        RoundedRectangle(cornerRadius: 8, style: .continuous)
-                            .fill(
-                                rank == 1
-                                    ? AnyShapeStyle(Theme.auroraGradient)
-                                    : AnyShapeStyle(Theme.cardRaised)
-                            )
-                            .frame(
-                                width: 74,
-                                height: max(34, 150 * CGFloat(entry.days) / CGFloat(maxDays))
-                            )
-                            .overlay(
-                                RoundedRectangle(cornerRadius: 8, style: .continuous)
-                                    .strokeBorder(Theme.hairline2, lineWidth: 1)
-                            )
-                        Text(countryName(entry.code))
-                            .font(.system(size: 12, weight: .semibold))
-                            .foregroundStyle(Theme.ink2)
-                            .lineLimit(1)
-                            .frame(width: 84)
                     }
                 }
-            }
-            .padding(.top, 6)
+                .padding(.top, 6)
 
-            if let home = data.stats.homeCountry,
-               data.stats.topCountries.first?.code == home {
-                Text("Home held the crown — the away days are below.")
-                    .font(.system(size: 13))
-                    .foregroundStyle(Theme.ink3)
+                if let home = data.stats.homeCountry,
+                   data.stats.topCountries.first?.code == home {
+                    Text("Home held the crown — the away days are below.")
+                        .font(.system(size: 13))
+                        .foregroundStyle(Theme.ink3)
+                        .opacity(stage(p, 0.85, 1))
+                }
+                Spacer()
+                Spacer()
             }
-            Spacer()
-            Spacer()
         }
-        .pageReveal(externalProgress)
     }
 }
 
@@ -273,133 +374,177 @@ struct WrappedLongestTripPage: View {
     var externalProgress: Double? = nil
 
     var body: some View {
-        VStack(spacing: 16) {
-            Spacer()
-            WrappedKicker(text: "YOUR LONGEST TRIP")
+        WrappedPageClock(externalProgress: externalProgress, duration: 2.6) { p in
+            VStack(spacing: 16) {
+                Spacer()
+                WrappedKicker(text: "YOUR LONGEST TRIP")
+                    .opacity(stage(p, 0, 0.2))
 
-            if let trip = data.stats.longestTrip {
-                arc
-                    .frame(height: 110)
-                    .padding(.horizontal, 40)
+                if let trip = data.stats.longestTrip {
+                    arc(draw: easeOutCubic(stage(p, 0.1, 0.6)))
+                        .frame(height: 110)
+                        .padding(.horizontal, 40)
 
-                HStack(alignment: .firstTextBaseline, spacing: 8) {
-                    WrappedBigNumber(value: trip.dayCount, size: 84)
-                    Text(trip.dayCount == 1 ? "day away" : "days away")
-                        .font(.system(size: 20, weight: .bold, design: .rounded))
-                        .foregroundStyle(Theme.ink)
-                }
-
-                Text(DayFormat.shortRange(trip.startDay, trip.endDay, todayYear: data.stats.year))
-                    .font(.system(size: 13, weight: .semibold, design: .monospaced))
-                    .foregroundStyle(Theme.ink2)
-
-                HStack(spacing: 8) {
-                    ForEach(trip.countryCodes.prefix(6), id: \.self) { code in
-                        HStack(spacing: 5) {
-                            Text(flagEmoji(code)).font(.system(size: 15))
-                            Text(countryName(code))
-                                .font(.system(size: 12.5, weight: .semibold))
-                                .foregroundStyle(Theme.ink)
-                                .lineLimit(1)
-                        }
-                        .padding(.horizontal, 10)
-                        .padding(.vertical, 6)
-                        .nightCard()
+                    HStack(alignment: .firstTextBaseline, spacing: 8) {
+                        RollingNumber(value: trip.dayCount,
+                                      reveal: stage(p, 0.35, 0.75), size: 84)
+                        Text(trip.dayCount == 1 ? "day away" : "days away")
+                            .font(.system(size: 20, weight: .bold, design: .rounded))
+                            .foregroundStyle(Theme.ink)
+                            .opacity(stage(p, 0.5, 0.7))
                     }
+
+                    Text(DayFormat.shortRange(trip.startDay, trip.endDay, todayYear: data.stats.year))
+                        .font(.system(size: 13, weight: .semibold, design: .monospaced))
+                        .foregroundStyle(Theme.ink2)
+                        .opacity(stage(p, 0.6, 0.8))
+
+                    HStack(spacing: 8) {
+                        ForEach(Array(trip.countryCodes.prefix(6).enumerated()), id: \.element) { index, code in
+                            let chipIn = stage(p, 0.65 + Double(index) * 0.07, 0.8 + Double(index) * 0.07)
+                            HStack(spacing: 5) {
+                                Text(flagEmoji(code)).font(.system(size: 15))
+                                Text(countryName(code))
+                                    .font(.system(size: 12.5, weight: .semibold))
+                                    .foregroundStyle(Theme.ink)
+                                    .lineLimit(1)
+                            }
+                            .padding(.horizontal, 10)
+                            .padding(.vertical, 6)
+                            .nightCard()
+                            .scaleEffect(0.6 + 0.4 * easeOutBack(chipIn))
+                            .opacity(chipIn)
+                        }
+                    }
+                    .padding(.top, 6)
                 }
-                .padding(.top, 6)
+                Spacer()
+                Spacer()
             }
-            Spacer()
-            Spacer()
+            .padding(.horizontal, 24)
         }
-        .padding(.horizontal, 24)
-        .pageReveal(externalProgress)
     }
 
-    /// Decorative flight arc with a comet head — W3 draws it progressively.
-    private var arc: some View {
+    /// The flight arc draws itself; the comet rides its tip.
+    private func arc(draw: Double) -> some View {
         GeometryReader { geo in
             let w = geo.size.width
             let h = geo.size.height
+            let from = CGPoint(x: 0, y: h * 0.9)
+            let to = CGPoint(x: w, y: h * 0.9)
+            let control = CGPoint(x: w / 2, y: -h * 0.4)
             var path = Path()
-            path.move(to: CGPoint(x: 0, y: h * 0.9))
-            path.addQuadCurve(
-                to: CGPoint(x: w, y: h * 0.9),
-                control: CGPoint(x: w / 2, y: -h * 0.4)
+            path.move(to: from)
+            path.addQuadCurve(to: to, control: control)
+
+            // Quadratic Bézier point at t — the comet's seat.
+            let t = draw
+            let mt = 1 - t
+            let tip = CGPoint(
+                x: mt * mt * from.x + 2 * mt * t * control.x + t * t * to.x,
+                y: mt * mt * from.y + 2 * mt * t * control.y + t * t * to.y
             )
+
             return ZStack {
-                path.stroke(
-                    Theme.auroraGradient,
-                    style: StrokeStyle(lineWidth: 2, lineCap: .round, dash: [1, 7])
-                )
+                path.trimmedPath(from: 0, to: max(0.001, t))
+                    .stroke(
+                        Theme.auroraGradient,
+                        style: StrokeStyle(lineWidth: 2, lineCap: .round, dash: [1, 7])
+                    )
                 Circle()
                     .fill(Theme.aurora1)
                     .frame(width: 8, height: 8)
-                    .position(x: w, y: h * 0.9)
+                    .position(tip)
                     .shadow(color: Theme.aurora1.opacity(0.8), radius: 8)
+                    .opacity(draw > 0 ? 1 : 0)
                 Text("✈️")
                     .font(.system(size: 20))
-                    .position(x: w / 2, y: h * 0.12)
+                    .position(x: tip.x, y: tip.y - 16)
+                    .opacity(draw > 0.05 ? 1 : 0)
             }
         }
     }
 }
 
-// MARK: - 6 · First visits (new stamps)
+// MARK: - 6 · First visits (stamp-slam)
 
 struct WrappedFirstVisitsPage: View {
     let data: YearInReviewBuilder.WrappedData
     var externalProgress: Double? = nil
 
     var body: some View {
-        let firsts = data.stats.firstVisits
+        WrappedPageClock(externalProgress: externalProgress, duration: 3.0) { p in
+            let firsts = data.stats.firstVisits
+            let shownStamps = Array(firsts.prefix(8))
+            let slammed = shownStamps.indices.filter { index in
+                stage(p, slamStart(index), slamStart(index) + 0.1) >= 1
+            }.count
 
-        return VStack(spacing: 16) {
-            Spacer()
-            WrappedKicker(text: "NEW STAMPS", color: Theme.amber)
-            HStack(alignment: .firstTextBaseline, spacing: 8) {
-                WrappedBigNumber(value: firsts.count, size: 84)
-                Text(firsts.count == 1 ? "country you'd\nnever seen before" : "countries you'd\nnever seen before")
-                    .font(.system(size: 17, weight: .bold, design: .rounded))
-                    .foregroundStyle(Theme.ink)
-            }
+            ZStack {
+                AuroraBurstView(progress: stage(p, 0.28, 0.75))
+                    .frame(width: 320, height: 320)
 
-            LazyVGrid(
-                columns: [GridItem(.adaptive(minimum: 130), spacing: 12)],
-                spacing: 12
-            ) {
-                ForEach(Array(firsts.prefix(8).enumerated()), id: \.element) { index, code in
-                    VStack(spacing: 6) {
-                        Text(flagEmoji(code)).font(.system(size: 30))
-                        Text(countryName(code).uppercased())
-                            .font(.system(size: 10.5, weight: .heavy, design: .monospaced))
-                            .tracking(0.6)
-                            .foregroundStyle(Theme.amber)
-                            .lineLimit(1)
-                            .minimumScaleFactor(0.7)
+                VStack(spacing: 16) {
+                    Spacer()
+                    WrappedKicker(text: "NEW STAMPS", color: Theme.amber)
+                        .opacity(stage(p, 0, 0.15))
+                    HStack(alignment: .firstTextBaseline, spacing: 8) {
+                        RollingNumber(value: firsts.count,
+                                      reveal: stage(p, 0.05, 0.3), size: 84)
+                        Text(firsts.count == 1 ? "country you'd\nnever seen before" : "countries you'd\nnever seen before")
+                            .font(.system(size: 17, weight: .bold, design: .rounded))
+                            .foregroundStyle(Theme.ink)
+                            .opacity(stage(p, 0.15, 0.3))
                     }
-                    .frame(maxWidth: .infinity)
-                    .padding(.vertical, 12)
-                    .padding(.horizontal, 8)
-                    .overlay(
-                        RoundedRectangle(cornerRadius: 10)
-                            .strokeBorder(Theme.amber.opacity(0.5), lineWidth: 1.4)
-                    )
-                    .rotationEffect(.degrees(index.isMultiple(of: 2) ? -2 : 2))
+
+                    LazyVGrid(
+                        columns: [GridItem(.adaptive(minimum: 130), spacing: 12)],
+                        spacing: 12
+                    ) {
+                        ForEach(Array(shownStamps.enumerated()), id: \.element) { index, code in
+                            let slam = easeOutBack(stage(p, slamStart(index), slamStart(index) + 0.12))
+                            VStack(spacing: 6) {
+                                Text(flagEmoji(code)).font(.system(size: 30))
+                                Text(countryName(code).uppercased())
+                                    .font(.system(size: 10.5, weight: .heavy, design: .monospaced))
+                                    .tracking(0.6)
+                                    .foregroundStyle(Theme.amber)
+                                    .lineLimit(1)
+                                    .minimumScaleFactor(0.7)
+                            }
+                            .frame(maxWidth: .infinity)
+                            .padding(.vertical, 12)
+                            .padding(.horizontal, 8)
+                            .overlay(
+                                RoundedRectangle(cornerRadius: 10)
+                                    .strokeBorder(Theme.amber.opacity(0.5), lineWidth: 1.4)
+                            )
+                            .rotationEffect(.degrees(Double(index.isMultiple(of: 2) ? -2 : 2)))
+                            .scaleEffect(2.2 - 1.2 * slam)
+                            .opacity(slam)
+                        }
+                    }
+                    .padding(.horizontal, 30)
+                    .padding(.top, 10)
+                    .modifier(HapticOnStep(step: slammed) {
+                        HapticsDirector.shared.stampSlam()
+                    })
+
+                    if firsts.count > 8 {
+                        Text("+ \(firsts.count - 8) more")
+                            .font(.system(size: 13, weight: .semibold))
+                            .foregroundStyle(Theme.ink3)
+                            .opacity(stage(p, 0.9, 1))
+                    }
+                    Spacer()
+                    Spacer()
                 }
             }
-            .padding(.horizontal, 30)
-            .padding(.top, 10)
-
-            if firsts.count > 8 {
-                Text("+ \(firsts.count - 8) more")
-                    .font(.system(size: 13, weight: .semibold))
-                    .foregroundStyle(Theme.ink3)
-            }
-            Spacer()
-            Spacer()
         }
-        .pageReveal(externalProgress)
+    }
+
+    private func slamStart(_ index: Int) -> Double {
+        0.3 + Double(index) * 0.09
     }
 }
 
@@ -410,44 +555,52 @@ struct WrappedMapPage: View {
     var externalProgress: Double? = nil
 
     var body: some View {
-        VStack(spacing: 20) {
-            Spacer()
-            WrappedKicker(text: "YOUR WORLD, \(String(data.stats.year))")
+        WrappedPageClock(externalProgress: externalProgress, duration: 3.6) { p in
+            VStack(spacing: 20) {
+                Spacer()
+                WrappedKicker(text: "YOUR WORLD, \(String(data.stats.year))")
+                    .opacity(stage(p, 0, 0.15))
 
-            WrappedMapCanvas(
-                shapes: data.shapes,
-                daysPerCountry: data.daysPerCountry,
-                homeCountry: data.stats.homeCountry,
-                homeCentroid: data.homeCentroid,
-                arcTargets: data.arcTargets,
-                lightOrder: data.stats.firstAppearanceOrder,
-                litProgress: externalProgress ?? 1,
-                arcProgress: externalProgress ?? 1
-            )
-            .aspectRatio(2.2, contentMode: .fit)
-            .padding(.horizontal, 12)
+                WrappedMapCanvas(
+                    shapes: data.shapes,
+                    daysPerCountry: data.daysPerCountry,
+                    homeCountry: data.stats.homeCountry,
+                    homeCentroid: data.homeCentroid,
+                    arcTargets: data.arcTargets,
+                    lightOrder: data.stats.firstAppearanceOrder,
+                    litProgress: easeOutCubic(stage(p, 0.05, 0.6)),
+                    arcProgress: easeOutCubic(stage(p, 0.35, 0.95))
+                )
+                .aspectRatio(2.2, contentMode: .fit)
+                .padding(.horizontal, 12)
+                .opacity(stage(p, 0, 0.2))
 
-            HStack(spacing: 22) {
-                mapStat(value: data.stats.countriesVisited, label: "COUNTRIES")
-                mapStat(value: data.stats.travelDays, label: "TRAVEL DAYS")
-                mapStat(value: data.stats.firstVisits.count, label: "NEW")
+                HStack(spacing: 22) {
+                    mapStat(value: data.stats.countriesVisited, label: "COUNTRIES",
+                            reveal: stage(p, 0.55, 0.8))
+                    mapStat(value: data.stats.travelDays, label: "TRAVEL DAYS",
+                            reveal: stage(p, 0.65, 0.9))
+                    mapStat(value: data.stats.firstVisits.count, label: "NEW",
+                            reveal: stage(p, 0.75, 1))
+                }
+                Spacer()
+                Spacer()
             }
-            Spacer()
-            Spacer()
         }
-        .pageReveal(externalProgress)
     }
 
-    private func mapStat(value: Int, label: String) -> some View {
+    private func mapStat(value: Int, label: String, reveal: Double) -> some View {
         VStack(spacing: 3) {
-            Text("\(value)")
+            Text("\(Int((Double(value) * easeOutCubic(reveal)).rounded()))")
                 .font(.system(size: 26, weight: .heavy, design: .rounded))
                 .foregroundStyle(Theme.auroraGradient)
+                .monospacedDigit()
             Text(label)
                 .font(.system(size: 9, weight: .semibold))
                 .tracking(1.4)
                 .foregroundStyle(Theme.ink3)
         }
+        .opacity(reveal)
     }
 }
 
@@ -458,44 +611,55 @@ struct WrappedPhotosPage: View {
     var externalProgress: Double? = nil
 
     var body: some View {
-        let moments = data.photoMoments.filter { data.thumbnails[$0.assetID] != nil }
+        WrappedPageClock(externalProgress: externalProgress, duration: 2.6) { p in
+            let moments = data.photoMoments.filter { data.thumbnails[$0.assetID] != nil }
 
-        return VStack(spacing: 18) {
-            Spacer()
-            WrappedKicker(text: "MOMENTS YOU KEPT")
+            VStack(spacing: 18) {
+                Spacer()
+                WrappedKicker(text: "MOMENTS YOU KEPT")
+                    .opacity(stage(p, 0, 0.2))
 
-            LazyVGrid(
-                columns: Array(repeating: GridItem(.flexible(), spacing: 6), count: 3),
-                spacing: 6
-            ) {
-                ForEach(moments.prefix(9)) { moment in
-                    if let image = data.thumbnails[moment.assetID] {
-                        Image(uiImage: image)
-                            .resizable()
-                            .aspectRatio(1, contentMode: .fill)
-                            .frame(minWidth: 0)
-                            .clipShape(RoundedRectangle(cornerRadius: 12, style: .continuous))
-                            .overlay(alignment: .bottomLeading) {
-                                if let country = moment.countryCode {
-                                    Text(flagEmoji(country))
-                                        .font(.system(size: 14))
-                                        .padding(5)
+                LazyVGrid(
+                    columns: Array(repeating: GridItem(.flexible(), spacing: 6), count: 3),
+                    spacing: 6
+                ) {
+                    ForEach(Array(moments.prefix(9).enumerated()), id: \.element.id) { index, moment in
+                        if let image = data.thumbnails[moment.assetID] {
+                            let flip = easeOutCubic(stage(p, 0.15 + Double(index) * 0.07,
+                                                          0.4 + Double(index) * 0.07))
+                            Image(uiImage: image)
+                                .resizable()
+                                .aspectRatio(1, contentMode: .fill)
+                                .frame(minWidth: 0)
+                                .clipShape(RoundedRectangle(cornerRadius: 12, style: .continuous))
+                                .overlay(alignment: .bottomLeading) {
+                                    if let country = moment.countryCode {
+                                        Text(flagEmoji(country))
+                                            .font(.system(size: 14))
+                                            .padding(5)
+                                    }
                                 }
-                            }
+                                .rotation3DEffect(
+                                    .degrees((1 - flip) * 82),
+                                    axis: (x: 0, y: 1, z: 0),
+                                    perspective: 0.6
+                                )
+                                .opacity(flip)
+                        }
                     }
                 }
-            }
-            .padding(.horizontal, 26)
+                .padding(.horizontal, 26)
 
-            if let best = moments.first, let city = best.city {
-                Text("\(city) alone gave you \(best.photoCount) photos in a day")
-                    .font(.system(size: 13.5))
-                    .foregroundStyle(Theme.ink2)
+                if let best = moments.first, let city = best.city {
+                    Text("\(city) alone gave you \(best.photoCount) photos in a day")
+                        .font(.system(size: 13.5))
+                        .foregroundStyle(Theme.ink2)
+                        .opacity(stage(p, 0.8, 1))
+                }
+                Spacer()
+                Spacer()
             }
-            Spacer()
-            Spacer()
         }
-        .pageReveal(externalProgress)
     }
 }
 
@@ -504,53 +668,95 @@ struct WrappedPhotosPage: View {
 struct WrappedCloserPage: View {
     let data: YearInReviewBuilder.WrappedData
     var externalProgress: Double? = nil
+    /// W4 wires the rendered share cards through here.
+    var shareURLs: [URL] = []
 
     var body: some View {
-        VStack(spacing: 18) {
-            Spacer()
-            MiniGlobe(size: 64, showsPlane: false)
-            Text("That was \(String(data.stats.year)).")
-                .font(.system(size: 30, weight: .heavy, design: .rounded))
-                .foregroundStyle(Theme.ink)
+        WrappedPageClock(externalProgress: externalProgress, duration: 2.4) { p in
+            ZStack {
+                ParticleField(opacity: 0.7 * stage(p, 0.3, 1))
 
-            VStack(spacing: 0) {
-                closerRow(label: "Countries", value: "\(data.stats.countriesVisited)")
-                divider
-                closerRow(label: "Travel days", value: "\(data.stats.travelDays)")
-                divider
-                closerRow(label: "Border crossings", value: "\(data.stats.borderCrossings)")
-                if !data.stats.firstVisits.isEmpty {
-                    divider
-                    closerRow(label: "New countries", value: "\(data.stats.firstVisits.count)")
-                }
-                if let trip = data.stats.longestTrip {
-                    divider
-                    closerRow(label: "Longest trip", value: "\(trip.dayCount) days")
+                VStack(spacing: 18) {
+                    Spacer()
+                    MiniGlobe(size: 64, showsPlane: false)
+                        .scaleEffect(0.5 + 0.5 * easeOutBack(stage(p, 0, 0.3)))
+                        .opacity(stage(p, 0, 0.2))
+                    Text("That was \(String(data.stats.year)).")
+                        .font(.system(size: 30, weight: .heavy, design: .rounded))
+                        .foregroundStyle(Theme.ink)
+                        .opacity(stage(p, 0.15, 0.35))
+                        .modifier(HapticOnStep(step: p >= 0.35 ? 1 : 0) {
+                            HapticsDirector.shared.celebrate()
+                        })
+
+                    VStack(spacing: 0) {
+                        let rows = closerRows
+                        ForEach(Array(rows.enumerated()), id: \.element.label) { index, row in
+                            let rowIn = stage(p, 0.3 + Double(index) * 0.08,
+                                              0.45 + Double(index) * 0.08)
+                            if index > 0 {
+                                Rectangle().fill(Theme.hairline).frame(height: 1)
+                                    .padding(.horizontal, 14)
+                                    .opacity(rowIn)
+                            }
+                            closerRow(label: row.label, value: row.value)
+                                .offset(x: (1 - easeOutCubic(rowIn)) * 40)
+                                .opacity(rowIn)
+                        }
+                    }
+                    .padding(.vertical, 6)
+                    .nightCard()
+                    .padding(.horizontal, 40)
+
+                    Text("BEEN THERE")
+                        .font(.system(size: 10, weight: .heavy, design: .monospaced))
+                        .tracking(3.2)
+                        .foregroundStyle(Theme.ink3)
+                        .padding(.top, 8)
+                        .opacity(stage(p, 0.8, 1))
+
+                    if !shareURLs.isEmpty {
+                        ShareLink(items: shareURLs) { _ in
+                            SharePreview("Your \(String(data.stats.year)) in Travel")
+                        } label: {
+                            Label("Share your year", systemImage: "square.and.arrow.up")
+                                .font(.system(size: 16, weight: .bold))
+                                .foregroundStyle(Theme.sky)
+                                .frame(maxWidth: .infinity)
+                                .frame(height: 52)
+                                .background(Theme.auroraGradient, in: RoundedRectangle(cornerRadius: 16))
+                        }
+                        .padding(.horizontal, 40)
+                        .padding(.top, 8)
+                        .opacity(stage(p, 0.85, 1))
+                    } else {
+                        Text(data.isPartialYear
+                             ? "Still counting — come back in January."
+                             : "Your story, one year at a time.")
+                            .font(.system(size: 12.5))
+                            .foregroundStyle(Theme.ink3)
+                            .opacity(stage(p, 0.85, 1))
+                    }
+                    Spacer()
+                    Spacer()
                 }
             }
-            .padding(.vertical, 6)
-            .nightCard()
-            .padding(.horizontal, 40)
-
-            Text("BEEN THERE")
-                .font(.system(size: 10, weight: .heavy, design: .monospaced))
-                .tracking(3.2)
-                .foregroundStyle(Theme.ink3)
-                .padding(.top, 8)
-
-            Text(data.isPartialYear
-                 ? "Still counting — come back in January."
-                 : "Sharing arrives with the next update.")
-                .font(.system(size: 12.5))
-                .foregroundStyle(Theme.ink3)
-            Spacer()
-            Spacer()
         }
-        .pageReveal(externalProgress)
     }
 
-    private var divider: some View {
-        Rectangle().fill(Theme.hairline).frame(height: 1).padding(.horizontal, 14)
+    private var closerRows: [(label: String, value: String)] {
+        var rows: [(String, String)] = [
+            ("Countries", "\(data.stats.countriesVisited)"),
+            ("Travel days", "\(data.stats.travelDays)"),
+            ("Border crossings", "\(data.stats.borderCrossings)"),
+        ]
+        if !data.stats.firstVisits.isEmpty {
+            rows.append(("New countries", "\(data.stats.firstVisits.count)"))
+        }
+        if let trip = data.stats.longestTrip {
+            rows.append(("Longest trip", "\(trip.dayCount) days"))
+        }
+        return rows
     }
 
     private func closerRow(label: String, value: String) -> some View {

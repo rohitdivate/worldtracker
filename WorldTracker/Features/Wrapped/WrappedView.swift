@@ -49,7 +49,10 @@ struct WrappedView: View {
         let current = pages[min(index, pages.count - 1)]
 
         ZStack {
-            AuroraBackground(intensity: auroraIntensity(for: current))
+            AuroraBackground(
+                intensity: auroraIntensity(for: current),
+                tint: auroraTint(for: current)
+            )
 
             page(current)
                 .frame(maxWidth: .infinity, maxHeight: .infinity)
@@ -112,6 +115,16 @@ struct WrappedView: View {
         }
     }
 
+    /// Each scene leans the aurora toward its mood.
+    private func auroraTint(for page: Page) -> Color? {
+        switch page {
+        case .podium, .firstVisits: return Theme.amber
+        case .longestTrip: return Theme.aurora2
+        case .travelDays: return Theme.aurora1
+        default: return nil
+        }
+    }
+
     // MARK: - Chrome
 
     private func chrome(pageCount: Int) -> some View {
@@ -163,6 +176,7 @@ struct WrappedView: View {
         if index < pages.count - 1 {
             index += 1
             progress = 0
+            HapticsDirector.shared.tick()
         } else {
             dismiss()
         }
@@ -172,6 +186,7 @@ struct WrappedView: View {
         // IG rule: early in a page, go back a page; deep in, restart it.
         if index > 0, progress < 0.3 {
             index -= 1
+            HapticsDirector.shared.tick()
         }
         progress = 0
     }

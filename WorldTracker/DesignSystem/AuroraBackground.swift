@@ -5,6 +5,8 @@ import SwiftUI
 /// tinted toward the current country's "mood" color later.
 struct AuroraBackground: View {
     var intensity: Double = 1.0
+    /// Pulls the aurora toward a mood color (Wrapped pages shift per scene).
+    var tint: Color? = nil
 
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
 
@@ -39,11 +41,16 @@ struct AuroraBackground: View {
             colors: [
                 Theme.sky, Theme.skyRaised, Theme.sky,
                 Theme.skyRaised,
-                Theme.aurora1.opacity(0.32 * intensity),
-                Theme.aurora2.opacity(0.30 * intensity),
+                tinted(Theme.aurora1).opacity(0.32 * intensity),
+                tinted(Theme.aurora2).opacity(0.30 * intensity),
                 Theme.sky, Theme.skyRaised, Theme.sky,
             ]
         )
+    }
+
+    private func tinted(_ base: Color) -> Color {
+        guard let tint else { return base }
+        return base.mix(with: tint, by: 0.55)
     }
 }
 
