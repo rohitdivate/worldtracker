@@ -26,6 +26,7 @@ struct SettingsView: View {
                 trackingSection
                 photosSection
                 importSection
+                notificationsSection
                 dataSection
                 privacySection
                 #if DEBUG
@@ -221,6 +222,58 @@ struct SettingsView: View {
         } header: {
             Text("Import")
         }
+    }
+
+    private var notificationsSection: some View {
+        Section {
+            notificationToggle(
+                key: "notifyTripRecap",
+                title: "Trip recaps",
+                subtitle: "\"Welcome home — 8 days in Spain\" when you're back."
+            )
+            notificationToggle(
+                key: "notifyMonthlyRecap",
+                title: "Monthly recap",
+                subtitle: "Last month's flags, early in the month. Skipped when you didn't travel."
+            )
+            notificationToggle(
+                key: "notifyWrappedTeaser",
+                title: "Year in Travel",
+                subtitle: "A late-December teaser, then the January 1 reveal."
+            )
+            notificationToggle(
+                key: "notifyBackfillDone",
+                title: "Scan finished",
+                subtitle: "When a photo scan completes in the background."
+            )
+        } header: {
+            Text("Notifications")
+        } footer: {
+            Text("All local — nothing ever leaves your phone. Delivered quietly unless you've allowed banners.")
+        }
+    }
+
+    private func notificationToggle(key: String, title: String, subtitle: String) -> some View {
+        Toggle(isOn: Binding(
+            get: {
+                let defaults = UserDefaults.standard
+                return defaults.object(forKey: key) == nil || defaults.bool(forKey: key)
+            },
+            set: { value in
+                UserDefaults.standard.set(value, forKey: key)
+                if value {
+                    NotificationScheduler.shared.requestFullAuthorization()
+                }
+            }
+        )) {
+            VStack(alignment: .leading, spacing: 2) {
+                Text(title)
+                Text(subtitle)
+                    .font(.footnote)
+                    .foregroundStyle(Theme.ink3)
+            }
+        }
+        .tint(Theme.aurora1)
     }
 
     private var dataSection: some View {

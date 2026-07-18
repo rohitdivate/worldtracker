@@ -36,6 +36,7 @@ final class AppContainer {
     let celebrationCoordinator = CelebrationCoordinator()
     let router = AppRouter()
     let setupChecklist = SetupChecklist()
+    let milestoneTracker: MilestoneTracker
 
     private init() {
         do {
@@ -63,6 +64,9 @@ final class AppContainer {
         importEngine = ImportEngine(container: modelContainer, geoProvider: geoProvider)
         wrappedBuilder = YearInReviewBuilder(
             store: ledgerStore, container: modelContainer, placesEngine: placesEngine
+        )
+        milestoneTracker = MilestoneTracker(
+            store: ledgerStore, celebration: celebrationCoordinator
         )
 
         // Warm the atlas so first lookups don't pay the load cost.

@@ -58,9 +58,10 @@ struct RootTabView: View {
                 router.handle(url)
             }
             .overlay {
-                if let current = celebration.current {
+                switch celebration.current {
+                case .newCountry(let moment):
                     NewCountryCelebrationView(
-                        celebration: current,
+                        celebration: moment,
                         onSeeWorld: {
                             router.open(tab: .map)
                             celebration.dismissCurrent()
@@ -68,6 +69,18 @@ struct RootTabView: View {
                         onDismiss: { celebration.dismissCurrent() }
                     )
                     .transition(.opacity)
+                case .milestone(let moment):
+                    MilestoneCelebrationView(
+                        moment: moment,
+                        onSeeWorld: {
+                            router.open(tab: .map)
+                            celebration.dismissCurrent()
+                        },
+                        onDismiss: { celebration.dismissCurrent() }
+                    )
+                    .transition(.opacity)
+                case nil:
+                    EmptyView()
                 }
             }
             .animation(.easeInOut(duration: 0.3), value: celebration.current)

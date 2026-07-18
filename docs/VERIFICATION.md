@@ -369,3 +369,22 @@ Tick them off before moving on.
 - [ ] Wrapped story + square cards now carry the FOR iPHONE hook line
 - [ ] Widgets: Your World + On This Day carry a small BEEN THERE mark; the
       Live Activity lock-screen card shows it under the day count
+
+## Y5 — Milestones & retention (v4)
+
+- [ ] Crossing a lifetime threshold live (5/10/15… countries, 50/100/250…
+      travel days, 10/25/50% of the world, longest-trip-beaten) triggers the
+      milestone celebration: big-number slam, flag cascade, working share
+      button with a branded card
+- [ ] First-ever evaluation after a big import/backfill fires NOTHING (seed
+      rule); a later single crossing fires exactly once and never repeats
+- [ ] A bulk crossing (e.g. import adds 8 countries at once) celebrates only
+      the highest milestone
+- [ ] Coming home after a ≥2-day trip → "Welcome home" recap ~2h later,
+      deep-links to Calendar; fires once per trip
+- [ ] Early-month foreground schedules last month's recap at 10:00 (skipped
+      for no-travel months); December foreground schedules the Dec-26
+      Wrapped teaser when the year has enough data
+- [ ] Settings → Notifications: four toggles (trip recap, monthly recap,
+      Year in Travel, scan finished), all defaulting on; switching one on
+      asks for full notification permission

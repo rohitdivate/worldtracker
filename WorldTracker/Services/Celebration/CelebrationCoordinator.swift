@@ -1,10 +1,12 @@
 import Foundation
 import Observation
+import WorldTrackerKit
 
-/// Decides when a "new country" moment is actually shown.
-/// Detection happens at the live-ingest write (DB-truth); this class owns
-/// queuing, suppression, and dedupe so the moment lands exactly once, in the
-/// foreground, never on top of onboarding or a running backfill/import.
+/// Decides when a celebration moment is actually shown.
+/// Detection happens elsewhere (DB-truth at the live-ingest write, the
+/// milestone tracker's snapshot diff); this class owns queuing, suppression,
+/// and dedupe so each moment lands exactly once, in the foreground, never on
+/// top of onboarding or a running backfill/import.
 @MainActor
 @Observable
 final class CelebrationCoordinator {
@@ -16,8 +18,29 @@ final class CelebrationCoordinator {
         let city: String?
     }
 
-    private(set) var current: Celebration?
-    private var queue: [Celebration] = []
+    struct MilestoneMoment: Identifiable, Equatable {
+        let id = UUID()
+        let milestone: Milestone
+        /// Lifetime distinct countries at the moment of crossing.
+        let countries: Int
+        /// Top visited codes for the flag cascade.
+        let flags: [String]
+    }
+
+    enum CelebrationEvent: Identifiable, Equatable {
+        case newCountry(Celebration)
+        case milestone(MilestoneMoment)
+
+        var id: UUID {
+            switch self {
+            case .newCountry(let c): return c.id
+            case .milestone(let m): return m.id
+            }
+        }
+    }
+
+    private(set) var current: CelebrationEvent?
+    private var queue: [CelebrationEvent] = []
 
     /// Called from the ingest path (already deduped by the DB-truth check;
     /// this second layer guards against edits that delete and re-create).
@@ -26,7 +49,16 @@ final class CelebrationCoordinator {
         guard !UserDefaults.standard.bool(forKey: key) else { return }
         UserDefaults.standard.set(true, forKey: key)
 
-        queue.append(Celebration(countryCode: code, number: number, city: city))
+        queue.append(.newCountry(Celebration(countryCode: code, number: number, city: city)))
+        presentIfPossible()
+    }
+
+    /// Called by the MilestoneTracker — dedupe already handled there via the
+    /// awarded-keys set.
+    func milestoneReached(_ milestone: Milestone, countries: Int, flags: [String]) {
+        queue.append(.milestone(MilestoneMoment(
+            milestone: milestone, countries: countries, flags: flags
+        )))
         presentIfPossible()
     }
 

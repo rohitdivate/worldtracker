@@ -20,8 +20,15 @@ struct WorldTrackerApp: App {
                 AppContainer.shared.placeNamer.processPending()
                 SharedSnapshotStore.write(from: AppContainer.shared.ledgerStore)
                 if UserDefaults.standard.bool(forKey: "onboardingDone") {
-                    // Idempotent: re-adds the same Jan-1 request.
+                    // All idempotent: same ids replace, latches skip.
                     NotificationScheduler.shared.scheduleWrappedReveal()
+                    NotificationScheduler.shared.maybeScheduleMonthlyRecap(
+                        store: AppContainer.shared.ledgerStore
+                    )
+                    NotificationScheduler.shared.maybeScheduleWrappedTeaser(
+                        store: AppContainer.shared.ledgerStore,
+                        builder: AppContainer.shared.wrappedBuilder
+                    )
                 }
             }
         }
