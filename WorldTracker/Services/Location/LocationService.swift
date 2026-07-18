@@ -1,5 +1,6 @@
 import CoreLocation
 import Foundation
+import Observation
 import UIKit
 
 /// The tracking engine. Battery-invisible by design:

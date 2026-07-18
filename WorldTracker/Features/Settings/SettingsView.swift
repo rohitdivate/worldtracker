@@ -4,7 +4,6 @@ struct SettingsView: View {
     @Environment(LocationService.self) private var location
 
     var body: some View {
-        @Bindable var location = location
         NavigationStack {
             List {
                 Section {
