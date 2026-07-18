@@ -1,0 +1,23 @@
+name: ios-build
+on:
+  push:
+  pull_request:
+
+jobs:
+  build:
+    name: xcodebuild (unsigned)
+    runs-on: macos-15
+    steps:
+      - uses: actions/checkout@v4
+      - name: Xcode version
+        run: xcodebuild -version
+      - name: Build for generic iOS device (no signing)
+        run: >
+          xcodebuild
+          -project WorldTracker.xcodeproj
+          -scheme WorldTracker
+          -destination 'generic/platform=iOS'
+          CODE_SIGNING_ALLOWED=NO
+          build
+      - name: Validate project invariants
+        run: python3 Tools/validate_project.py
