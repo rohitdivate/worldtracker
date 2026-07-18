@@ -7,7 +7,7 @@ import WorldTrackerKit
 struct PlacesListView: View {
     @State private var places: [PlaceSnapshot] = []
     @State private var filter: CategoryFilter = .all
-    @State private var sort: SortMode = .mostVisited
+    @State private var sort: SortMode = .grouped
     @State private var query = ""
     @State private var expandedCountries: Set<String> = []
     @State private var didSeedExpansion = false
@@ -36,6 +36,7 @@ struct PlacesListView: View {
     }
 
     enum SortMode: String, CaseIterable, Identifiable {
+        case grouped = "Grouped by country"
         case mostVisited = "Most visited"
         case recent = "Recently visited"
         case alphabetical = "A to Z"
@@ -43,6 +44,7 @@ struct PlacesListView: View {
         var id: String { rawValue }
         var icon: String {
             switch self {
+            case .grouped: return "folder"
             case .mostVisited: return "flame"
             case .recent: return "clock"
             case .alphabetical: return "textformat.abc"
@@ -62,8 +64,10 @@ struct PlacesListView: View {
 
                         if filtered.isEmpty {
                             emptyState
-                        } else {
+                        } else if sort == .grouped {
                             groupedList
+                        } else {
+                            flatList
                         }
 
                         Spacer(minLength: 100)
@@ -112,12 +116,31 @@ struct PlacesListView: View {
 
     private func sorted(_ list: [PlaceSnapshot]) -> [PlaceSnapshot] {
         switch sort {
-        case .mostVisited:
+        case .grouped, .mostVisited:
             return list.sorted { ($0.visitCount, $1.name) > ($1.visitCount, $0.name) }
         case .recent:
             return list.sorted { ($0.lastVisit ?? .distantPast) > ($1.lastVisit ?? .distantPast) }
         case .alphabetical:
             return list.sorted { $0.name < $1.name }
+        }
+    }
+
+    /// The sort views: one flat ranked list across every country — the
+    /// reorder is unmissable, and each row says where the place is.
+    private var flatList: some View {
+        VStack(alignment: .leading, spacing: 8) {
+            Text(sort.rawValue.uppercased())
+                .font(.system(size: 10, weight: .bold, design: .monospaced))
+                .tracking(1)
+                .foregroundStyle(Theme.ink3)
+                .padding(.top, 2)
+
+            ForEach(sorted(filtered)) { place in
+                NavigationLink(value: place) {
+                    PlaceRow(place: place, showsLocation: true, showsRecency: sort == .recent)
+                }
+                .buttonStyle(.plain)
+            }
         }
     }
 
@@ -308,6 +331,10 @@ struct PlacesListView: View {
 
 struct PlaceRow: View {
     let place: PlaceSnapshot
+    /// Flat sort views show where the place is; grouped views already do.
+    var showsLocation: Bool = false
+    /// Recently-visited sort leads with WHEN instead of how often.
+    var showsRecency: Bool = false
 
     var body: some View {
         HStack(spacing: 12) {
@@ -322,8 +349,15 @@ struct PlaceRow: View {
                     .foregroundStyle(Theme.ink)
                     .lineLimit(1)
                 HStack(spacing: 4) {
+                    if showsLocation, let country = place.countryCode {
+                        Text(flagEmoji(country))
+                        if let city = place.city {
+                            Text(city)
+                        }
+                        Text("·")
+                    }
                     Text(PlaceCategoryStyle.label(place.categoryRaw))
-                    if let area = place.subLocality {
+                    if !showsLocation, let area = place.subLocality {
                         Text("·")
                         Text(area)
                     }
@@ -340,13 +374,24 @@ struct PlaceRow: View {
             Spacer()
 
             VStack(alignment: .trailing, spacing: 2) {
-                Text("\(place.visitCount)")
-                    .font(.system(size: 15, weight: .heavy, design: .rounded))
-                    .foregroundStyle(Theme.aurora1)
-                Text(place.visitCount == 1 ? "VISIT" : "VISITS")
-                    .font(.system(size: 7.5, weight: .bold))
-                    .tracking(1)
-                    .foregroundStyle(Theme.ink3)
+                if showsRecency, let last = place.lastVisit {
+                    Text(last.formatted(.relative(presentation: .named)))
+                        .font(.system(size: 11, weight: .bold, design: .rounded))
+                        .foregroundStyle(Theme.aurora1)
+                        .lineLimit(1)
+                    Text("\(place.visitCount) \(place.visitCount == 1 ? "VISIT" : "VISITS")")
+                        .font(.system(size: 7.5, weight: .bold))
+                        .tracking(1)
+                        .foregroundStyle(Theme.ink3)
+                } else {
+                    Text("\(place.visitCount)")
+                        .font(.system(size: 15, weight: .heavy, design: .rounded))
+                        .foregroundStyle(Theme.aurora1)
+                    Text(place.visitCount == 1 ? "VISIT" : "VISITS")
+                        .font(.system(size: 7.5, weight: .bold))
+                        .tracking(1)
+                        .foregroundStyle(Theme.ink3)
+                }
             }
 
             Image(systemName: "chevron.right")
