@@ -20,6 +20,7 @@ struct PhotoLightboxView: View {
     let items: [PhotoLightboxItem]
     @State private var index: Int
     @State private var chromeHidden = false
+    @State private var dismissDrag: CGFloat = 0
     @Environment(\.dismiss) private var dismiss
 
     init(items: [PhotoLightboxItem], initialIndex: Int) {
@@ -29,13 +30,14 @@ struct PhotoLightboxView: View {
 
     var body: some View {
         ZStack {
-            Color.black.ignoresSafeArea()
+            Color.black
+                .opacity(1 - Double(min(dismissDrag, 300)) / 400)
+                .ignoresSafeArea()
 
             TabView(selection: $index) {
                 ForEach(Array(items.enumerated()), id: \.element.id) { itemIndex, item in
                     ZoomablePhotoPage(
                         item: item,
-                        onDismiss: { dismiss() },
                         onToggleChrome: { chromeHidden.toggle() }
                     )
                     .tag(itemIndex)
@@ -43,11 +45,32 @@ struct PhotoLightboxView: View {
             }
             .tabViewStyle(.page(indexDisplayMode: .never))
             .ignoresSafeArea()
+            .offset(y: dismissDrag)
 
             if !chromeHidden {
                 chrome
             }
         }
+        // Dismiss lives OUT HERE, off the pages: a high threshold plus a
+        // strict vertical-dominance test keeps horizontal paging swipes
+        // completely free of competition.
+        .simultaneousGesture(
+            DragGesture(minimumDistance: 40)
+                .onChanged { value in
+                    let dy = value.translation.height
+                    let dx = value.translation.width
+                    if dy > 0, dy > abs(dx) * 2 {
+                        dismissDrag = dy
+                    }
+                }
+                .onEnded { value in
+                    if dismissDrag > 130 || value.predictedEndTranslation.height > 400 {
+                        dismiss()
+                    } else {
+                        withAnimation(.spring(duration: 0.3)) { dismissDrag = 0 }
+                    }
+                }
+        )
         .statusBarHidden()
         .preferredColorScheme(.dark)
     }
@@ -90,9 +113,10 @@ struct PhotoLightboxView: View {
 }
 
 /// One zoomable page. Zoom state is local and resets when the page leaves.
+/// Crucially: while NOT zoomed, this view attaches no drag gesture at all,
+/// so the pager owns every horizontal swipe outright.
 private struct ZoomablePhotoPage: View {
     let item: PhotoLightboxItem
-    let onDismiss: () -> Void
     let onToggleChrome: () -> Void
 
     @State private var image: UIImage?
@@ -103,20 +127,16 @@ private struct ZoomablePhotoPage: View {
     @State private var lastScale: CGFloat = 1
     @State private var offset: CGSize = .zero
     @State private var lastOffset: CGSize = .zero
-    @State private var dismissDrag: CGFloat = 0
 
     var body: some View {
         GeometryReader { geo in
             ZStack {
-                Color.black
-                    .opacity(1 - Double(min(dismissDrag, 300)) / 400)
-
                 if let image {
                     Image(uiImage: image)
                         .resizable()
                         .scaledToFit()
                         .scaleEffect(scale)
-                        .offset(x: offset.width, y: offset.height + dismissDrag)
+                        .offset(offset)
                         .frame(width: geo.size.width, height: geo.size.height)
                 } else {
                     ProgressView()
@@ -139,7 +159,9 @@ private struct ZoomablePhotoPage: View {
             .onTapGesture(count: 2) { toggleZoom() }
             .onTapGesture { onToggleChrome() }
             .gesture(magnification)
-            .simultaneousGesture(pan(in: geo.size))
+            // Pan participates ONLY while zoomed — at rest the mask hands
+            // everything to the pager underneath.
+            .gesture(pan(in: geo.size), including: scale > 1 ? .all : .subviews)
         }
         .task(id: item.assetID) { load() }
         .onDisappear {
@@ -169,29 +191,18 @@ private struct ZoomablePhotoPage: View {
             }
     }
 
-    /// One drag gesture, two jobs: pan while zoomed, dismiss when not.
-    /// Horizontal swipes at scale 1 stay with the TabView pager.
+    /// Pan the zoomed image. Never active at scale 1.
     private func pan(in size: CGSize) -> some Gesture {
-        DragGesture(minimumDistance: 12)
+        DragGesture(minimumDistance: 8)
             .onChanged { value in
-                if scale > 1 {
-                    offset = CGSize(
-                        width: lastOffset.width + value.translation.width,
-                        height: lastOffset.height + value.translation.height
-                    )
-                } else if abs(value.translation.height) > abs(value.translation.width) {
-                    dismissDrag = max(0, value.translation.height)
-                }
+                offset = CGSize(
+                    width: lastOffset.width + value.translation.width,
+                    height: lastOffset.height + value.translation.height
+                )
             }
-            .onEnded { value in
-                if scale > 1 {
-                    lastOffset = clampedOffset(in: size)
-                    withAnimation(.spring(duration: 0.25)) { offset = lastOffset }
-                } else if dismissDrag > 120 || value.predictedEndTranslation.height > 350 {
-                    onDismiss()
-                } else {
-                    withAnimation(.spring(duration: 0.3)) { dismissDrag = 0 }
-                }
+            .onEnded { _ in
+                lastOffset = clampedOffset(in: size)
+                withAnimation(.spring(duration: 0.25)) { offset = lastOffset }
             }
     }
 
@@ -211,7 +222,6 @@ private struct ZoomablePhotoPage: View {
         lastScale = 1
         offset = .zero
         lastOffset = .zero
-        dismissDrag = 0
     }
 
     private func clampedOffset(in size: CGSize) -> CGSize {
