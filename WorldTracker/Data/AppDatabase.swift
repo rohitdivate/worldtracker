@@ -19,10 +19,15 @@ enum AppDatabase {
             BackfillCheckpoint.self,
         ])
 
+        // Private-iCloud backup. Applied at launch; if the CloudKit container
+        // is unavailable (capability not yet added in Xcode, signed out of
+        // iCloud), fall back to local-only rather than failing to launch.
+        let wantsCloud = UserDefaults.standard.bool(forKey: "icloudBackup")
+
         let synced = ModelConfiguration(
             "Synced",
             schema: syncedSchema,
-            cloudKitDatabase: .none
+            cloudKitDatabase: wantsCloud ? .automatic : .none
         )
         let local = ModelConfiguration(
             "Local",
@@ -39,11 +44,27 @@ enum AppDatabase {
             LocationSample.self,
             BackfillCheckpoint.self,
         ])
-        return try ModelContainer(
-            for: allSchema,
-            migrationPlan: WorldTrackerMigrationPlan.self,
-            configurations: [synced, local]
-        )
+        do {
+            return try ModelContainer(
+                for: allSchema,
+                migrationPlan: WorldTrackerMigrationPlan.self,
+                configurations: [synced, local]
+            )
+        } catch where wantsCloud {
+            // CloudKit unavailable — run local-only and surface it in Settings.
+            UserDefaults.standard.set(false, forKey: "icloudBackup")
+            UserDefaults.standard.set(true, forKey: "icloudBackupFellBack")
+            let localSynced = ModelConfiguration(
+                "Synced",
+                schema: syncedSchema,
+                cloudKitDatabase: .none
+            )
+            return try ModelContainer(
+                for: allSchema,
+                migrationPlan: WorldTrackerMigrationPlan.self,
+                configurations: [localSynced, local]
+            )
+        }
     }
 }
 

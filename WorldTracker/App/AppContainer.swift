@@ -30,6 +30,7 @@ final class AppContainer {
     let editService: EditService
     let placesEngine: PlacesEngine
     let placeNamer: PlaceNamer
+    let exportService: ExportService
 
     private init() {
         do {
@@ -53,6 +54,7 @@ final class AppContainer {
         ledgerStore = LedgerStore(container: modelContainer)
         backfillEngine = PhotoBackfillEngine(container: modelContainer, geoProvider: geoProvider, places: placesEngine)
         editService = EditService(container: modelContainer)
+        exportService = ExportService(store: ledgerStore)
 
         // Warm the atlas so first lookups don't pay the load cost.
         let provider = geoProvider

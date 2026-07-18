@@ -79,7 +79,22 @@ git pull
 Then press ▶ in Xcode again. With a paid developer account the app stays
 valid on your phone for ~1 year per install.
 
-## 7. Troubleshooting
+## 7. Enabling iCloud backup (optional)
+
+The in-app "iCloud backup" toggle needs two capabilities added once in Xcode:
+
+1. Select the WorldTracker target → **Signing & Capabilities** → **+ Capability**
+   → **iCloud** → tick **CloudKit**. Xcode creates the container
+   (`iCloud.<your bundle id>`) automatically.
+2. **+ Capability** → **Background Modes** → tick **Remote notifications**
+   (already in the Info.plist; adding the capability makes signing aware).
+3. Make sure your iPhone is signed into iCloud, run the app, flip
+   Settings → iCloud backup ON, and relaunch the app once.
+
+Everything syncs to your personal private CloudKit database — invisible to
+everyone but your Apple account.
+
+## 8. Troubleshooting
 
 | Problem | Fix |
 | --- | --- |

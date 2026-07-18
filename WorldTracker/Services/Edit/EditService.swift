@@ -135,6 +135,36 @@ final class EditService {
         )
     }
 
+    // MARK: - Data management
+
+    /// Remove everything the machine inferred; keep manual facts and notes.
+    func eraseAutomaticData() {
+        let manual = FactSource.manual.rawValue
+        try? context.delete(
+            model: CountryDayFact.self,
+            where: #Predicate { $0.sourceRaw != manual }
+        )
+        try? context.delete(model: PhotoEvidence.self)
+        try? context.delete(model: LocationSample.self)
+        try? context.delete(model: BackfillCheckpoint.self)
+        // Places without manual naming are machine-derived.
+        try? context.delete(model: PlaceVisit.self)
+        try? context.delete(model: Place.self)
+        save()
+    }
+
+    /// Scorched earth.
+    func deleteAllData() {
+        try? context.delete(model: CountryDayFact.self)
+        try? context.delete(model: DayAnnotation.self)
+        try? context.delete(model: PhotoEvidence.self)
+        try? context.delete(model: LocationSample.self)
+        try? context.delete(model: BackfillCheckpoint.self)
+        try? context.delete(model: PlaceVisit.self)
+        try? context.delete(model: Place.self)
+        save()
+    }
+
     // MARK: - Internals
 
     private func removeManualFacts(days: [Int]) {

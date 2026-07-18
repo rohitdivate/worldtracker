@@ -116,4 +116,15 @@ Tick them off before moving on.
 - [ ] The pill shows "N countries · N% of the world"
 - [ ] Segmented → Countries: ranked list, tap-through to country detail
 
-*(Later milestones will append their checklists here.)*
+## M9 — iCloud, export, data management
+
+- [ ] Settings → Profile: set your **Home base** (UK) — Home/top lists now
+      show the HOME badge and travel days exclude home-only days
+- [ ] "Days with no data" menu switches gap-fill policy from Settings too
+- [ ] Export CSV / Export JSON → share sheet → AirDrop or Files; open the
+      CSV — every day with countries and provenance is there
+- [ ] Add the iCloud + Background Modes capabilities (README §7), flip
+      Settings → iCloud backup ON, relaunch → delete the app → reinstall
+      from Xcode → history comes back from your private iCloud
+- [ ] "Erase auto-detected data" keeps manual days and notes
+- [ ] "Delete all my data" leaves an empty app (then re-run the Time Machine)
