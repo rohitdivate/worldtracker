@@ -28,6 +28,8 @@ final class AppContainer {
     let ledgerStore: LedgerStore
     let backfillEngine: PhotoBackfillEngine
     let editService: EditService
+    let placesEngine: PlacesEngine
+    let placeNamer: PlaceNamer
 
     private init() {
         do {
@@ -37,6 +39,7 @@ final class AppContainer {
             // fall back to in-memory so the app still opens and can report.
             let schema = Schema([
                 CountryDayFact.self, DayAnnotation.self, PhotoEvidence.self,
+                Place.self, PlaceVisit.self,
                 LocationSample.self, BackfillCheckpoint.self,
             ])
             let memory = ModelConfiguration(schema: schema, isStoredInMemoryOnly: true)
@@ -44,9 +47,11 @@ final class AppContainer {
         }
         geoProvider = GeoLookupProvider()
         ingestor = LocationIngestor(modelContainer: modelContainer)
-        locationService = LocationService(ingestor: ingestor, lookup: geoProvider)
+        placesEngine = PlacesEngine(modelContainer: modelContainer)
+        locationService = LocationService(ingestor: ingestor, lookup: geoProvider, places: placesEngine)
+        placeNamer = PlaceNamer(engine: placesEngine)
         ledgerStore = LedgerStore(container: modelContainer)
-        backfillEngine = PhotoBackfillEngine(container: modelContainer, geoProvider: geoProvider)
+        backfillEngine = PhotoBackfillEngine(container: modelContainer, geoProvider: geoProvider, places: placesEngine)
         editService = EditService(container: modelContainer)
 
         // Warm the atlas so first lookups don't pay the load cost.

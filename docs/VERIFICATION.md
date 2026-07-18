@@ -92,4 +92,18 @@ Tick them off before moving on.
       in the calendar and the trip list
 - [ ] Add a note to a day — the amber dot appears under the day cell
 
+## M7 — Places
+
+- [ ] After a photo Time Machine run, the Places tab fills with places built
+      from photo clusters, grouped by country → city
+- [ ] Re-open the app once or twice on Wi-Fi — pending places get real names
+      ("naming…" disappears; museums/cafés get their POI names and emoji)
+- [ ] Tap a place: mini-map, your photos taken there (local thumbnails),
+      visit list with PHOTOS/VISIT provenance stamps
+- [ ] Rename and delete work from the ⋯ menu
+- [ ] Live test: spend 30+ min at a shop/café/park with the app installed —
+      within a few hours a VISIT place appears (visit detection is batched
+      by iOS; same-day is normal, instant is not)
+- [ ] Category chips (Culture / Outdoors / Food…) filter the list
+
 *(Later milestones will append their checklists here.)*

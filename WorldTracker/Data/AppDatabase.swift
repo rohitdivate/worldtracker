@@ -11,6 +11,8 @@ enum AppDatabase {
             CountryDayFact.self,
             DayAnnotation.self,
             PhotoEvidence.self,
+            Place.self,
+            PlaceVisit.self,
         ])
         let localSchema = Schema([
             LocationSample.self,
@@ -32,6 +34,8 @@ enum AppDatabase {
             CountryDayFact.self,
             DayAnnotation.self,
             PhotoEvidence.self,
+            Place.self,
+            PlaceVisit.self,
             LocationSample.self,
             BackfillCheckpoint.self,
         ])
@@ -47,6 +51,7 @@ enum WorldTrackerSchemaV1: VersionedSchema {
     static var versionIdentifier: Schema.Version { Schema.Version(1, 0, 0) }
     static var models: [any PersistentModel.Type] {
         [CountryDayFact.self, DayAnnotation.self, PhotoEvidence.self,
+         Place.self, PlaceVisit.self,
          LocationSample.self, BackfillCheckpoint.self]
     }
 }

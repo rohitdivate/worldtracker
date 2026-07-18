@@ -14,6 +14,7 @@ final class LocationService: NSObject {
     private let manager = CLLocationManager()
     private let ingestor: LocationIngestor
     private let lookup: GeoLookupProvider
+    private let places: PlacesEngine
 
     // Observable health state for the UI.
     private(set) var authorizationStatus: CLAuthorizationStatus = .notDetermined
@@ -31,9 +32,10 @@ final class LocationService: NSObject {
         }
     }
 
-    init(ingestor: LocationIngestor, lookup: GeoLookupProvider) {
+    init(ingestor: LocationIngestor, lookup: GeoLookupProvider, places: PlacesEngine) {
         self.ingestor = ingestor
         self.lookup = lookup
+        self.places = places
         super.init()
         manager.delegate = self
         manager.desiredAccuracy = kCLLocationAccuracyHundredMeters
@@ -148,6 +150,28 @@ extension LocationService: CLLocationManagerDelegate {
     }
 
     func locationManager(_ manager: CLLocationManager, didVisit visit: CLVisit) {
+        // Departures describe a completed stay — feed the Places pipeline.
+        if visit.departureDate != .distantFuture {
+            let places = self.places
+            let lookupProvider = self.lookup
+            let lat = visit.coordinate.latitude
+            let lon = visit.coordinate.longitude
+            let accuracy = visit.horizontalAccuracy
+            let arrival = visit.arrivalDate == .distantPast ? nil : visit.arrivalDate
+            let departure = visit.departureDate
+            Task.detached(priority: .utility) {
+                guard let lookup = try? await lookupProvider.lookup() else { return }
+                await places.ingestVisit(
+                    latitude: lat,
+                    longitude: lon,
+                    accuracy: accuracy,
+                    arrival: arrival,
+                    departure: departure,
+                    lookup: lookup
+                )
+            }
+        }
+
         let isArrival = visit.departureDate == .distantFuture
         let timestamp: Date
         if isArrival {

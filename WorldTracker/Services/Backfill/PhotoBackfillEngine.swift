@@ -126,12 +126,14 @@ actor BackfillWriter {
 final class PhotoBackfillEngine {
     private let writer: BackfillWriter
     private let geoProvider: GeoLookupProvider
+    private let places: PlacesEngine
     let progress: BackfillProgress
 
     @MainActor
-    init(container: ModelContainer, geoProvider: GeoLookupProvider) {
+    init(container: ModelContainer, geoProvider: GeoLookupProvider, places: PlacesEngine) {
         self.writer = BackfillWriter(modelContainer: container)
         self.geoProvider = geoProvider
+        self.places = places
         self.progress = BackfillProgress()
     }
 
@@ -183,6 +185,7 @@ final class PhotoBackfillEngine {
         var geoCache: [Int64: GeoResolution] = [:]
         var flagsSeen: Set<String> = []
         var processed = 0
+        var placeSamples: [PhotoSample] = []
 
         result.enumerateObjects { asset, _, _ in
             processed += 1
@@ -242,6 +245,14 @@ final class PhotoBackfillEngine {
                 }
             }
 
+            placeSamples.append(
+                PhotoSample(
+                    id: asset.localIdentifier,
+                    point: GeoPoint(latitude: lat, longitude: lon),
+                    timestamp: created
+                )
+            )
+
             let cellLat = (lat * 100).rounded() / 100
             let cellLon = (lon * 100).rounded() / 100
             let ceKey = "\(day)|\(cellLat)|\(cellLon)"
@@ -258,6 +269,10 @@ final class PhotoBackfillEngine {
 
         await MainActor.run { progress.stage = .writing }
         await writer.write(dayFacts: Array(dayCountry.values), evidence: Array(cellEvidence.values))
+
+        // Places from photo clusters (the market, the museum — from your past).
+        let clusters = clusterPhotoSamples(placeSamples)
+        await places.createPhotoPlaces(clusters: clusters, lookup: lookup)
 
         let uniqueDays = Set(dayCountry.values.map(\.day)).count
         await writer.updateCheckpoint(status: "done", processed: processed, total: total, days: uniqueDays)

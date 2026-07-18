@@ -17,6 +17,7 @@ struct WorldTrackerApp: App {
         .onChange(of: scenePhase) { _, phase in
             if phase == .active {
                 AppContainer.shared.locationService.onForeground()
+                AppContainer.shared.placeNamer.processPending()
             }
         }
     }
