@@ -15,6 +15,10 @@ struct GlobeView: View {
     @State private var position: MapCameraPosition = .automatic
     @State private var selectedCode: String?
     @State private var didFlyIn = false
+    /// Below ~3,000 km the chips change vocabulary: countries → your cities.
+    @State private var isCityMode = false
+    @State private var cameraRegion: MKCoordinateRegion?
+    @State private var cityDays: [CityDays] = []
 
     private var store: LedgerStore { AppContainer.shared.ledgerStore }
 
@@ -32,11 +36,19 @@ struct GlobeView: View {
                     borders(visited: visited, maxDays: maxDays, home: home)
                     arcs(visited: visited, home: home, homeCenter: homeCenter)
                     beacon(homeCenter: homeCenter)
-                    dayChips(visited: visited, home: home)
+                    if isCityMode {
+                        cityChips()
+                    } else {
+                        dayChips(visited: visited, home: home)
+                    }
                 }
                 // Vector globe, dark scheme — the aurora glows on night
                 // instead of fighting green terrain.
                 .mapStyle(.standard(elevation: .realistic, pointsOfInterest: .excludingAll, showsTraffic: false))
+                .onMapCameraChange(frequency: .onEnd) { context in
+                    cameraRegion = context.region
+                    updateMode(distance: context.camera.distance)
+                }
                 .onTapGesture { screenPoint in
                     handleTap(screenPoint, proxy: proxy, visited: visited, homeCenter: homeCenter)
                 }
@@ -59,6 +71,14 @@ struct GlobeView: View {
             .animation(.spring(duration: 0.35), value: selectedCode)
         }
         .task { await flyIn(homeCenter: homeCenter) }
+        .task(id: store.changeToken) {
+            // 250ms cancellation-debounce: a chunked backfill bumps the token
+            // repeatedly; only the settled state pays for a fetch.
+            try? await Task.sleep(nanoseconds: 250_000_000)
+            guard !Task.isCancelled else { return }
+            let result = await AppContainer.shared.placesEngine.visitedCityDays()
+            if !Task.isCancelled { cityDays = result }
+        }
     }
 
     // MARK: - Map content (small builders keep the type-checker fast)
@@ -160,6 +180,39 @@ struct GlobeView: View {
         }
     }
 
+    /// Zoomed in, the same idea at city grain: your visited cities, ranked
+    /// by days, capped to what fits a viewport.
+    @MapContentBuilder
+    private func cityChips() -> some MapContent {
+        ForEach(visibleCities()) { city in
+            Annotation(
+                "",
+                coordinate: CLLocationCoordinate2D(
+                    latitude: city.latitude, longitude: city.longitude
+                ),
+                anchor: .bottom
+            ) {
+                CityChip(name: city.name, days: city.days) {
+                    flyTo(city)
+                }
+            }
+            .annotationTitles(.hidden)
+        }
+    }
+
+    private func visibleCities() -> [CityDays] {
+        guard let region = cameraRegion else { return [] }
+        // 1.3× padding keeps chips from popping right at the screen edge.
+        return CityDayAggregator.visible(
+            cityDays,
+            centerLatitude: region.center.latitude,
+            centerLongitude: region.center.longitude,
+            latitudeDelta: min(region.span.latitudeDelta * 1.3, 180),
+            longitudeDelta: min(region.span.longitudeDelta * 1.3, 360),
+            limit: 12
+        )
+    }
+
     // MARK: - Data
 
     private var visitedDays: [String: Int] {
@@ -217,10 +270,44 @@ struct GlobeView: View {
         }
     }
 
+    /// Hysteresis band: enter city mode below 3,000 km, leave above 4,000 km
+    /// — a pinch settling near the boundary can't flicker the chips. Country
+    /// flyovers land at 1,600–12,000 km, so small countries auto-enter city
+    /// mode while continent-scale views stay on country chips.
+    private func updateMode(distance: Double) {
+        if !isCityMode && distance < 3_000_000 {
+            withAnimation(.easeInOut(duration: 0.25)) { isCityMode = true }
+        } else if isCityMode && distance > 4_000_000 {
+            withAnimation(.easeInOut(duration: 0.25)) { isCityMode = false }
+        }
+    }
+
+    private func flyTo(_ city: CityDays) {
+        HapticsDirector.shared.tick()
+        withAnimation(.easeInOut(duration: 0.7)) {
+            position = .camera(
+                MapCamera(
+                    centerCoordinate: CLLocationCoordinate2D(
+                        latitude: city.latitude, longitude: city.longitude
+                    ),
+                    distance: 220_000
+                )
+            )
+        }
+    }
+
     private func handleTap(
         _ point: CGPoint, proxy: MapProxy,
         visited: [String: Int], homeCenter: GeoPoint?
     ) {
+        // At city zoom a background tap must not yank the camera back out to
+        // country-flyover distance — just clear the card.
+        guard !isCityMode else {
+            if selectedCode != nil {
+                withAnimation { selectedCode = nil }
+            }
+            return
+        }
         guard let coordinate = proxy.convert(point, from: .local) else { return }
         Task {
             guard let lookup = try? await AppContainer.shared.geoProvider.lookup() else { return }
@@ -311,6 +398,40 @@ private struct DayChip: View {
                         Capsule().strokeBorder(
                             (isHome ? Theme.amber : Theme.aurora1).opacity(0.45), lineWidth: 1
                         )
+                    )
+            )
+            .shadow(color: .black.opacity(0.5), radius: 5, y: 2)
+        }
+        .buttonStyle(.plain)
+    }
+}
+
+// MARK: - City chip
+
+/// The zoomed-in vocabulary: city name + days. Aurora2 keeps it kin to the
+/// country chips without imitating them.
+private struct CityChip: View {
+    let name: String
+    let days: Int
+    let onTap: () -> Void
+
+    var body: some View {
+        Button(action: onTap) {
+            HStack(spacing: 4) {
+                Text(name)
+                    .font(.system(size: 11, weight: .bold, design: .rounded))
+                    .foregroundStyle(Theme.ink)
+                    .lineLimit(1)
+                Text("\(days)d")
+                    .font(.system(size: 11.5, weight: .heavy, design: .monospaced))
+                    .foregroundStyle(Theme.aurora2)
+            }
+            .padding(.horizontal, 9)
+            .padding(.vertical, 4)
+            .background(
+                Capsule().fill(Theme.sky.opacity(0.85))
+                    .overlay(
+                        Capsule().strokeBorder(Theme.aurora2.opacity(0.45), lineWidth: 1)
                     )
             )
             .shadow(color: .black.opacity(0.5), radius: 5, y: 2)

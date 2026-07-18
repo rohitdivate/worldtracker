@@ -229,6 +229,44 @@ actor PlacesEngine {
             .sorted { ($0.lastVisit ?? .distantPast) > ($1.lastVisit ?? .distantPast) }
     }
 
+    /// Every city with a day of evidence, ranked by distinct-day count —
+    /// the globe's zoomed-in chips. Photo evidence covers backfilled history,
+    /// place visits cover live-tracked days; the aggregator's distinct-day
+    /// counting makes the overlap harmless. Runs off the main actor.
+    func visitedCityDays() -> [CityDays] {
+        var observations: [CityObservation] = []
+
+        var evidenceDescriptor = FetchDescriptor<PhotoEvidence>()
+        evidenceDescriptor.propertiesToFetch = [
+            \.epochDay, \.latitude, \.longitude, \.photoCount, \.countryCode, \.city,
+        ]
+        for row in (try? modelContext.fetch(evidenceDescriptor)) ?? [] {
+            observations.append(CityObservation(
+                city: row.city,
+                countryCode: row.countryCode,
+                epochDay: row.epochDay,
+                latitude: row.latitude,
+                longitude: row.longitude,
+                weight: row.photoCount
+            ))
+        }
+
+        for place in (try? modelContext.fetch(FetchDescriptor<Place>())) ?? [] {
+            for visit in place.visits ?? [] {
+                observations.append(CityObservation(
+                    city: place.city,
+                    countryCode: place.countryCode,
+                    epochDay: visit.epochDay,
+                    latitude: place.latitude,
+                    longitude: place.longitude,
+                    weight: 1
+                ))
+            }
+        }
+
+        return CityDayAggregator.aggregate(observations)
+    }
+
     func visits(for placeID: UUID) -> [VisitSnapshot] {
         guard let place = fetch(placeID) else { return [] }
         return (place.visits ?? [])

@@ -388,3 +388,18 @@ Tick them off before moving on.
 - [ ] Settings → Notifications: four toggles (trip recap, monthly recap,
       Year in Travel, scan finished), all defaulting on; switching one on
       asks for full notification permission
+
+## X5 — Zoom-aware globe: city chips (v4.1)
+
+- [ ] Pinch in past ~3,000 km: country day chips swap to visited-CITY chips
+      (name + days); pinch out past 4,000 km: swap back; jiggling the pinch
+      around the boundary doesn't flicker (hysteresis band)
+- [ ] Tapping a small country (short flyover) auto-enters city mode; a large
+      country (e.g. US) stays on country chips until you pinch in
+- [ ] City chip tap flies down to that city with a haptic; background tap at
+      city zoom clears the country card WITHOUT moving the camera
+- [ ] Panning at city zoom refreshes the visible set on gesture end — max 12
+      chips, ranked by days; the same city from photos and live visits shows
+      as one merged chip ("Zürich"/"Zurich" merge, no double counting)
+- [ ] Fresh install: no chips, no crash; after a photo scan finishes, city
+      chips appear within ~1s
