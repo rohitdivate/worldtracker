@@ -7,6 +7,7 @@ enum AppTab: Hashable {
 struct RootTabView: View {
     @AppStorage("onboardingDone") private var onboardingDone = false
     @State private var showOnboarding = false
+    @State private var showAlwaysUpgrade = false
     @State private var selectedTab: AppTab = .home
     @Environment(\.scenePhase) private var scenePhase
 
@@ -24,7 +25,18 @@ struct RootTabView: View {
                 }
             }
             .onChange(of: scenePhase) { _, phase in
-                if phase == .active { celebration.presentIfPossible() }
+                if phase == .active {
+                    celebration.presentIfPossible()
+                    Task {
+                        if await AlwaysPromptGate.shouldOffer() {
+                            AlwaysPromptGate.recordShown()
+                            showAlwaysUpgrade = true
+                        }
+                    }
+                }
+            }
+            .sheet(isPresented: $showAlwaysUpgrade) {
+                AlwaysUpgradeSheet()
             }
             .fullScreenCover(isPresented: $showOnboarding) {
                 WelcomeFlow()

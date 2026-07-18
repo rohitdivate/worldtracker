@@ -1,3 +1,4 @@
+import CoreLocation
 import SwiftUI
 import WorldTrackerKit
 
@@ -8,7 +9,18 @@ struct HomeView: View {
     @State private var wrappedYears: [Int] = []
     @State private var buildingYear: Int?
     @State private var presentedWrapped: WrappedPresentation?
+    @State private var showAlwaysSheet = false
     @Namespace private var wrappedNS
+
+    /// Non-nil while tracking can't work in the background.
+    private var trackingLimitation: TrackingStatusPill.TrackingLimitation? {
+        guard location.smartTrackingEnabled else { return nil }
+        switch location.authorizationStatus {
+        case .authorizedWhenInUse: return .whileUsingOnly
+        case .denied, .restricted: return .off
+        default: return nil
+        }
+    }
 
     private var store: LedgerStore { AppContainer.shared.ledgerStore }
 
@@ -33,6 +45,19 @@ struct HomeView: View {
                     VStack(alignment: .leading, spacing: 16) {
                         todayCard
                             .padding(.top, 8)
+
+                        if let limitation = trackingLimitation {
+                            HStack {
+                                TrackingStatusPill(status: limitation) {
+                                    if limitation == .off {
+                                        openSystemSettings()
+                                    } else {
+                                        showAlwaysSheet = true
+                                    }
+                                }
+                                Spacer()
+                            }
+                        }
 
                         if let heroYear {
                             wrappedHeroCard(year: heroYear)
@@ -74,6 +99,9 @@ struct HomeView: View {
             .fullScreenCover(item: $presentedWrapped) { presentation in
                 WrappedView(data: presentation.data)
                     .navigationTransition(.zoom(sourceID: presentation.id, in: wrappedNS))
+            }
+            .sheet(isPresented: $showAlwaysSheet) {
+                AlwaysUpgradeSheet()
             }
         }
     }

@@ -57,8 +57,15 @@ struct TrackingHealthView: View {
 
             Section {
                 if location.authorizationStatus == .authorizedWhenInUse {
-                    Button("Upgrade to Always access") {
-                        location.requestAlwaysUpgrade()
+                    Button(AlwaysPromptGate.systemPromptUsed
+                           ? "Allow Always access in iOS Settings"
+                           : "Upgrade to Always access") {
+                        if AlwaysPromptGate.systemPromptUsed {
+                            openSettings()
+                        } else {
+                            AlwaysPromptGate.markSystemPromptUsed()
+                            location.requestAlwaysUpgrade()
+                        }
                     }
                     .foregroundStyle(Theme.aurora1)
                 }

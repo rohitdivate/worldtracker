@@ -7,6 +7,8 @@ struct WelcomeFlow: View {
     @Environment(LocationService.self) private var location
     @AppStorage("onboardingDone") private var onboardingDone = false
     @State private var step = 0
+    @State private var tzCountry: String?
+    @State private var showHomePicker = false
 
     var body: some View {
         ZStack {
@@ -15,13 +17,36 @@ struct WelcomeFlow: View {
             switch step {
             case 0: welcome
             case 1: permission
-            case 2: photoOffer
+            case 2: homeStep
+            case 3: photoOffer
             default: photoProgress
             }
+        }
+        .sheet(isPresented: $showHomePicker) {
+            CountryPickerView { code in pickHome(code) }
+        }
+        .task {
+            let lookup = try? await AppContainer.shared.geoProvider.lookup()
+            tzCountry = lookup?.countryCode(forTimeZoneID: TimeZone.current.identifier)
         }
     }
 
     private var engine: PhotoBackfillEngine { AppContainer.shared.backfillEngine }
+
+    /// Every exit path funnels through here so the completion timestamp is
+    /// always recorded (the Always-upgrade gate keys off it).
+    private func finishOnboarding() {
+        UserDefaults.standard.set(Date(), forKey: "onboardingCompletedAt")
+        UserDefaults.standard.set(
+            AppContainer.shared.ledgerStore.todayEpoch, forKey: "onboardingCompletedDay"
+        )
+        onboardingDone = true
+    }
+
+    private func pickHome(_ code: String) {
+        AppContainer.shared.ledgerStore.homeTimeline = .single(code)
+        withAnimation(.spring(duration: 0.45)) { step = 3 }
+    }
 
     private var welcome: some View {
         VStack(spacing: 18) {
@@ -69,6 +94,11 @@ struct WelcomeFlow: View {
                         detail: "Borders are detected on-device, even after airplane mode")
             }
             .padding(.horizontal, 24)
+            Text("iOS asks for “While Using” first — later, one more tap turns on full background logging.")
+                .font(.system(size: 11.5))
+                .foregroundStyle(Theme.ink3)
+                .multilineTextAlignment(.center)
+                .frame(maxWidth: 300)
             Spacer()
             Button {
                 location.requestWhenInUse()
@@ -84,6 +114,72 @@ struct WelcomeFlow: View {
             .padding(.horizontal, 24)
             Button("Maybe later") {
                 withAnimation(.spring(duration: 0.45)) { step = 2 }
+            }
+            .font(.system(size: 14, weight: .semibold))
+            .foregroundStyle(Theme.ink2)
+            .padding(.bottom, 26)
+        }
+        .transition(.move(edge: .trailing).combined(with: .opacity))
+    }
+
+    /// Home base — without it every day would count as travel.
+    private var homeStep: some View {
+        let deviceRegion = Locale.current.region?.identifier
+        var chips: [String] = []
+        if let deviceRegion { chips.append(deviceRegion) }
+        if let tzCountry, !chips.contains(tzCountry) { chips.append(tzCountry) }
+
+        return VStack(spacing: 16) {
+            Spacer()
+            Text("🏠").font(.system(size: 44))
+            Text("Where do you live?")
+                .font(.system(size: 28, weight: .heavy, design: .rounded))
+                .foregroundStyle(Theme.ink)
+            Text("Days at home don't count as travel — this keeps every stat honest. Moved between countries before? You can add your full home history later in Settings.")
+                .font(.system(size: 14))
+                .foregroundStyle(Theme.ink2)
+                .multilineTextAlignment(.center)
+                .frame(maxWidth: 310)
+            Spacer()
+
+            VStack(spacing: 10) {
+                ForEach(chips, id: \.self) { code in
+                    Button {
+                        pickHome(code)
+                    } label: {
+                        HStack(spacing: 10) {
+                            Text(flagEmoji(code)).font(.system(size: 24))
+                            Text(countryName(code))
+                                .font(.system(size: 16, weight: .bold))
+                                .foregroundStyle(Theme.ink)
+                            Spacer()
+                            Image(systemName: "arrow.right")
+                                .font(.system(size: 13, weight: .bold))
+                                .foregroundStyle(Theme.aurora1)
+                        }
+                        .padding(.horizontal, 16)
+                        .frame(height: 54)
+                        .nightCard()
+                    }
+                    .buttonStyle(.plain)
+                }
+
+                Button {
+                    showHomePicker = true
+                } label: {
+                    Text("Somewhere else…")
+                        .font(.system(size: 15, weight: .semibold))
+                        .foregroundStyle(Theme.aurora1)
+                        .frame(maxWidth: .infinity)
+                        .frame(height: 48)
+                        .nightCard()
+                }
+                .buttonStyle(.plain)
+            }
+            .padding(.horizontal, 24)
+
+            Button("I'll set this later") {
+                withAnimation(.spring(duration: 0.45)) { step = 3 }
             }
             .font(.system(size: 14, weight: .semibold))
             .foregroundStyle(Theme.ink2)
@@ -110,7 +206,7 @@ struct WelcomeFlow: View {
             Spacer()
             Button {
                 engine.run()
-                withAnimation(.spring(duration: 0.45)) { step = 3 }
+                withAnimation(.spring(duration: 0.45)) { step = 4 }
             } label: {
                 Text("Rebuild my history")
                     .font(.system(size: 16, weight: .bold))
@@ -121,7 +217,7 @@ struct WelcomeFlow: View {
             }
             .padding(.horizontal, 24)
             Button("Skip — I'll do it later in Settings") {
-                onboardingDone = true
+                finishOnboarding()
             }
             .font(.system(size: 14, weight: .semibold))
             .foregroundStyle(Theme.ink2)
@@ -143,7 +239,7 @@ struct WelcomeFlow: View {
                         .foregroundStyle(Theme.ink)
                         .multilineTextAlignment(.center)
                     Button {
-                        onboardingDone = true
+                        finishOnboarding()
                     } label: {
                         Text("Show me my world")
                             .font(.system(size: 16, weight: .bold))
@@ -157,14 +253,14 @@ struct WelcomeFlow: View {
                 .padding(.bottom, 26)
             } else if case .failed = engine.progress.stage {
                 Button("Continue anyway") {
-                    onboardingDone = true
+                    finishOnboarding()
                 }
                 .font(.system(size: 15, weight: .semibold))
                 .foregroundStyle(Theme.ink2)
                 .padding(.bottom, 26)
             } else {
                 Button("Continue in the background") {
-                    onboardingDone = true
+                    finishOnboarding()
                 }
                 .font(.system(size: 14, weight: .semibold))
                 .foregroundStyle(Theme.ink2)
