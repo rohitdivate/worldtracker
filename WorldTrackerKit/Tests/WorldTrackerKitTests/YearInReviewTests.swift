@@ -128,4 +128,58 @@ final class YearInReviewTests: XCTestCase {
         XCTAssertEqual(stats.longestTrip?.dayCount, 10)
         XCTAssertEqual(stats.longestTrip?.countryCodes, ["JP"])
     }
+
+    /// The relocation year: US home Jan–Apr, then a move to the UK.
+    /// Days living in the US must not read as travel; a US visit AFTER the
+    /// move must.
+    func testMidYearHomeMoveScenario() {
+        let moveDay = jan1 + 120   // ~May 1
+        let timeline = HomeTimeline(periods: [
+            HomePeriod(startDay: nil, countryCode: "US"),
+            HomePeriod(startDay: moveDay, countryCode: "GB"),
+        ])
+
+        var days: [ResolvedDay] = []
+        for i in 0..<120 { days.append(day(i, ["US"])) }          // living in US
+        for i in 120..<308 { days.append(day(i, ["GB"])) }        // living in UK
+        for i in 308..<315 { days.append(day(i, ["US"])) }        // Nov 5–11 US visit
+        for i in 315..<330 { days.append(day(i, ["GB"])) }
+
+        let stats = YearInReview.compute(
+            year: 2026, days: days, homeTimeline: timeline,
+            priorCountryCodes: ["US"]
+        )
+        // Only the 7-day November visit is travel.
+        XCTAssertEqual(stats.travelDays, 7)
+        XCTAssertEqual(stats.longestTrip?.dayCount, 7)
+        XCTAssertEqual(stats.longestTrip?.countryCodes, ["US"])
+        // Busiest month is November (the visit), not the US-resident spring.
+        XCTAssertEqual(stats.busiestMonth?.month, 11)
+        // Display home = the year's dominant home (UK covers ~7 months).
+        XCTAssertEqual(stats.homeCountry, "GB")
+    }
+
+    func testPlaceHighlightJudgedAgainstPerDayHome() {
+        let moveDay = jan1 + 120
+        let timeline = HomeTimeline(periods: [
+            HomePeriod(startDay: nil, countryCode: "US"),
+            HomePeriod(startDay: moveDay, countryCode: "GB"),
+        ])
+        var days: [ResolvedDay] = []
+        for i in 0..<120 { days.append(day(i, ["US"])) }
+        for i in 120..<300 { days.append(day(i, ["GB"])) }
+        for i in 300..<307 { days.append(day(i, ["US"])) }
+
+        // The old-life café: visited only while the US was home → not "away".
+        let oldCafe = PlaceVisitInput(name: "Blue Bottle", city: "SF", countryCode: "US",
+                                      visitEpochDays: [jan1 + 10, jan1 + 20, jan1 + 30])
+        // Same country, but visited during the November trip → away.
+        let tripSpot = PlaceVisitInput(name: "Katz's Deli", city: "NYC", countryCode: "US",
+                                       visitEpochDays: [jan1 + 301, jan1 + 303])
+        let stats = YearInReview.compute(
+            year: 2026, days: days, homeTimeline: timeline,
+            priorCountryCodes: [], places: [oldCafe, tripSpot]
+        )
+        XCTAssertEqual(stats.mostVisitedPlace?.name, "Katz's Deli")
+    }
 }

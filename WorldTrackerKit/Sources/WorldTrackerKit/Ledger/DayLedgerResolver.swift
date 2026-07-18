@@ -61,7 +61,7 @@ public struct ResolvedDay: Sendable, Equatable {
 
 /// A maximal run of consecutive days during which a country was present.
 /// Border days belong to BOTH neighboring segments (any-presence model).
-public struct TripSegment: Sendable, Equatable, Identifiable {
+public struct TripSegment: Sendable, Hashable, Identifiable {
     public var id: String { "\(countryCode)-\(startDay)" }
     public let countryCode: String
     public let startDay: Int
@@ -293,6 +293,13 @@ public struct DayLedgerResolver: Sendable {
     }
 
     public static func stats(for days: [ResolvedDay], home: String?) -> TravelStats {
+        stats(for: days, homeTimeline: .single(home))
+    }
+
+    /// Travel days are judged against the home valid ON EACH DAY — someone
+    /// who lived in the US before moving to the UK wasn't "travelling" for
+    /// those American years.
+    public static func stats(for days: [ResolvedDay], homeTimeline: HomeTimeline) -> TravelStats {
         var perCountry: [String: Int] = [:]
         var travelDays = 0
 
@@ -301,7 +308,7 @@ public struct DayLedgerResolver: Sendable {
             for code in day.countryCodes {
                 perCountry[code, default: 0] += 1
             }
-            if day.countryCodes != [home].compactMap({ $0 }) {
+            if day.countryCodes != [homeTimeline.home(on: day.day)].compactMap({ $0 }) {
                 travelDays += 1
             }
         }
@@ -318,5 +325,34 @@ public struct DayLedgerResolver: Sendable {
             travelDays: travelDays,
             daysPerCountry: perCountry
         )
+    }
+
+    /// A segment is a home stay when its country was home at either end —
+    /// covers both "lived there the whole run" and the run that straddles a
+    /// move (living in a place and then declaring it home mid-stay).
+    public static func isHomeStay(_ segment: TripSegment, timeline: HomeTimeline) -> Bool {
+        timeline.home(on: segment.startDay) == segment.countryCode
+            || timeline.home(on: segment.endDay) == segment.countryCode
+    }
+
+    /// TRIP segments only: each day's codes are masked against that day's
+    /// home before run-length grouping. A home-country run disappears
+    /// entirely; a run straddling a home move is truncated to the days it
+    /// wasn't home; a border day keeps its foreign country.
+    public static func tripSegments(
+        from days: [ResolvedDay], homeTimeline: HomeTimeline
+    ) -> [TripSegment] {
+        guard !homeTimeline.isEmpty else { return segments(from: days) }
+        let masked = days.map { day in
+            let home = homeTimeline.home(on: day.day)
+            return ResolvedDay(
+                day: day.day,
+                countryCodes: day.countryCodes.filter { $0 != home },
+                source: day.source,
+                isFilled: day.isFilled,
+                hasNote: day.hasNote
+            )
+        }
+        return segments(from: masked)
     }
 }

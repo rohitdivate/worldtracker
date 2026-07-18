@@ -100,8 +100,36 @@ public enum YearInReview {
         priorCountryCodes: Set<String>,
         places: [PlaceVisitInput] = []
     ) -> YearInReviewStats {
-        let stats = DayLedgerResolver.stats(for: days, home: homeCountry)
+        compute(
+            year: year,
+            days: days,
+            homeTimeline: .single(homeCountry),
+            priorCountryCodes: priorCountryCodes,
+            places: places
+        )
+    }
+
+    public static func compute(
+        year: Int,
+        days: [ResolvedDay],
+        homeTimeline: HomeTimeline,
+        priorCountryCodes: Set<String>,
+        places: [PlaceVisitInput] = []
+    ) -> YearInReviewStats {
+        let stats = DayLedgerResolver.stats(for: days, homeTimeline: homeTimeline)
         let trackedDays = days.filter { !$0.countryCodes.isEmpty }.count
+
+        // Away = not exclusively in the home OF THAT DAY (people move).
+        func isAway(_ day: ResolvedDay) -> Bool {
+            !day.countryCodes.isEmpty
+                && day.countryCodes != [homeTimeline.home(on: day.day)].compactMap({ $0 })
+        }
+
+        // The year's display home (arc origin, copy): the home that covered
+        // most of the year's calendar days.
+        let homeCountry: String? = days.isEmpty
+            ? homeTimeline.current
+            : homeTimeline.dominantHome(in: days[0].day...days[days.count - 1].day)
 
         let ranked = stats.daysPerCountry
             .sorted { ($0.value, $1.key) > ($1.value, $0.key) }
@@ -140,9 +168,7 @@ public enum YearInReview {
 
         var previousDay: Int?
         for day in days {
-            let isAway = !day.countryCodes.isEmpty
-                && day.countryCodes != [homeCountry].compactMap({ $0 })
-            if isAway {
+            if isAway(day) {
                 if runStart == nil {
                     runStart = day.day
                 }
@@ -161,10 +187,7 @@ public enum YearInReview {
 
         // Busiest month (by travel days; earliest month wins ties).
         var byMonth: [Int: Int] = [:]
-        for day in days {
-            let isTravel = !day.countryCodes.isEmpty
-                && day.countryCodes != [homeCountry].compactMap({ $0 })
-            guard isTravel else { continue }
+        for day in days where isAway(day) {
             let month = EpochDay(value: day.day).civil().month
             byMonth[month, default: 0] += 1
         }
@@ -180,19 +203,23 @@ public enum YearInReview {
         var bestAway: YearInReviewStats.PlaceHighlight?
         if let range = yearRange {
             for place in places {
-                let visits = place.visitEpochDays.filter(range.contains).count
-                guard visits > 0 else { continue }
+                let visitDays = place.visitEpochDays.filter(range.contains)
+                guard !visitDays.isEmpty else { continue }
                 let highlight = YearInReviewStats.PlaceHighlight(
                     name: place.name,
                     city: place.city,
                     countryCode: place.countryCode,
-                    visitCount: visits
+                    visitCount: visitDays.count
                 )
-                if visits > (bestOverall?.visitCount ?? 0) {
+                if visitDays.count > (bestOverall?.visitCount ?? 0) {
                     bestOverall = highlight
                 }
-                if place.countryCode != homeCountry, visits >= 2,
-                   visits > (bestAway?.visitCount ?? 0) {
+                // "Away" is judged per visit day — a café from your old life
+                // abroad only counts once that country stopped being home.
+                let awayVisits = visitDays.filter {
+                    homeTimeline.home(on: $0) != place.countryCode
+                }.count
+                if awayVisits >= 2, visitDays.count > (bestAway?.visitCount ?? 0) {
                     bestAway = highlight
                 }
             }
