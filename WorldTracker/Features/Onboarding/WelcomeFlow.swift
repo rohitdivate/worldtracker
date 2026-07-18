@@ -175,20 +175,7 @@ struct WelcomeFlow: View {
     }
 
     private var globe: some View {
-        Circle()
-            .fill(
-                RadialGradient(
-                    colors: [Theme.aurora1, Color(red: 0.18, green: 0.56, blue: 0.72), Theme.card],
-                    center: .init(x: 0.32, y: 0.28),
-                    startRadius: 6,
-                    endRadius: 120
-                )
-            )
-            .frame(width: 130, height: 130)
-            .shadow(color: Theme.aurora1.opacity(0.45), radius: 40)
-            .overlay(alignment: .topTrailing) {
-                Text("✈️").font(.system(size: 24)).offset(x: 6, y: -2)
-            }
+        MiniGlobe(size: 130)
     }
 
     private func promise(icon: String, title: String, detail: String) -> some View {

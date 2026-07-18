@@ -5,6 +5,9 @@ import WorldTrackerKit
 struct HomeView: View {
     @Environment(LocationService.self) private var location
     @State private var period: StatsPeriod = .thisYear
+    @State private var wrappedYears: [Int] = []
+    @State private var buildingYear: Int?
+    @State private var presentedWrapped: WrappedPresentation?
 
     private var store: LedgerStore { AppContainer.shared.ledgerStore }
 
@@ -25,6 +28,8 @@ struct HomeView: View {
 
                         topCountries
 
+                        wrappedRows
+
                         if store.currentStay() == nil {
                             waitingCard
                         }
@@ -38,6 +43,66 @@ struct HomeView: View {
             .navigationDestination(for: String.self) { code in
                 CountryDetailView(countryCode: code)
             }
+            .task { wrappedYears = AppContainer.shared.wrappedBuilder.availableYears() }
+            .onChange(of: store.changeToken) {
+                wrappedYears = AppContainer.shared.wrappedBuilder.availableYears()
+            }
+            .fullScreenCover(item: $presentedWrapped) { presentation in
+                WrappedView(data: presentation.data)
+            }
+        }
+    }
+
+    // MARK: - Year in Travel entry (plain row for now; the aurora card is W5)
+
+    @ViewBuilder
+    private var wrappedRows: some View {
+        if !wrappedYears.isEmpty {
+            VStack(alignment: .leading, spacing: 8) {
+                Text("YEAR IN TRAVEL")
+                    .font(.system(size: 10, weight: .bold))
+                    .tracking(1.8)
+                    .foregroundStyle(Theme.ink3)
+                    .padding(.top, 4)
+
+                ForEach(wrappedYears, id: \.self) { year in
+                    Button {
+                        openWrapped(year: year)
+                    } label: {
+                        HStack(spacing: 11) {
+                            Text("✨")
+                                .font(.system(size: 20))
+                            Text("Your \(String(year)) in Travel")
+                                .font(.system(size: 14, weight: .semibold))
+                                .foregroundStyle(Theme.ink)
+                            Spacer()
+                            if buildingYear == year {
+                                ProgressView().tint(Theme.aurora1)
+                            } else {
+                                Image(systemName: "chevron.right")
+                                    .font(.system(size: 11, weight: .semibold))
+                                    .foregroundStyle(Theme.ink3)
+                            }
+                        }
+                        .padding(.vertical, 12)
+                        .padding(.horizontal, 14)
+                        .nightCard()
+                    }
+                    .buttonStyle(.plain)
+                    .disabled(buildingYear != nil)
+                }
+            }
+        }
+    }
+
+    private func openWrapped(year: Int) {
+        guard buildingYear == nil else { return }
+        buildingYear = year
+        Task {
+            if let data = await AppContainer.shared.wrappedBuilder.build(year: year) {
+                presentedWrapped = WrappedPresentation(id: year, data: data)
+            }
+            buildingYear = nil
         }
     }
 

@@ -32,6 +32,7 @@ final class AppContainer {
     let placeNamer: PlaceNamer
     let exportService: ExportService
     let importEngine: ImportEngine
+    let wrappedBuilder: YearInReviewBuilder
 
     private init() {
         do {
@@ -57,6 +58,9 @@ final class AppContainer {
         editService = EditService(container: modelContainer)
         exportService = ExportService(store: ledgerStore)
         importEngine = ImportEngine(container: modelContainer, geoProvider: geoProvider)
+        wrappedBuilder = YearInReviewBuilder(
+            store: ledgerStore, container: modelContainer, placesEngine: placesEngine
+        )
 
         // Warm the atlas so first lookups don't pay the load cost.
         let provider = geoProvider
