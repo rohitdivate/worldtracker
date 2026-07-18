@@ -21,10 +21,21 @@ Tick them off before moving on.
 - [ ] Enter your own home coordinates under "Custom coordinate" — the right
       country, city and timezone come back with airplane mode still on
 
-## M2 — Tracking (coming)
+## M2 — Tracking
 
-- [ ] Grant location permission via the in-app priming screen
-- [ ] Walk/drive a few km; samples appear in Settings → Developer → Ingest log
-- [ ] Leave the app closed overnight; next morning new samples exist
+- [ ] Fresh install shows the Welcome flow; "Enable location" raises the iOS
+      While-Using prompt — allow it
+- [ ] Settings → Tracking health: "Location access" shows amber "While Using";
+      tap "Upgrade to Always access" and choose **Change to Always Allow**
+- [ ] All three requirement rows go green (Always ✓ / Precise ✓ / Background
+      App Refresh ✓)
+- [ ] Open the app somewhere — Settings → Developer → Ingest log shows a
+      `foreground` sample with your city and flag
+- [ ] Walk/drive a few km with the app closed; reopen later — new `slc`
+      (significant location change) samples appear
+- [ ] Leave the app alone overnight — next day a `visit` sample exists for
+      home; "Last event" in Tracking health stays recent without you ever
+      opening the app
+- [ ] Toggle Smart tracking off and on — no crashes, log keeps working
 
 *(Later milestones will append their checklists here.)*
