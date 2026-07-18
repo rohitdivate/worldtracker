@@ -33,6 +33,7 @@ final class AppContainer {
     let exportService: ExportService
     let importEngine: ImportEngine
     let wrappedBuilder: YearInReviewBuilder
+    let celebrationCoordinator = CelebrationCoordinator()
 
     private init() {
         do {

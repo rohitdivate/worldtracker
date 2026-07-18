@@ -141,3 +141,33 @@ Tick them off before moving on.
 - [ ] Settings → Import → Flights: import a Flighty CSV (or a 3-column CSV);
       an overnight long-haul credits the arrival day in the destination
 - [ ] Unknown airport codes are listed on the done card rather than failing
+
+## W1–W6 — Year in Travel (Wrapped) + celebrations
+
+- [ ] Home shows "Your ⟨year⟩ in Travel" rows for every year with enough
+      data (needs 10+ tracked days and either 2+ countries or 5+ travel
+      days — the photo Time Machine or a Timeline import gets you there)
+- [ ] Tap a year: the story opens full-screen — pages auto-advance with
+      progress bars; tap right = next, tap left = back, long-press pauses,
+      drag down dismisses
+- [ ] Watch the choreography land: the year rolls in, flags pop, travel-day
+      dots ignite across the calendar grid, podium bars rise (crown drops
+      on #1 with a triple-tap haptic), the flight arc draws with the plane
+      riding its tip, NEW STAMPS slam in one by one with a particle burst,
+      the world map lights up country by country with comet arcs
+- [ ] Photos page shows real thumbnails from your library (local-only) and
+      each flips in
+- [ ] Closer page: "Share your year" opens the share sheet with two PNGs —
+      a 1080×1920 story card and a 1080×1080 square, both with the lit map
+- [ ] Share icon in the top chrome works from any page (story pauses)
+- [ ] Reduce Motion ON (Settings → Accessibility): every page renders its
+      finished state immediately, no particles
+- [ ] In January: an aurora "Your ⟨year⟩ is ready" card sits at the top of
+      Home until opened once; a quiet notification arrives Jan 1 at 9:00
+      (provisional — check Notification Center) and tapping it opens the
+      story
+- [ ] New-country celebration: Developer → Geo lookup won't fire it (live
+      GPS only) — verify on a real border crossing or first run in a new
+      country: full-screen stamp + "COUNTRY #N" + burst, exactly once;
+      "See your world →" jumps to the Map tab
+- [ ] Photo backfill and Timeline import never trigger celebrations

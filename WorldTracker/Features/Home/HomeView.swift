@@ -8,8 +8,20 @@ struct HomeView: View {
     @State private var wrappedYears: [Int] = []
     @State private var buildingYear: Int?
     @State private var presentedWrapped: WrappedPresentation?
+    @Namespace private var wrappedNS
 
     private var store: LedgerStore { AppContainer.shared.ledgerStore }
+
+    /// January only: last year's story, until it's been seen.
+    private var heroYear: Int? {
+        let (year, month, _) = EpochDay(value: store.todayEpoch).civil()
+        guard month == 1 else { return nil }
+        let lastYear = year - 1
+        guard wrappedYears.contains(lastYear),
+              !UserDefaults.standard.bool(forKey: "wrappedSeen-\(lastYear)")
+        else { return nil }
+        return lastYear
+    }
 
     var body: some View {
         let _ = store.changeToken  // re-render when the ledger changes
@@ -21,6 +33,10 @@ struct HomeView: View {
                     VStack(alignment: .leading, spacing: 16) {
                         todayCard
                             .padding(.top, 8)
+
+                        if let heroYear {
+                            wrappedHeroCard(year: heroYear)
+                        }
 
                         PeriodChips(selection: $period)
 
@@ -47,10 +63,52 @@ struct HomeView: View {
             .onChange(of: store.changeToken) {
                 wrappedYears = AppContainer.shared.wrappedBuilder.availableYears()
             }
+            .onReceive(NotificationCenter.default.publisher(for: .openWrapped)) { _ in
+                if let year = wrappedYears.first {
+                    openWrapped(year: year)
+                }
+            }
             .fullScreenCover(item: $presentedWrapped) { presentation in
                 WrappedView(data: presentation.data)
+                    .navigationTransition(.zoom(sourceID: presentation.id, in: wrappedNS))
             }
         }
+    }
+
+    private func wrappedHeroCard(year: Int) -> some View {
+        Button {
+            openWrapped(year: year)
+        } label: {
+            ZStack {
+                RoundedRectangle(cornerRadius: Theme.cardCornerRadius, style: .continuous)
+                    .fill(Theme.auroraGradient)
+                    .opacity(0.9)
+                HStack(spacing: 14) {
+                    MiniGlobe(size: 46, showsPlane: false)
+                    VStack(alignment: .leading, spacing: 3) {
+                        Text("YOUR \(String(year)) IS READY")
+                            .font(.system(size: 11, weight: .heavy, design: .monospaced))
+                            .tracking(1.6)
+                            .foregroundStyle(Theme.sky.opacity(0.75))
+                        Text("Open your Year in Travel ✨")
+                            .font(.system(size: 17, weight: .heavy, design: .rounded))
+                            .foregroundStyle(Theme.sky)
+                    }
+                    Spacer()
+                    if buildingYear == year {
+                        ProgressView().tint(Theme.sky)
+                    } else {
+                        Image(systemName: "chevron.right")
+                            .font(.system(size: 14, weight: .bold))
+                            .foregroundStyle(Theme.sky.opacity(0.8))
+                    }
+                }
+                .padding(16)
+            }
+        }
+        .buttonStyle(.plain)
+        .disabled(buildingYear != nil)
+        .matchedTransitionSource(id: year, in: wrappedNS)
     }
 
     // MARK: - Year in Travel entry (plain row for now; the aurora card is W5)
@@ -65,7 +123,7 @@ struct HomeView: View {
                     .foregroundStyle(Theme.ink3)
                     .padding(.top, 4)
 
-                ForEach(wrappedYears, id: \.self) { year in
+                ForEach(wrappedYears.filter { $0 != heroYear }, id: \.self) { year in
                     Button {
                         openWrapped(year: year)
                     } label: {
@@ -90,6 +148,7 @@ struct HomeView: View {
                     }
                     .buttonStyle(.plain)
                     .disabled(buildingYear != nil)
+                    .matchedTransitionSource(id: year, in: wrappedNS)
                 }
             }
         }
@@ -100,6 +159,7 @@ struct HomeView: View {
         buildingYear = year
         Task {
             if let data = await AppContainer.shared.wrappedBuilder.build(year: year) {
+                UserDefaults.standard.set(true, forKey: "wrappedSeen-\(year)")
                 presentedWrapped = WrappedPresentation(id: year, data: data)
             }
             buildingYear = nil

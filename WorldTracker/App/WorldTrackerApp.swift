@@ -18,6 +18,10 @@ struct WorldTrackerApp: App {
             if phase == .active {
                 AppContainer.shared.locationService.onForeground()
                 AppContainer.shared.placeNamer.processPending()
+                if UserDefaults.standard.bool(forKey: "onboardingDone") {
+                    // Idempotent: re-adds the same Jan-1 request.
+                    NotificationScheduler.shared.scheduleWrappedReveal()
+                }
             }
         }
     }

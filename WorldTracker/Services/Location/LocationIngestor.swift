@@ -36,6 +36,12 @@ actor LocationIngestor {
         modelContext.insert(sample)
 
         if let code = res.countryCode {
+            // New-country check BEFORE the upsert, against the whole ledger:
+            // photo backfill and imports write through other paths, so a
+            // country they already recorded never false-fires here — only a
+            // genuinely first-ever live arrival does.
+            let isNewCountry = factCount(forCountry: code) == 0
+
             let source: FactSource = (kind == .visitArrive || kind == .visitDepart) ? .visit : .gps
             upsertFact(
                 epochDay: day,
@@ -44,6 +50,16 @@ actor LocationIngestor {
                 confidence: res.usedNearestLandFallback ? 0.7 : 1.0,
                 seenAt: timestamp
             )
+
+            if isNewCountry {
+                let number = distinctCountryCount()
+                let city = res.cityName
+                Task { @MainActor in
+                    AppContainer.shared.celebrationCoordinator.newCountryDetected(
+                        code: code, number: number, city: city
+                    )
+                }
+            }
         }
 
         try? modelContext.save()
@@ -75,6 +91,19 @@ actor LocationIngestor {
         )
         try? modelContext.save()
         notifyLedgerChanged()
+    }
+
+    private func factCount(forCountry code: String) -> Int {
+        let predicate = #Predicate<CountryDayFact> { $0.countryCode == code }
+        return (try? modelContext.fetchCount(FetchDescriptor(predicate: predicate))) ?? 0
+    }
+
+    /// Distinct countries in the ledger (pending inserts included).
+    private func distinctCountryCount() -> Int {
+        var descriptor = FetchDescriptor<CountryDayFact>()
+        descriptor.propertiesToFetch = [\.countryCode]
+        let facts = (try? modelContext.fetch(descriptor)) ?? []
+        return Set(facts.map(\.countryCode)).count
     }
 
     private func notifyLedgerChanged() {
