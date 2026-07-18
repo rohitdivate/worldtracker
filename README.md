@@ -87,6 +87,10 @@ valid on your phone for ~1 year per install.
 
 ## 7. Enabling iCloud backup (optional)
 
+> Requires the paid Apple Developer Program — free Personal Teams can't sign
+> iCloud or push entitlements, which is why the project ships without them.
+> Everything else works on a free team.
+
 The in-app "iCloud backup" toggle needs two capabilities added once in Xcode:
 
 1. Select the WorldTracker target → **Signing & Capabilities** → **+ Capability**
