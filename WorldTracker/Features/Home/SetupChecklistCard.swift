@@ -27,13 +27,12 @@ final class SetupChecklist {
     private var photosDone = false
     private var timelineImported = false
 
-    private var dismissed: Bool {
-        UserDefaults.standard.bool(forKey: "setupChecklistDismissed")
-    }
-
-    private var timelineSkipped: Bool {
-        UserDefaults.standard.bool(forKey: "checklistSkipped-timeline")
-    }
+    /// User choices live as OBSERVABLE stored state, mirrored to
+    /// UserDefaults. Reading defaults directly from `isVisible` looked
+    /// equivalent but wasn't: @Observable can't see a defaults write, so
+    /// dismissing the card didn't repaint Home until the next relaunch.
+    private var dismissed = UserDefaults.standard.bool(forKey: "setupChecklistDismissed")
+    private var timelineSkipped = UserDefaults.standard.bool(forKey: "checklistSkipped-timeline")
 
     private func locationStatus() -> Status {
         let location = AppContainer.shared.locationService
@@ -68,10 +67,12 @@ final class SetupChecklist {
     }
 
     func skipTimeline() {
+        timelineSkipped = true
         UserDefaults.standard.set(true, forKey: "checklistSkipped-timeline")
     }
 
     func dismiss() {
+        dismissed = true
         UserDefaults.standard.set(true, forKey: "setupChecklistDismissed")
     }
 
