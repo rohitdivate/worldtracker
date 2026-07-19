@@ -193,7 +193,7 @@ struct GlobeView: View {
                 anchor: .bottom
             ) {
                 CityChip(name: city.name, days: city.days) {
-                    flyTo(city)
+                    selectCity(city)
                 }
             }
             .annotationTitles(.hidden)
@@ -293,6 +293,29 @@ struct GlobeView: View {
                     distance: 220_000
                 )
             )
+        }
+    }
+
+    /// City tap = camera to the city PLUS the country selection card — the
+    /// card's "Open" is the existing route into CountryDetailView. Never
+    /// select() here: that would yank the camera back out to country
+    /// flyover distance.
+    private func selectCity(_ city: CityDays) {
+        flyTo(city)
+        if let code = city.countryCode {
+            selectedCode = code
+        } else {
+            // Rare "??"-keyed city: resolve the country from the pin
+            // through the offline atlas, like background taps do.
+            Task {
+                guard let lookup = try? await AppContainer.shared.geoProvider.lookup() else { return }
+                let resolved = lookup.resolve(
+                    GeoPoint(latitude: city.latitude, longitude: city.longitude)
+                ).countryCode
+                await MainActor.run {
+                    if let resolved { selectedCode = resolved }
+                }
+            }
         }
     }
 
