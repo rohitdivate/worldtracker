@@ -13,10 +13,16 @@ struct TripEditorView: View {
 
     private let prefill: Prefill?
     private let onDelete: (() -> Void)?
+    private let onSaved: ((String, ClosedRange<Int>) -> Void)?
 
-    init(prefill: Prefill? = nil, onDelete: (() -> Void)? = nil) {
+    init(
+        prefill: Prefill? = nil,
+        onDelete: (() -> Void)? = nil,
+        onSaved: ((String, ClosedRange<Int>) -> Void)? = nil
+    ) {
         self.prefill = prefill
         self.onDelete = onDelete
+        self.onSaved = onSaved
         _countryCode = State(initialValue: prefill?.countryCode)
         _startDate = State(initialValue: prefill.map { Self.date(fromEpochDay: $0.startDay) } ?? Date())
         _endDate = State(initialValue: prefill.map { Self.date(fromEpochDay: $0.endDay) } ?? Date())
@@ -49,8 +55,8 @@ struct TripEditorView: View {
                         }
                     }
 
-                    DatePicker("Start date", selection: $startDate, displayedComponents: .date)
-                    DatePicker("End date", selection: $endDate, in: startDate..., displayedComponents: .date)
+                    DatePicker("Start date", selection: $startDate, in: ...latestPickableDate, displayedComponents: .date)
+                    DatePicker("End date", selection: $endDate, in: startDate...latestPickableDate, displayedComponents: .date)
                 } footer: {
                     Text(prefill == nil
                          ? "Every day in the range is marked with this country. Manual entries outrank automatic tracking and survive photo re-syncs."
@@ -90,6 +96,15 @@ struct TripEditorView: View {
         }
     }
 
+    /// The tracker records the past: everything derives over
+    /// earliest...today, so a future date would save facts no view shows.
+    private var latestPickableDate: Date {
+        let calendar = Calendar.current
+        let startOfToday = calendar.startOfDay(for: Date())
+        let startOfTomorrow = calendar.date(byAdding: .day, value: 1, to: startOfToday)
+        return (startOfTomorrow ?? Date()).addingTimeInterval(-1)
+    }
+
     private func save() {
         guard let code = countryCode else { return }
         let tz = TimeZone.current
@@ -97,14 +112,22 @@ struct TripEditorView: View {
         let end = EpochDay(date: endDate, timeZone: tz).value
         let range = min(start, end)...max(start, end)
         if let prefill {
-            edit.replaceTrip(
-                originalRange: prefill.startDay...prefill.endDay,
-                with: code,
-                newRange: range
+            // Bucket the days the edit removes BEFORE anything is written —
+            // and by the trip's ORIGINAL country, in case the editor also
+            // changed the country.
+            let original = prefill.startDay...prefill.endDay
+            let store = AppContainer.shared.ledgerStore
+            let plan = TripEditPlanner.plan(
+                removingCountry: prefill.countryCode,
+                from: original,
+                keeping: range,
+                resolvedCodes: { store.day($0).countryCodes }
             )
+            edit.replaceTrip(originalRange: original, with: code, newRange: range, reassigning: plan)
         } else {
             edit.setCountry(code, from: range.lowerBound, to: range.upperBound)
         }
+        onSaved?(code, range)
         dismiss()
     }
 

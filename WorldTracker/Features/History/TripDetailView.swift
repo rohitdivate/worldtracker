@@ -175,7 +175,18 @@ struct TripDetailView: View {
                     startDay: displayed.startDay,
                     endDay: displayed.endDay
                 ),
-                onDelete: { confirmDelete = true }
+                onDelete: { confirmDelete = true },
+                onSaved: { code, range in
+                    // Re-aim at the saved trip so rederive() (which matches
+                    // by overlap with `displayed`) latches onto it even
+                    // after a disjoint move or a country change, instead of
+                    // silently popping.
+                    displayed = TripSegment(
+                        countryCode: code,
+                        startDay: range.lowerBound,
+                        endDay: range.upperBound
+                    )
+                }
             )
         }
         .confirmationDialog(
@@ -321,24 +332,14 @@ struct TripDetailView: View {
     }
 
     private func performDelete() {
-        var clearDays: [Int] = []
-        var overrideDays: [(day: Int, codes: [String])] = []
-        for day in displayed.startDay...displayed.endDay {
-            let codes = store.day(day).countryCodes
-            if codes == [displayed.countryCode] {
-                clearDays.append(day)
-            } else if codes.contains(displayed.countryCode) {
-                overrideDays.append((day: day, codes: codes.filter { $0 != displayed.countryCode }))
-            }
-        }
-        edit.deleteTrip(
-            .init(
-                countryCode: displayed.countryCode,
-                range: displayed.startDay...displayed.endDay,
-                clearDays: clearDays,
-                overrideDays: overrideDays
-            )
+        let range = displayed.startDay...displayed.endDay
+        let plan = TripEditPlanner.plan(
+            removingCountry: displayed.countryCode,
+            from: range,
+            keeping: nil,
+            resolvedCodes: { store.day($0).countryCodes }
         )
+        edit.deleteTrip(range: range, plan: plan)
         dismiss()
     }
 }
