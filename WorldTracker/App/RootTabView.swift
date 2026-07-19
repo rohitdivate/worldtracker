@@ -8,6 +8,9 @@ struct RootTabView: View {
     @AppStorage("onboardingDone") private var onboardingDone = false
     @State private var showOnboarding = false
     @State private var showAlwaysUpgrade = false
+    /// Cold-launch only (@State lives for the process) — and only once
+    /// onboarded; first-run users go straight to the welcome flow.
+    @State private var showLaunchOverlay = UserDefaults.standard.bool(forKey: "onboardingDone")
     @Environment(\.scenePhase) private var scenePhase
 
     private var celebration: CelebrationCoordinator {
@@ -84,6 +87,15 @@ struct RootTabView: View {
                 }
             }
             .animation(.easeInOut(duration: 0.3), value: celebration.current)
+            .overlay {
+                if showLaunchOverlay {
+                    LaunchOverlayView {
+                        showLaunchOverlay = false
+                    }
+                    .transition(.opacity.combined(with: .scale(scale: 1.06)))
+                }
+            }
+            .animation(.easeOut(duration: 0.5), value: showLaunchOverlay)
     }
 
     private var tabs: some View {

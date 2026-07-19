@@ -403,3 +403,15 @@ Tick them off before moving on.
       as one merged chip ("Zürich"/"Zurich" merge, no double counting)
 - [ ] Fresh install: no chips, no crash; after a photo scan finishes, city
       chips appear within ~1s
+
+## X6 — Launch animation + checklist dismiss fix (v4.2)
+
+- [ ] Cold-open the app (kill it first): night sky, the dot world ignites
+      west→east with your countries in aurora and home flaring amber, the
+      BEEN THERE wordmark stamps in with a tick, then the app fades up —
+      about 1.6s total
+- [ ] Tap anywhere during the animation: it skips straight into the app
+- [ ] Backgrounding and reopening does NOT replay it (cold launch only);
+      Reduce Motion shows one static frame briefly instead of the sweep
+- [ ] "Finish setting up" card: tapping ✕ dismisses it IMMEDIATELY (no
+      relaunch needed); the Timeline row's Skip also updates in place
