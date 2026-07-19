@@ -1,0 +1,14 @@
+name: kit-tests
+on:
+  push:
+  pull_request:
+
+jobs:
+  test:
+    name: WorldTrackerKit tests (Linux)
+    runs-on: ubuntu-latest
+    container: swift:6.0
+    steps:
+      - uses: actions/checkout@v4
+      - name: Run tests
+        run: swift test --package-path WorldTrackerKit

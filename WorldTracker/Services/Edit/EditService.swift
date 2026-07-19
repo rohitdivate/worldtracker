@@ -1,0 +1,293 @@
+import Foundation
+import SwiftData
+import WorldTrackerKit
+
+/// All manual corrections go through here. Manual facts always outrank
+/// automatic evidence in the resolver, and survive every photo re-sync.
+@MainActor
+final class EditService {
+    private let container: ModelContainer
+
+    init(container: ModelContainer) {
+        self.container = container
+    }
+
+    private var context: ModelContext { container.mainContext }
+
+    /// Set the country (or countries) for a single day. Replaces any prior
+    /// manual verdict for that day.
+    func setCountries(_ codes: [String], day: Int) {
+        removeManualFacts(days: [day])
+        for code in codes {
+            context.insert(
+                CountryDayFact(
+                    epochDay: day,
+                    countryCode: code,
+                    sourceRaw: FactSource.manual.rawValue,
+                    confidence: 1.0,
+                    seenAt: Date()
+                )
+            )
+        }
+        uncleara(day: day)
+        save()
+    }
+
+    /// Manual trip entry: one country across an inclusive day range.
+    func setCountry(_ code: String, from startDay: Int, to endDay: Int) {
+        guard startDay <= endDay else { return }
+        let days = Array(startDay...endDay)
+        removeManualFacts(days: days)
+        for day in days {
+            context.insert(
+                CountryDayFact(
+                    epochDay: day,
+                    countryCode: code,
+                    sourceRaw: FactSource.manual.rawValue,
+                    confidence: 1.0,
+                    seenAt: Date()
+                )
+            )
+            uncleara(day: day)
+        }
+        save()
+    }
+
+    /// Edit an existing trip: purge manual facts across the union of the
+    /// old and new ranges (so a shrunk/moved trip leaves no orphans), then
+    /// write manual facts for `code` over the new range only.
+    func replaceTrip(originalRange: ClosedRange<Int>, with code: String, newRange: ClosedRange<Int>) {
+        let unionStart = min(originalRange.lowerBound, newRange.lowerBound)
+        let unionEnd = max(originalRange.upperBound, newRange.upperBound)
+        removeManualFacts(days: Array(unionStart...unionEnd))
+        for day in newRange {
+            context.insert(
+                CountryDayFact(
+                    epochDay: day,
+                    countryCode: code,
+                    sourceRaw: FactSource.manual.rawValue,
+                    confidence: 1.0,
+                    seenAt: Date()
+                )
+            )
+            uncleara(day: day)
+        }
+        save()
+    }
+
+    /// Delete a trip per a caller-computed plan. Solo days are cleared
+    /// (automatic evidence hidden, not erased — each day is individually
+    /// revertible in the day editor); border days keep their surviving
+    /// countries as manual facts so the deleted one can't resurface.
+    struct TripDeletionPlan {
+        let countryCode: String
+        let range: ClosedRange<Int>
+        /// Days that showed ONLY this country.
+        let clearDays: [Int]
+        /// Border days: pin the other countries that remain.
+        let overrideDays: [(day: Int, codes: [String])]
+    }
+
+    func deleteTrip(_ plan: TripDeletionPlan) {
+        let manual = FactSource.manual.rawValue
+        let code = plan.countryCode
+        let lower = plan.range.lowerBound
+        let upper = plan.range.upperBound
+        let predicate = #Predicate<CountryDayFact> {
+            $0.epochDay >= lower && $0.epochDay <= upper
+                && $0.countryCode == code && $0.sourceRaw == manual
+        }
+        for fact in (try? context.fetch(FetchDescriptor(predicate: predicate))) ?? [] {
+            context.delete(fact)
+        }
+        for day in plan.clearDays {
+            removeManualFacts(days: [day])
+            annotation(for: day).isCleared = true
+        }
+        for entry in plan.overrideDays {
+            removeManualFacts(days: [entry.day])
+            for survivor in entry.codes {
+                context.insert(
+                    CountryDayFact(
+                        epochDay: entry.day,
+                        countryCode: survivor,
+                        sourceRaw: manual,
+                        confidence: 1.0,
+                        seenAt: Date()
+                    )
+                )
+            }
+            uncleara(day: entry.day)
+        }
+        save()
+    }
+
+    /// Mark a day as "no data": hides all automatic evidence and blocks
+    /// gap-fill through it.
+    func clearDay(_ day: Int) {
+        removeManualFacts(days: [day])
+        annotation(for: day).isCleared = true
+        save()
+    }
+
+    /// Remove all manual overrides and the cleared flag — the automatic
+    /// evidence shows through again.
+    func revertToAutomatic(day: Int) {
+        removeManualFacts(days: [day])
+        if let existing = fetchAnnotation(day) {
+            existing.isCleared = false
+            if existing.note == nil || existing.note?.isEmpty == true {
+                context.delete(existing)
+            }
+        }
+        save()
+    }
+
+    func setNote(_ text: String, day: Int) {
+        let trimmed = text.trimmingCharacters(in: .whitespacesAndNewlines)
+        if trimmed.isEmpty {
+            if let existing = fetchAnnotation(day) {
+                existing.note = nil
+                if !existing.isCleared {
+                    context.delete(existing)
+                }
+            }
+        } else {
+            annotation(for: day).note = trimmed
+        }
+        save()
+    }
+
+    func note(for day: Int) -> String {
+        fetchAnnotation(day)?.note ?? ""
+    }
+
+    func hasClearedAnnotation(day: Int) -> Bool {
+        fetchAnnotation(day)?.isCleared == true
+    }
+
+    func hasManualFacts(day: Int) -> Bool {
+        let manual = FactSource.manual.rawValue
+        let predicate = #Predicate<CountryDayFact> {
+            $0.epochDay == day && $0.sourceRaw == manual
+        }
+        return ((try? context.fetchCount(FetchDescriptor(predicate: predicate))) ?? 0) > 0
+    }
+
+    /// Evidence snapshot for the day editor.
+    func evidence(for day: Int) -> DayEvidence {
+        let factPredicate = #Predicate<CountryDayFact> { $0.epochDay == day }
+        let facts = (try? context.fetch(FetchDescriptor(predicate: factPredicate))) ?? []
+
+        let photoPredicate = #Predicate<PhotoEvidence> { $0.epochDay == day }
+        let photos = (try? context.fetch(FetchDescriptor(predicate: photoPredicate))) ?? []
+
+        let samplePredicate = #Predicate<LocationSample> { $0.epochDay == day }
+        let sampleCount = (try? context.fetchCount(FetchDescriptor(predicate: samplePredicate))) ?? 0
+
+        return DayEvidence(
+            facts: facts.map {
+                DayEvidence.Fact(
+                    countryCode: $0.countryCode,
+                    source: FactSource(rawValue: $0.sourceRaw) ?? .gps,
+                    evidenceCount: $0.evidenceCount
+                )
+            },
+            photoPlaces: photos.map {
+                DayEvidence.PhotoPlace(
+                    city: $0.city,
+                    countryCode: $0.countryCode,
+                    photoCount: $0.photoCount
+                )
+            },
+            locationSampleCount: sampleCount
+        )
+    }
+
+    // MARK: - Data management
+
+    /// Remove everything the machine inferred; keep manual facts and notes.
+    func eraseAutomaticData() {
+        let manual = FactSource.manual.rawValue
+        try? context.delete(
+            model: CountryDayFact.self,
+            where: #Predicate { $0.sourceRaw != manual }
+        )
+        try? context.delete(model: PhotoEvidence.self)
+        try? context.delete(model: LocationSample.self)
+        try? context.delete(model: BackfillCheckpoint.self)
+        // Places without manual naming are machine-derived.
+        try? context.delete(model: PlaceVisit.self)
+        try? context.delete(model: Place.self)
+        save()
+    }
+
+    /// Scorched earth.
+    func deleteAllData() {
+        try? context.delete(model: CountryDayFact.self)
+        try? context.delete(model: DayAnnotation.self)
+        try? context.delete(model: PhotoEvidence.self)
+        try? context.delete(model: LocationSample.self)
+        try? context.delete(model: BackfillCheckpoint.self)
+        try? context.delete(model: PlaceVisit.self)
+        try? context.delete(model: Place.self)
+        save()
+    }
+
+    // MARK: - Internals
+
+    private func removeManualFacts(days: [Int]) {
+        let manual = FactSource.manual.rawValue
+        for day in days {
+            let predicate = #Predicate<CountryDayFact> {
+                $0.epochDay == day && $0.sourceRaw == manual
+            }
+            for fact in (try? context.fetch(FetchDescriptor(predicate: predicate))) ?? [] {
+                context.delete(fact)
+            }
+        }
+    }
+
+    private func fetchAnnotation(_ day: Int) -> DayAnnotation? {
+        let predicate = #Predicate<DayAnnotation> { $0.epochDay == day }
+        var descriptor = FetchDescriptor(predicate: predicate)
+        descriptor.fetchLimit = 1
+        return (try? context.fetch(descriptor))?.first
+    }
+
+    private func annotation(for day: Int) -> DayAnnotation {
+        if let existing = fetchAnnotation(day) { return existing }
+        let fresh = DayAnnotation(epochDay: day)
+        context.insert(fresh)
+        return fresh
+    }
+
+    private func uncleara(day: Int) {
+        fetchAnnotation(day)?.isCleared = false
+    }
+
+    private func save() {
+        try? context.save()
+        NotificationCenter.default.post(name: .ledgerDidChange, object: nil)
+    }
+}
+
+struct DayEvidence {
+    struct Fact: Identifiable {
+        var id: String { "\(countryCode)-\(source.rawValue)" }
+        let countryCode: String
+        let source: FactSource
+        let evidenceCount: Int
+    }
+
+    struct PhotoPlace: Identifiable {
+        let id = UUID()
+        let city: String?
+        let countryCode: String?
+        let photoCount: Int
+    }
+
+    let facts: [Fact]
+    let photoPlaces: [PhotoPlace]
+    let locationSampleCount: Int
+}

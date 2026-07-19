@@ -1,0 +1,31 @@
+{
+  "timelineObjects": [
+    {
+      "placeVisit": {
+        "location": {
+          "latitudeE7": 556761000,
+          "longitudeE7": 125683000,
+          "name": "Copenhagen"
+        },
+        "duration": {
+          "startTimestamp": "2025-12-21T14:00:00.000Z",
+          "endTimestamp": "2025-12-23T10:00:00.000Z"
+        }
+      }
+    },
+    {
+      "activitySegment": {
+        "startLocation": { "latitudeE7": 515074000, "longitudeE7": -1278000 },
+        "endLocation": { "latitudeE7": 556761000, "longitudeE7": 125683000 },
+        "duration": {
+          "startTimestamp": "2025-12-21T08:00:00.000Z",
+          "endTimestamp": "2025-12-21T13:30:00.000Z"
+        },
+        "activityType": "FLYING"
+      }
+    },
+    {
+      "unknownObjectKind": { "x": 1 }
+    }
+  ]
+}

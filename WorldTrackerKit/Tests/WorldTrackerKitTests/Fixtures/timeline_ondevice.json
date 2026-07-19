@@ -1,0 +1,46 @@
+{
+  "semanticSegments": [
+    {
+      "startTime": "2026-03-28T09:00:00.000+00:00",
+      "endTime": "2026-03-28T18:30:00.000+00:00",
+      "visit": {
+        "hierarchyLevel": 0,
+        "probability": 0.92,
+        "topCandidate": {
+          "placeId": "ChIJhome",
+          "semanticType": "Home",
+          "probability": 0.87,
+          "placeLocation": {
+            "latLng": "51.5074°, -0.1278°"
+          }
+        }
+      }
+    },
+    {
+      "startTime": "2026-03-29T15:00:00.000+01:00",
+      "endTime": "2026-03-29T16:00:00.000+01:00",
+      "timelinePath": [
+        { "point": "41.3874°, 2.1686°", "durationMinutesOffsetFromStartTime": "0" },
+        { "point": "41.3900°, 2.1700°", "durationMinutesOffsetFromStartTime": "30" }
+      ]
+    },
+    {
+      "startTime": "2026-05-02T10:00:00.000+02:00",
+      "endTime": "2026-05-02T10:45:00.000+02:00",
+      "activity": {
+        "start": { "latLng": "48.8575°, 2.3514°" },
+        "end": { "latLng": "48.8600°, 2.3600°" },
+        "distanceMeters": 3200.5,
+        "topCandidate": { "type": "in passenger vehicle", "probability": 0.8 }
+      }
+    },
+    {
+      "startTime": "2026-05-03T00:00:00.000+02:00",
+      "endTime": "2026-05-03T00:00:00.000+02:00",
+      "somethingGoogleAddsLater": { "mystery": true }
+    }
+  ],
+  "userLocationProfile": {
+    "frequentPlaces": []
+  }
+}

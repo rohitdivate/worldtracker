@@ -1,0 +1,9 @@
+xcuserdata/
+*.xcuserstate
+DerivedData/
+.DS_Store
+.build/
+.swiftpm/
+Tools/geodata/raw/
+__pycache__/
+*.pyc
