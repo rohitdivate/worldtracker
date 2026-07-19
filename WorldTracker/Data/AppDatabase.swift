@@ -46,10 +46,19 @@ enum AppDatabase {
             BackfillCheckpoint.self,
             ImportCheckpoint.self,
         ])
+        // NO explicit migration plan — and that's load-bearing. Every schema
+        // change this app makes is additive with defaults, which SwiftData
+        // migrates automatically. The previous VersionedSchema plan pointed
+        // V1/V2/V3 at the SAME live model classes, so adding scanGeneration
+        // in v4 silently mutated what "V1" and "V2" described: an on-disk V2
+        // store no longer matched any version in the plan, and staged
+        // migration died with an uncatchable exception at launch (black
+        // screen). Automatic lightweight migration has no version table to
+        // disagree with. If a change ever needs a custom migration stage,
+        // the old schemas must be frozen COPIES of the models, not aliases.
         do {
             return try ModelContainer(
                 for: allSchema,
-                migrationPlan: WorldTrackerMigrationPlan.self,
                 configurations: [synced, local]
             )
         } catch where wantsCloud {
@@ -63,56 +72,8 @@ enum AppDatabase {
             )
             return try ModelContainer(
                 for: allSchema,
-                migrationPlan: WorldTrackerMigrationPlan.self,
                 configurations: [localSynced, local]
             )
         }
-    }
-}
-
-enum WorldTrackerSchemaV1: VersionedSchema {
-    static var versionIdentifier: Schema.Version { Schema.Version(1, 0, 0) }
-    static var models: [any PersistentModel.Type] {
-        [CountryDayFact.self, DayAnnotation.self, PhotoEvidence.self,
-         Place.self, PlaceVisit.self,
-         LocationSample.self, BackfillCheckpoint.self]
-    }
-}
-
-enum WorldTrackerSchemaV2: VersionedSchema {
-    static var versionIdentifier: Schema.Version { Schema.Version(2, 0, 0) }
-    static var models: [any PersistentModel.Type] {
-        [CountryDayFact.self, DayAnnotation.self, PhotoEvidence.self,
-         Place.self, PlaceVisit.self,
-         LocationSample.self, BackfillCheckpoint.self, ImportCheckpoint.self]
-    }
-}
-
-/// V3: scanGeneration on CountryDayFact/PhotoEvidence + richer
-/// BackfillCheckpoint (generation-swap backfill). Additive, defaulted.
-enum WorldTrackerSchemaV3: VersionedSchema {
-    static var versionIdentifier: Schema.Version { Schema.Version(3, 0, 0) }
-    static var models: [any PersistentModel.Type] {
-        [CountryDayFact.self, DayAnnotation.self, PhotoEvidence.self,
-         Place.self, PlaceVisit.self,
-         LocationSample.self, BackfillCheckpoint.self, ImportCheckpoint.self]
-    }
-}
-
-enum WorldTrackerMigrationPlan: SchemaMigrationPlan {
-    static var schemas: [any VersionedSchema.Type] {
-        [WorldTrackerSchemaV1.self, WorldTrackerSchemaV2.self, WorldTrackerSchemaV3.self]
-    }
-    static var stages: [MigrationStage] {
-        [
-            MigrationStage.lightweight(
-                fromVersion: WorldTrackerSchemaV1.self,
-                toVersion: WorldTrackerSchemaV2.self
-            ),
-            MigrationStage.lightweight(
-                fromVersion: WorldTrackerSchemaV2.self,
-                toVersion: WorldTrackerSchemaV3.self
-            ),
-        ]
     }
 }
