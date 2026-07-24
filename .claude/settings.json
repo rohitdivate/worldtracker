@@ -1,0 +1,13 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(Tools/check.sh)",
+      "Bash(./Tools/check.sh)",
+      "Bash(python3 Tools/validate_project.py)",
+      "Bash(swift test *)",
+      "Bash(swift build *)",
+      "Bash(xcodebuild *)",
+      "Bash(xcrun simctl *)"
+    ]
+  }
+}

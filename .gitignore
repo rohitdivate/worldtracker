@@ -7,3 +7,4 @@ DerivedData/
 Tools/geodata/raw/
 __pycache__/
 *.pyc
+.claude/settings.local.json
