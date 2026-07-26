@@ -218,6 +218,33 @@ def check_themes():
         if re.search(r"static let \w+ = Color\(red:", body):
             err(f"{prefix} ({target}) still declares hardcoded Color constants")
 
+    # Wrapped renders a full-screen story that stays dark in every theme, so
+    # its views must read Story.* (the always-dark story palette) rather than
+    # Theme.*. Using Theme here is what made the light theme's Wrapped
+    # unreadable: dark ink and cream cards on a story surface.
+    # ShareCards.swift is deliberately excluded — it renders onto StaticAurora,
+    # a themed ground, so Theme is correct there.
+    story_views = ("WrappedView.swift", "WrappedPages.swift")
+    for name in story_views:
+        path = os.path.join(ROOT, "WorldTracker", "Features", "Wrapped", name)
+        if not os.path.isfile(path):
+            err(f"Wrapped: {name} missing")
+            continue
+        with open(path, encoding="utf-8") as f:
+            body = f.read()
+        stray = re.findall(r"\bTheme\.\w+", body)
+        if stray:
+            err(
+                f"{name} uses {sorted(set(stray))} — story views must use Story.*, "
+                "which stays dark on every theme"
+            )
+
+    story_theme = os.path.join(ROOT, "WorldTracker", "Features", "Wrapped", "StoryTheme.swift")
+    if not os.path.isfile(story_theme):
+        err("Wrapped: StoryTheme.swift missing (defines the Story tokens)")
+    elif "storyPalette" not in open(story_theme, encoding="utf-8").read():
+        err("StoryTheme: must resolve to the Kit's storyPalette")
+
     # The widget renders in its own process and can only learn the choice
     # through the App Group.
     widget_theme = os.path.join(ROOT, "BeenThereWidgets", "WidgetTheme.swift")

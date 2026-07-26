@@ -52,7 +52,12 @@ struct WrappedView: View {
         ZStack {
             AuroraBackground(
                 intensity: auroraIntensity(for: current),
-                tint: auroraTint(for: current)
+                tint: auroraTint(for: current),
+                // The story palette, not the app one. This aurora is the
+                // actual visible ground here — it covers the black beneath —
+                // so on a light theme it would render cream and swallow both
+                // the white chrome and the story's own ink.
+                palette: Story.palette
             )
 
             page(current)
@@ -80,10 +85,11 @@ struct WrappedView: View {
         }
         .offset(y: dragOffset)
         .scaleEffect(1 - min(dragOffset, 300) / 3000, anchor: .top)
-        // Black in every theme, deliberately: Wrapped is a full-screen story
-        // experience with its own per-scene mood colours, the same way
-        // Instagram stories ignore app chrome. Not a light-theme oversight —
-        // the white chrome overlays below depend on it.
+        // Backstop only — the aurora above is opaque and covers this. Wrapped
+        // is a full-screen story with its own per-scene mood colours, the way
+        // Instagram stories ignore app chrome, so it stays dark in every
+        // theme. What actually guarantees that is `Story.palette` on the
+        // aurora, not this line; the white chrome below depends on it.
         .background(Color.black.ignoresSafeArea())
         .animation(.easeInOut(duration: 0.25), value: index)
         .gesture(dismissDrag)
@@ -128,9 +134,9 @@ struct WrappedView: View {
     /// Each scene leans the aurora toward its mood.
     private func auroraTint(for page: Page) -> Color? {
         switch page {
-        case .podium, .firstVisits: return Theme.amber
-        case .longestTrip: return Theme.aurora2
-        case .travelDays: return Theme.aurora1
+        case .podium, .firstVisits: return Story.amber
+        case .longestTrip: return Story.aurora2
+        case .travelDays: return Story.aurora1
         default: return nil
         }
     }

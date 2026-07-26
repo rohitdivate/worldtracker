@@ -53,7 +53,7 @@ private func easeOutBack(_ x: Double) -> Double {
 
 private struct WrappedKicker: View {
     let text: String
-    var color: Color = Theme.aurora1
+    var color: Color = Story.aurora1
 
     var body: some View {
         Text(text)
@@ -72,7 +72,7 @@ private struct RollingNumber: View {
     var body: some View {
         Text("\(Int((Double(value) * easeOutCubic(reveal)).rounded()))")
             .font(.system(size: size, weight: .heavy, design: .rounded))
-            .foregroundStyle(Theme.auroraGradient)
+            .foregroundStyle(Story.auroraGradient)
             .minimumScaleFactor(0.5)
             .lineLimit(1)
             .monospacedDigit()
@@ -112,15 +112,15 @@ struct WrappedOpenerPage: View {
                     WrappedKicker(text: "YOUR YEAR IN TRAVEL")
                         .opacity(stage(p, 0.25, 0.45))
                     Text(String(data.stats.year))
-                        .font(Theme.display(92, weight: .heavy))
-                        .foregroundStyle(Theme.auroraGradient)
+                        .font(Story.display(92, weight: .heavy))
+                        .foregroundStyle(Story.auroraGradient)
                         .opacity(stage(p, 0.35, 0.6))
                         .offset(y: (1 - easeOutBack(stage(p, 0.35, 0.7))) * 46)
                     Text(data.isPartialYear
                          ? "So far — the year is still writing itself."
                          : "\(data.stats.trackedDays) days, remembered for you.")
                         .font(.system(size: 15))
-                        .foregroundStyle(Theme.ink2)
+                        .foregroundStyle(Story.ink2)
                         .opacity(stage(p, 0.65, 0.9))
                     Spacer()
                     Spacer()
@@ -153,7 +153,7 @@ struct WrappedCountriesPage: View {
                     })
                 Text(data.stats.countriesVisited == 1 ? "country" : "countries")
                     .font(.system(size: 22, weight: .bold, design: .rounded))
-                    .foregroundStyle(Theme.ink)
+                    .foregroundStyle(Story.ink)
                     .opacity(stage(p, 0.3, 0.5))
 
                 LazyVGrid(
@@ -174,7 +174,7 @@ struct WrappedCountriesPage: View {
                 if data.stats.borderCrossings > 0 {
                     Text("\(data.stats.borderCrossings) border \(data.stats.borderCrossings == 1 ? "crossing" : "crossings")")
                         .font(.system(size: 14, weight: .semibold))
-                        .foregroundStyle(Theme.ink2)
+                        .foregroundStyle(Story.ink2)
                         .padding(.top, 6)
                         .opacity(stage(p, 0.85, 1))
                 }
@@ -215,10 +215,10 @@ struct WrappedTravelDaysPage: View {
                         .tracking(1)
                         .padding(.horizontal, 10)
                         .padding(.vertical, 5)
-                        .foregroundStyle(Theme.amber)
+                        .foregroundStyle(Story.amber)
                         .overlay(
                             RoundedRectangle(cornerRadius: 5)
-                                .strokeBorder(Theme.amber.opacity(0.55), lineWidth: 1.2)
+                                .strokeBorder(Story.amber.opacity(0.55), lineWidth: 1.2)
                         )
                         .rotationEffect(.degrees(-8 + 6 * easeOutBack(stampIn)))
                         .scaleEffect(0.4 + 0.6 * easeOutBack(stampIn))
@@ -266,13 +266,13 @@ struct WrappedTravelDaysPage: View {
                 )
                 context.fill(
                     Path(ellipseIn: rect),
-                    with: .color(lit ? Theme.aurora1 : Theme.hairline2)
+                    with: .color(lit ? Story.aurora1 : Story.hairline2)
                 )
                 if lit, travelSeen == litTravel, ignition < 1 {
                     // The freshly-lit dot glows.
                     context.fill(
                         Path(ellipseIn: rect.insetBy(dx: -dot * 0.5, dy: -dot * 0.5)),
-                        with: .color(Theme.aurora1.opacity(0.35))
+                        with: .color(Story.aurora1.opacity(0.35))
                     )
                 }
             }
@@ -315,7 +315,7 @@ struct WrappedPodiumPage: View {
                             if rank == 1 {
                                 Image(systemName: "crown.fill")
                                     .font(.system(size: 20))
-                                    .foregroundStyle(Theme.amber)
+                                    .foregroundStyle(Story.amber)
                                     .offset(y: (1 - easeOutBack(crownIn)) * -26)
                                     .opacity(crownIn)
                                     .modifier(HapticOnStep(step: crownIn >= 1 ? 1 : 0) {
@@ -325,14 +325,14 @@ struct WrappedPodiumPage: View {
                             FlagChip(code: entry.code, size: rank == 1 ? 52 : 40)
                                 .opacity(stage(p, riseStart, riseStart + 0.2))
                             Text("\(entry.days)d")
-                                .font(Theme.display(15, weight: .heavy))
-                                .foregroundStyle(rank == 1 ? Theme.amber : Theme.aurora1)
+                                .font(Story.display(15, weight: .heavy))
+                                .foregroundStyle(rank == 1 ? Story.amber : Story.aurora1)
                                 .opacity(stage(p, riseStart + 0.1, riseStart + 0.3))
                             RoundedRectangle(cornerRadius: 8, style: .continuous)
                                 .fill(
                                     rank == 1
-                                        ? AnyShapeStyle(Theme.auroraGradient)
-                                        : AnyShapeStyle(Theme.cardRaised)
+                                        ? AnyShapeStyle(Story.auroraGradient)
+                                        : AnyShapeStyle(Story.cardRaised)
                                 )
                                 .frame(
                                     width: 74,
@@ -340,11 +340,11 @@ struct WrappedPodiumPage: View {
                                 )
                                 .overlay(
                                     RoundedRectangle(cornerRadius: 8, style: .continuous)
-                                        .strokeBorder(Theme.hairline2, lineWidth: 1)
+                                        .strokeBorder(Story.hairline2, lineWidth: 1)
                                 )
                             Text(countryName(entry.code))
                                 .font(.system(size: 12, weight: .semibold))
-                                .foregroundStyle(Theme.ink2)
+                                .foregroundStyle(Story.ink2)
                                 .lineLimit(1)
                                 .frame(width: 84)
                                 .opacity(stage(p, riseStart, riseStart + 0.25))
@@ -357,7 +357,7 @@ struct WrappedPodiumPage: View {
                    data.stats.topCountries.first?.code == home {
                     Text("Home held the crown — the away days are below.")
                         .font(.system(size: 13))
-                        .foregroundStyle(Theme.ink3)
+                        .foregroundStyle(Story.ink3)
                         .opacity(stage(p, 0.85, 1))
                 }
                 Spacer()
@@ -390,13 +390,13 @@ struct WrappedLongestTripPage: View {
                                       reveal: stage(p, 0.35, 0.75), size: 84)
                         Text(trip.dayCount == 1 ? "day away" : "days away")
                             .font(.system(size: 20, weight: .bold, design: .rounded))
-                            .foregroundStyle(Theme.ink)
+                            .foregroundStyle(Story.ink)
                             .opacity(stage(p, 0.5, 0.7))
                     }
 
                     Text(DayFormat.shortRange(trip.startDay, trip.endDay, todayYear: data.stats.year))
-                        .font(Theme.numeric(13, weight: .semibold))
-                        .foregroundStyle(Theme.ink2)
+                        .font(Story.numeric(13, weight: .semibold))
+                        .foregroundStyle(Story.ink2)
                         .opacity(stage(p, 0.6, 0.8))
 
                     HStack(spacing: 8) {
@@ -406,7 +406,7 @@ struct WrappedLongestTripPage: View {
                                 Text(flagEmoji(code)).font(.system(size: 15))
                                 Text(countryName(code))
                                     .font(.system(size: 12.5, weight: .semibold))
-                                    .foregroundStyle(Theme.ink)
+                                    .foregroundStyle(Story.ink)
                                     .lineLimit(1)
                             }
                             .padding(.horizontal, 10)
@@ -444,14 +444,14 @@ struct WrappedLongestTripPage: View {
         return ZStack {
             path.trimmedPath(from: 0, to: max(0.001, draw))
                 .stroke(
-                    Theme.auroraGradient,
+                    Story.auroraGradient,
                     style: StrokeStyle(lineWidth: 2, lineCap: .round, dash: [1, 7])
                 )
             Circle()
-                .fill(Theme.aurora1)
+                .fill(Story.aurora1)
                 .frame(width: 8, height: 8)
                 .position(tip)
-                .shadow(color: Theme.aurora1.opacity(0.8), radius: 8)
+                .shadow(color: Story.aurora1.opacity(0.8), radius: 8)
                 .opacity(draw > 0 ? 1 : 0)
             Text("✈️")
                 .font(.system(size: 20))
@@ -489,14 +489,14 @@ struct WrappedFirstVisitsPage: View {
 
                 VStack(spacing: 16) {
                     Spacer()
-                    WrappedKicker(text: "NEW STAMPS", color: Theme.amber)
+                    WrappedKicker(text: "NEW STAMPS", color: Story.amber)
                         .opacity(stage(p, 0, 0.15))
                     HStack(alignment: .firstTextBaseline, spacing: 8) {
                         RollingNumber(value: firsts.count,
                                       reveal: stage(p, 0.05, 0.3), size: 84)
                         Text(firsts.count == 1 ? "country you'd\nnever seen before" : "countries you'd\nnever seen before")
                             .font(.system(size: 17, weight: .bold, design: .rounded))
-                            .foregroundStyle(Theme.ink)
+                            .foregroundStyle(Story.ink)
                             .opacity(stage(p, 0.15, 0.3))
                     }
 
@@ -511,7 +511,7 @@ struct WrappedFirstVisitsPage: View {
                                 Text(countryName(code).uppercased())
                                     .font(.system(size: 10.5, weight: .heavy, design: .monospaced))
                                     .tracking(0.6)
-                                    .foregroundStyle(Theme.amber)
+                                    .foregroundStyle(Story.amber)
                                     .lineLimit(1)
                                     .minimumScaleFactor(0.7)
                             }
@@ -520,7 +520,7 @@ struct WrappedFirstVisitsPage: View {
                             .padding(.horizontal, 8)
                             .overlay(
                                 RoundedRectangle(cornerRadius: 10)
-                                    .strokeBorder(Theme.amber.opacity(0.5), lineWidth: 1.4)
+                                    .strokeBorder(Story.amber.opacity(0.5), lineWidth: 1.4)
                             )
                             .rotationEffect(.degrees(Double(index.isMultiple(of: 2) ? -2 : 2)))
                             .scaleEffect(2.2 - 1.2 * slam)
@@ -536,7 +536,7 @@ struct WrappedFirstVisitsPage: View {
                     if firsts.count > 8 {
                         Text("+ \(firsts.count - 8) more")
                             .font(.system(size: 13, weight: .semibold))
-                            .foregroundStyle(Theme.ink3)
+                            .foregroundStyle(Story.ink3)
                             .opacity(stage(p, 0.9, 1))
                     }
                     Spacer()
@@ -595,13 +595,13 @@ struct WrappedMapPage: View {
     private func mapStat(value: Int, label: String, reveal: Double) -> some View {
         VStack(spacing: 3) {
             Text("\(Int((Double(value) * easeOutCubic(reveal)).rounded()))")
-                .font(Theme.display(26, weight: .heavy))
-                .foregroundStyle(Theme.auroraGradient)
+                .font(Story.display(26, weight: .heavy))
+                .foregroundStyle(Story.auroraGradient)
                 .monospacedDigit()
             Text(label)
                 .font(.system(size: 9, weight: .semibold))
                 .tracking(1.4)
-                .foregroundStyle(Theme.ink3)
+                .foregroundStyle(Story.ink3)
         }
         .opacity(reveal)
     }
@@ -659,7 +659,7 @@ struct WrappedPhotosPage: View {
                 if let best = moments.first, let city = best.city {
                     Text("\(city) alone gave you \(best.photoCount) photos in a day")
                         .font(.system(size: 13.5))
-                        .foregroundStyle(Theme.ink2)
+                        .foregroundStyle(Story.ink2)
                         .opacity(stage(p, 0.8, 1))
                 }
                 Spacer()
@@ -688,8 +688,8 @@ struct WrappedCloserPage: View {
                         .scaleEffect(0.5 + 0.5 * easeOutBack(stage(p, 0, 0.3)))
                         .opacity(stage(p, 0, 0.2))
                     Text("That was \(String(data.stats.year)).")
-                        .font(Theme.display(30, weight: .heavy))
-                        .foregroundStyle(Theme.ink)
+                        .font(Story.display(30, weight: .heavy))
+                        .foregroundStyle(Story.ink)
                         .opacity(stage(p, 0.15, 0.35))
                         .modifier(HapticOnStep(step: p >= 0.35 ? 1 : 0) {
                             HapticsDirector.shared.celebrate()
@@ -701,7 +701,7 @@ struct WrappedCloserPage: View {
                             let rowIn = stage(p, 0.3 + Double(index) * 0.08,
                                               0.45 + Double(index) * 0.08)
                             if index > 0 {
-                                Rectangle().fill(Theme.hairline).frame(height: 1)
+                                Rectangle().fill(Story.hairline).frame(height: 1)
                                     .padding(.horizontal, 14)
                                     .opacity(rowIn)
                             }
@@ -716,9 +716,9 @@ struct WrappedCloserPage: View {
                     .padding(.horizontal, 40)
 
                     Text("BEEN THERE")
-                        .font(Theme.numeric(10, weight: .heavy))
+                        .font(Story.numeric(10, weight: .heavy))
                         .tracking(3.2)
-                        .foregroundStyle(Theme.ink3)
+                        .foregroundStyle(Story.ink3)
                         .padding(.top, 8)
                         .opacity(stage(p, 0.8, 1))
 
@@ -726,10 +726,10 @@ struct WrappedCloserPage: View {
                         ShareLink(items: shareURLs) {
                             Label("Share your year", systemImage: "square.and.arrow.up")
                                 .font(.system(size: 16, weight: .bold))
-                                .foregroundStyle(Theme.sky)
+                                .foregroundStyle(Story.sky)
                                 .frame(maxWidth: .infinity)
                                 .frame(height: 52)
-                                .background(Theme.auroraGradient, in: RoundedRectangle(cornerRadius: 16))
+                                .background(Story.auroraGradient, in: RoundedRectangle(cornerRadius: 16))
                         }
                         .padding(.horizontal, 40)
                         .padding(.top, 8)
@@ -739,7 +739,7 @@ struct WrappedCloserPage: View {
                              ? "Still counting — come back in January."
                              : "Your story, one year at a time.")
                             .font(.system(size: 12.5))
-                            .foregroundStyle(Theme.ink3)
+                            .foregroundStyle(Story.ink3)
                             .opacity(stage(p, 0.85, 1))
                     }
                     Spacer()
@@ -768,11 +768,11 @@ struct WrappedCloserPage: View {
         HStack {
             Text(label)
                 .font(.system(size: 14))
-                .foregroundStyle(Theme.ink2)
+                .foregroundStyle(Story.ink2)
             Spacer()
             Text(value)
-                .font(Theme.display(15, weight: .heavy))
-                .foregroundStyle(Theme.aurora1)
+                .font(Story.display(15, weight: .heavy))
+                .foregroundStyle(Story.aurora1)
         }
         .padding(.horizontal, 16)
         .padding(.vertical, 10)

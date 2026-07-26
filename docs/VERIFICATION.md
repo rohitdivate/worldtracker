@@ -447,3 +447,22 @@ anything that *acts* differently after a switch is a bug.
 - [ ] Share cards render in the active theme
 - [ ] Switch themes with VoiceOver on: each row announces its name, selected
       state, and tagline
+
+### X7a — Year in Travel on a non-default theme
+
+Wrapped is a full-screen story and stays dark in every theme. The aurora
+behind it is the visible ground, so it uses the story palette, not the app one.
+
+- [ ] Open Year in Travel on **Tropical Spritz**: the story is dark (warm
+      near-black), NOT cream. Progress bars, the ✕ and the share button are
+      visible against it
+- [ ] Its accents are the bright reference pastels — lagoon, hibiscus, mango,
+      margarita — which only work on a dark ground and are deliberately
+      brighter here than the same tokens elsewhere in the app
+- [ ] Open it on **Mercury Dark**: near-black with lime accents; tertiary
+      labels (dates, small captions) are readable, not ghosted
+- [ ] Every page: opener, countries, travel days, podium, longest trip, first
+      visits, map, photos, closer — no invisible text on any of them
+- [ ] The Wrapped **share cards** are the exception and DO follow the app
+      theme, because they render on their own themed ground rather than on the
+      story surface. On Tropical they should be cream with dark text

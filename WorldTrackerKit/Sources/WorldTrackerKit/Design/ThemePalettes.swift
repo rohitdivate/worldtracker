@@ -44,10 +44,25 @@ public struct ColorToken: Equatable, Sendable {
         return 0.2126 * channel(red) + 0.7152 * channel(green) + 0.0722 * channel(blue)
     }
 
-    /// WCAG contrast ratio against another colour, 1…21. Alpha is ignored —
-    /// callers compare opaque grounds against opaque ink.
+    /// Flatten this colour onto an opaque background, honouring its alpha.
+    /// Several palettes express `ink2`/`ink3` as one colour at a percentage,
+    /// and what the eye actually sees is the composite.
+    public func composited(over background: ColorToken) -> ColorToken {
+        guard alpha < 1 else { return self }
+        func blend(_ f: Double, _ b: Double) -> Double { f * alpha + b * (1 - alpha) }
+        return ColorToken(
+            red: blend(red, background.red),
+            green: blend(green, background.green),
+            blue: blend(blue, background.blue)
+        )
+    }
+
+    /// WCAG contrast ratio of this colour as *foreground* over `other` as
+    /// background, 1…21. A translucent foreground is composited first —
+    /// measuring it as opaque would overstate the contrast and let an
+    /// effectively invisible token pass a legibility test.
     public func contrastRatio(against other: ColorToken) -> Double {
-        let a = luminance + 0.05
+        let a = composited(over: other).luminance + 0.05
         let b = other.luminance + 0.05
         return max(a, b) / min(a, b)
     }
@@ -97,6 +112,12 @@ public enum ThemeID: String, CaseIterable, Identifiable, Sendable {
     }
 
     public var palette: ThemePalette { ThemePalette.palette(for: self) }
+
+    /// The palette for full-screen story surfaces that stay black in every
+    /// theme — Wrapped, today. Those surfaces can't use `palette`: on a light
+    /// theme its ink is dark (invisible on black) and its cards are pale
+    /// (glaring on black). Always dark, whatever the app theme.
+    public var storyPalette: ThemePalette { ThemePalette.storyPalette(for: self) }
 }
 
 /// Every colour and font decision a theme makes. Adding a token here forces
@@ -152,6 +173,17 @@ public struct ThemePalette: Sendable {
         }
     }
 
+    /// Palette for the always-black story surfaces. Dark themes are already
+    /// legible there and pass straight through; the light theme needs a dark
+    /// counterpart or its ink disappears.
+    public static func storyPalette(for id: ThemeID) -> ThemePalette {
+        switch id {
+        case .nightFlight: nightFlight
+        case .tropicalSpritz: tropicalSpritzStory
+        case .mercuryDark: mercuryDark
+        }
+    }
+
     /// The original identity. Values are byte-for-byte the pre-theme
     /// constants, so selecting this must look exactly like before.
     public static let nightFlight = ThemePalette(
@@ -189,7 +221,10 @@ public struct ThemePalette: Sendable {
         cardRaised: ColorToken(hex: 0xFFFFFF),
         ink: ColorToken(hex: 0x3D2817),
         ink2: ColorToken(hex: 0x8B6F5E),
-        ink3: ColorToken(hex: 0xA89080),
+        // Deepened from a first pass at #A89080, which measured 2.75:1 on
+        // cream — fainter than Night Flight's tertiary ink at 3.28:1, which is
+        // the floor this app has always used.
+        ink3: ColorToken(hex: 0x9A8170),
         // Deepened from the reference lagoon #7DD3C0 and hibiscus #FF6B9D.
         // The mockup uses those as *fills* with contrasting text on top
         // (--accent-foreground, --primary-foreground), but this app paints
@@ -215,6 +250,41 @@ public struct ThemePalette: Sendable {
         bodyDesign: .rounded
     )
 
+    /// Tropical Spritz on the always-black story surface.
+    ///
+    /// The happy accident of this theme: the reference pastels that had to be
+    /// darkened for the cream app grounds — lagoon #7DD3C0, hibiscus #FF6B9D,
+    /// mango #FFA552, margarita #A8E6A3 — are exactly right on black, where
+    /// they clear AA comfortably. So Wrapped is the one place Tropical gets to
+    /// use the design reference's actual colours.
+    ///
+    /// Grounds are warm near-blacks rather than neutral, so it still reads as
+    /// this theme and not as Night Flight.
+    public static let tropicalSpritzStory = ThemePalette(
+        id: .tropicalSpritz,
+        isLight: false,
+        sky: ColorToken(hex: 0x0B0A09),
+        skyRaised: ColorToken(hex: 0x16120E),
+        card: ColorToken(hex: 0x1E1813),
+        cardRaised: ColorToken(hex: 0x272019),
+        // The shell cream, now serving as ink.
+        ink: ColorToken(hex: 0xFEF7EE),
+        ink2: ColorToken(hex: 0xD9C3AE),
+        ink3: ColorToken(hex: 0xA89080),
+        aurora1: ColorToken(hex: 0x7DD3C0),
+        aurora2: ColorToken(hex: 0xFF6B9D),
+        amber: ColorToken(hex: 0xFFA552),
+        good: ColorToken(hex: 0xA8E6A3),
+        alert: ColorToken(hex: 0xFB7185),
+        hairline: ColorToken(hex: 0xFEF7EE).opacity(0.10),
+        hairline2: ColorToken(hex: 0xFEF7EE).opacity(0.18),
+        gloss: ColorToken(hex: 0xFFFFFF).opacity(0.25),
+        globeOcean: ColorToken(hex: 0x7DD3C0),
+        displayDesign: .serif,
+        numericDesign: .rounded,
+        bodyDesign: .rounded
+    )
+
     /// Mercury × Revolut register: near-black surfaces, electric lime, and
     /// tabular numerals applied to trips instead of transactions.
     public static let mercuryDark = ThemePalette(
@@ -226,7 +296,9 @@ public struct ThemePalette: Sendable {
         cardRaised: ColorToken(hex: 0x1C1C22),
         ink: ColorToken(hex: 0xF4F4F5),
         ink2: ColorToken(hex: 0xF4F4F5).opacity(0.55),
-        ink3: ColorToken(hex: 0xF4F4F5).opacity(0.35),
+        // The reference's --fin-ink-mute is 35%, which flattens to 2.82:1 on
+        // near-black — below the app's tertiary floor. Lifted to 42%.
+        ink3: ColorToken(hex: 0xF4F4F5).opacity(0.42),
         aurora1: ColorToken(hex: 0xC5F74F),
         aurora2: ColorToken(hex: 0xA78BFA),
         // This palette is deliberately cold. Rather than introduce an orange
