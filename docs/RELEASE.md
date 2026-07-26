@@ -139,8 +139,21 @@ target](https://docs.expo.dev/build-reference/app-extensions/), covering the
 widget's separate bundle id. That automatic handling of the second target is
 the one place Route B may genuinely beat Route A.
 
-Check EAS's current free-tier build allowance before committing to this route —
-it's a recurring cost Route A doesn't have.
+### Cost and fit
+
+The EAS free tier allows **15 iOS builds/month**, one concurrency, a
+low-priority queue and a 45-minute build timeout. The timeout is not a concern
+— the unsigned build of this project finishes in about a minute — and 15
+builds/month is workable for a solo release cadence. Paid tiers start at
+$19/month. Route A costs nothing at any volume, because the repo is public.
+
+Worth weighing more than the price: **Expo's own homepage names this project's
+exact situation as a reason to look elsewhere**, listing "your app is
+exclusively native Swift or Kotlin with no cross-platform requirement" among
+the cases where alternatives make more sense. EAS Build *does* support any
+native project, but Been There is not the use case it's designed around, and
+that shows up as friction throughout this route rather than as a single
+blocker.
 
 ### The dependency cost — read this before choosing Route B
 
@@ -173,7 +186,8 @@ Apple Developer account and API key above. Fill this in as they run:
 | Archive + export succeeds | ☐ | ☐ |
 | Build reaches TestFlight | ☐ | ☐ |
 | Wall-clock per build | ☐ | ☐ |
-| Recurring cost | free (public repo) | ☐ check EAS tier |
+| Recurring cost | free, unlimited (public repo) | free ≤15 iOS builds/mo, then $19+/mo |
+| Vendor's own fit guidance | n/a | Expo lists native-only Swift apps as a reason to use alternatives |
 | Non-Swift files added | 2 | 5 + `node_modules` |
 | npm dependency tree | none | **481 packages** |
 | Bundle id committed? | no | yes |
