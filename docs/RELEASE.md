@@ -142,6 +142,24 @@ the one place Route B may genuinely beat Route A.
 Check EAS's current free-tier build allowance before committing to this route —
 it's a recurring cost Route A doesn't have.
 
+### The dependency cost — read this before choosing Route B
+
+`expo` is pinned to `57.0.8` (never `latest` — an unpinned dependency in a
+committed manifest is its own supply-chain risk). That single direct dependency
+resolves to **481 npm packages**, including `@react-native/debugger-frontend`,
+`node-forge`, `fast-xml-parser` and `yargs`. Socket Security flags several as
+"likely obfuscated" — that's its heuristic firing on minified bundles rather
+than evidence of anything malicious, and the checks pass at warn level.
+
+None of it ships inside the app. Been There stays pure Swift, and no JavaScript
+reaches the device. But it does mean a repo whose entire pitch is *no accounts,
+no servers, no analytics* would carry a React Native dependency tree in its
+build path, reviewed on every PR, and a new class of supply-chain exposure that
+Route A simply doesn't have.
+
+That's a judgement call, not a blocker — it's recorded here so it's made
+deliberately.
+
 ---
 
 ## Status
@@ -157,6 +175,7 @@ Apple Developer account and API key above. Fill this in as they run:
 | Wall-clock per build | ☐ | ☐ |
 | Recurring cost | free (public repo) | ☐ check EAS tier |
 | Non-Swift files added | 2 | 5 + `node_modules` |
+| npm dependency tree | none | **481 packages** |
 | Bundle id committed? | no | yes |
 | Widget target signing | ☐ auto via `-allowProvisioningUpdates`? | ☐ auto via EAS? |
 

@@ -4,6 +4,6 @@
   "private": true,
   "description": "Build-infrastructure shim only. Been There is a pure Swift/SwiftUI app with no JavaScript runtime — this file exists solely because EAS Build requires a package.json at the project root. Nothing here ships inside the app. See docs/RELEASE.md (Route B).",
   "dependencies": {
-    "expo": "latest"
+    "expo": "57.0.8"
   }
 }
