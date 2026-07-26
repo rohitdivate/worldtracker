@@ -75,30 +75,56 @@ resolve_device() {
   if [ -s "$json" ]; then
     found=$(/usr/bin/python3 - "$json" <<'PY' 2>/dev/null || true
 import json, sys
+
 devices = json.load(open(sys.argv[1])).get("result", {}).get("devices", [])
-def rank(d):
-    # Prefer a device with a live tunnel; a merely-paired one may be asleep.
-    state = (d.get("connectionProperties") or {}).get("tunnelState", "")
-    return 0 if state == "connected" else 1
-for d in sorted(devices, key=rank):
-    ident = d.get("identifier")
-    if ident:
-        print(ident)
-        break
+
+def is_iphone(d):
+    # MUST filter by platform. A paired Apple Watch often reports a healthier
+    # connection state than a sleeping iPhone, so ranking on state alone can
+    # hand you the watch — and then devicectl tries to install an iOS app on
+    # watchOS.
+    hw = d.get("hardwareProperties") or {}
+    if hw.get("platform") == "iOS":
+        return True
+    return str(hw.get("productType", "")).startswith("iPhone")
+
+def state(d):
+    return ((d.get("connectionProperties") or {}).get("tunnelState") or "").lower()
+
+phones = [d for d in devices if is_iphone(d)]
+ready = [d for d in phones if state(d) == "connected"]
+chosen = (ready or phones)
+if chosen:
+    d = chosen[0]
+    props = d.get("deviceProperties") or {}
+    # Three lines: identifier, name, state — the caller warns on a bad state.
+    print(d.get("identifier", ""))
+    print(props.get("name") or "device")
+    print(state(d) or "unknown")
 PY
     )
   fi
 
-  [ -n "${found:-}" ] || die "no device found.
+  [ -n "${found:-}" ] || die "no iPhone found.
   Check with: xcrun devicectl list devices
 
-  The phone must be awake, unlocked, and paired with this Mac. If you're going
-  wireless, both must be on the same network with no VPN — and don't go by the
-  'Connect via network' checkbox in Xcode, which is greyed out on iOS 17+ even
-  when wireless works fine.
+  If a Watch or iPad is listed but no iPhone, the phone has never been paired
+  with this Mac — connect it once by cable and tap Trust."
 
-  Plugging the cable back in also works: this script is transport-agnostic."
-  echo "$found"
+  local udid name devstate
+  udid=$(printf '%s\n' "$found" | sed -n 1p)
+  name=$(printf '%s\n' "$found" | sed -n 2p)
+  devstate=$(printf '%s\n' "$found" | sed -n 3p)
+
+  if [ "$devstate" != "connected" ]; then
+    # Not fatal: devicectl's own error is clearer than anything guessed here,
+    # and the state vocabulary shifts between Xcode releases.
+    echo "warning: '$name' is paired but reports state '$devstate'." >&2
+    echo "         Plug it in, or unlock it and put both on the same Wi-Fi." >&2
+  else
+    echo "== using $name" >&2
+  fi
+  echo "$udid"
 }
 
 # Read the bundle id out of the build settings rather than hardcoding it —
