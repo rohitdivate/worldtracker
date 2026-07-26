@@ -19,7 +19,7 @@ struct FlagChip: View {
                     .font(.system(size: size * 0.58))
             )
             .overlay(
-                Circle().strokeBorder(Color.white.opacity(0.14), lineWidth: 1)
+                Circle().strokeBorder(Theme.hairline2, lineWidth: 1)
             )
     }
 }
@@ -44,7 +44,9 @@ struct SplitFlagChip: View {
                     Rectangle().frame(width: size / 2)
                 }
             Rectangle()
-                .fill(Color.white.opacity(0.25))
+                // Themed, not white: on a light ground a white divider between
+                // the two half-flags is invisible.
+                .fill(Theme.gloss)
                 .frame(width: 1, height: size * 0.7)
                 .rotationEffect(.degrees(12))
         }

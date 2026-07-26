@@ -80,6 +80,10 @@ struct WrappedView: View {
         }
         .offset(y: dragOffset)
         .scaleEffect(1 - min(dragOffset, 300) / 3000, anchor: .top)
+        // Black in every theme, deliberately: Wrapped is a full-screen story
+        // experience with its own per-scene mood colours, the same way
+        // Instagram stories ignore app chrome. Not a light-theme oversight —
+        // the white chrome overlays below depend on it.
         .background(Color.black.ignoresSafeArea())
         .animation(.easeInOut(duration: 0.25), value: index)
         .gesture(dismissDrag)

@@ -50,7 +50,7 @@ struct TripListView: View {
                                     if showHomeStays,
                                        DayLedgerResolver.isHomeStay(segment, timeline: timeline) {
                                         Text("HOME")
-                                            .font(.system(size: 8, weight: .heavy, design: .monospaced))
+                                            .font(Theme.numeric(8, weight: .heavy))
                                             .foregroundStyle(Theme.amber)
                                     }
                                 }
@@ -61,7 +61,7 @@ struct TripListView: View {
                             Spacer()
                             VStack(alignment: .trailing, spacing: 2) {
                                 Text(segment.endDay >= today ? "NOW" : "\(segment.dayCount)")
-                                    .font(.system(size: 16, weight: .heavy, design: .rounded))
+                                    .font(Theme.display(16, weight: .heavy))
                                     .foregroundStyle(segment.endDay >= today ? Theme.amber : Theme.aurora1)
                                 if segment.endDay < today {
                                     Text(segment.dayCount == 1 ? "DAY" : "DAYS")

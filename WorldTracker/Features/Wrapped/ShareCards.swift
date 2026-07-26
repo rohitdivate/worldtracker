@@ -23,7 +23,7 @@ struct WrappedStoryCard: View {
                     .tracking(4)
                     .foregroundStyle(Theme.aurora1)
                 Text(String(data.stats.year))
-                    .font(.system(size: 76, weight: .heavy, design: .rounded))
+                    .font(Theme.display(76, weight: .heavy))
                     .foregroundStyle(Theme.auroraGradient)
                     .padding(.top, 2)
 
@@ -107,7 +107,7 @@ struct WrappedSquareCard: View {
 
                 HStack(alignment: .firstTextBaseline, spacing: 10) {
                     Text(String(data.stats.year))
-                        .font(.system(size: 44, weight: .heavy, design: .rounded))
+                        .font(Theme.display(44, weight: .heavy))
                         .foregroundStyle(Theme.auroraGradient)
                     Text("IN TRAVEL")
                         .font(.system(size: 12, weight: .bold))

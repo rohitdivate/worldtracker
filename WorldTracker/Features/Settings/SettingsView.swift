@@ -5,6 +5,7 @@ struct SettingsView: View {
     @Environment(LocationService.self) private var location
     @AppStorage("icloudBackup") private var icloudBackup = false
     @AppStorage("icloudBackupFellBack") private var icloudFellBack = false
+    @AppStorage(ThemeStore.key) private var themeID = ThemeID.default.rawValue
     @State private var showHomePicker = false
     @State private var confirmErase = false
     @State private var confirmDeleteAll = false
@@ -22,6 +23,7 @@ struct SettingsView: View {
         @Bindable var router = router
         NavigationStack(path: $router.settingsPath) {
             List {
+                appearanceSection
                 profileSection
                 trackingSection
                 photosSection
@@ -79,6 +81,67 @@ struct SettingsView: View {
                 Text("Everything — including manual edits and notes. This cannot be undone.")
             }
         }
+    }
+
+    private var appearanceSection: some View {
+        Section("Appearance") {
+            ForEach(ThemeID.allCases) { theme in
+                Button {
+                    guard theme.rawValue != themeID else { return }
+                    ThemeStore.select(theme)
+                    themeID = theme.rawValue
+                } label: {
+                    themeRow(theme)
+                }
+                .buttonStyle(.plain)
+            }
+        }
+    }
+
+    /// Swatches rather than colour names — the choice should be visible
+    /// before committing to a whole-app re-skin.
+    private func themeRow(_ theme: ThemeID) -> some View {
+        let palette = theme.palette
+        let isSelected = theme.rawValue == themeID
+        return HStack(spacing: 12) {
+            swatch(palette)
+            VStack(alignment: .leading, spacing: 2) {
+                Text(theme.displayName).foregroundStyle(Theme.ink)
+                Text(theme.tagline)
+                    .font(.system(size: 11))
+                    .foregroundStyle(Theme.ink3)
+            }
+            Spacer()
+            if isSelected {
+                Image(systemName: "checkmark")
+                    .font(.system(size: 13, weight: .semibold))
+                    .foregroundStyle(Theme.aurora1)
+            }
+        }
+        .contentShape(Rectangle())
+        .accessibilityElement(children: .combine)
+        .accessibilityLabel(theme.displayName)
+        .accessibilityValue(isSelected ? "Selected" : "")
+        .accessibilityHint(theme.tagline)
+        .accessibilityAddTraits(isSelected ? [.isButton, .isSelected] : .isButton)
+    }
+
+    /// The theme's own ground and accents, drawn in that theme rather than the
+    /// active one — so the swatch previews what you'd get.
+    private func swatch(_ palette: ThemePalette) -> some View {
+        RoundedRectangle(cornerRadius: 8, style: .continuous)
+            .fill(palette.sky.color)
+            .frame(width: 44, height: 32)
+            .overlay(
+                HStack(spacing: 4) {
+                    Circle().fill(palette.aurora1.color).frame(width: 9, height: 9)
+                    Circle().fill(palette.aurora2.color).frame(width: 9, height: 9)
+                }
+            )
+            .overlay(
+                RoundedRectangle(cornerRadius: 8, style: .continuous)
+                    .strokeBorder(Theme.hairline2, lineWidth: 1)
+            )
     }
 
     private var profileSection: some View {

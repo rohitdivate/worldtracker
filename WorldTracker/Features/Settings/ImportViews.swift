@@ -22,7 +22,7 @@ struct ImportProgressView: View {
                     .animation(.easeOut(duration: 0.4), value: progress.fraction)
                 VStack(spacing: 2) {
                     Text("\(Int(progress.fraction * 100))%")
-                        .font(.system(size: 32, weight: .heavy, design: .rounded))
+                        .font(Theme.display(32, weight: .heavy))
                         .foregroundStyle(Theme.auroraGradient)
                         .contentTransition(.numericText())
                     Text(progress.stage == .writing ? "WRITING" : "READING")
@@ -127,7 +127,7 @@ struct ImportTimelineView: View {
                 .font(.system(size: 38))
                 .foregroundStyle(Theme.auroraGradient)
             Text("Years of history,\nfrom Google Timeline.")
-                .font(.system(size: 22, weight: .heavy, design: .rounded))
+                .font(Theme.display(22, weight: .heavy))
                 .foregroundStyle(Theme.ink)
                 .multilineTextAlignment(.center)
             Text("If you've used Google Maps for years, your Timeline remembers your travels. Export it and Been There will rebuild everything — parsed entirely on this device.")
@@ -265,7 +265,7 @@ struct ImportFlightsView: View {
                 .font(.system(size: 38))
                 .foregroundStyle(Theme.auroraGradient)
             Text("Every flight,\non the record.")
-                .font(.system(size: 22, weight: .heavy, design: .rounded))
+                .font(Theme.display(22, weight: .heavy))
                 .foregroundStyle(Theme.ink)
                 .multilineTextAlignment(.center)
             Text("Flights close the gaps your phone can't see (airplane mode). A flight credits the departure day in the origin country and the arrival day where you landed — timezone-correct for overnight routes.")
@@ -343,7 +343,7 @@ struct ImportFlightsView: View {
 private func step(_ number: Int, _ text: String) -> some View {
     HStack(alignment: .top, spacing: 10) {
         Text("\(number)")
-            .font(.system(size: 11, weight: .heavy, design: .monospaced))
+            .font(Theme.numeric(11, weight: .heavy))
             .foregroundStyle(Theme.sky)
             .frame(width: 18, height: 18)
             .background(Theme.auroraGradient, in: Circle())

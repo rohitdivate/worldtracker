@@ -22,7 +22,7 @@ struct TripPostcardCard: View {
                     .shadow(color: Theme.aurora1.opacity(0.4), radius: 16)
 
                 Text(countryName(countryCode))
-                    .font(.system(size: 27, weight: .heavy, design: .rounded))
+                    .font(Theme.display(27, weight: .heavy))
                     .foregroundStyle(Theme.ink)
                     .multilineTextAlignment(.center)
                     .padding(.horizontal, 24)

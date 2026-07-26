@@ -12,7 +12,7 @@ struct MiniGlobe: View {
                 RadialGradient(
                     colors: [
                         Theme.aurora1,
-                        Color(red: 0.18, green: 0.56, blue: 0.72),
+                        Theme.globeOcean,
                         Theme.card,
                     ],
                     center: .init(x: 0.32, y: 0.28),

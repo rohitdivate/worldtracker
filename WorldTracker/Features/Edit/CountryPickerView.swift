@@ -99,7 +99,7 @@ struct CountryPickerView: View {
                                 .lineLimit(1)
                             if code == AppContainer.shared.ledgerStore.homeCountry {
                                 Text("HOME")
-                                    .font(.system(size: 7, weight: .heavy, design: .monospaced))
+                                    .font(Theme.numeric(7, weight: .heavy))
                                     .foregroundStyle(Theme.amber)
                             }
                         }

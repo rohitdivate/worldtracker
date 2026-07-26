@@ -158,7 +158,7 @@ struct WorldMapView: View {
                         .lineLimit(1)
                     if isHome {
                         Text("HOME")
-                            .font(.system(size: 8, weight: .heavy, design: .monospaced))
+                            .font(Theme.numeric(8, weight: .heavy))
                             .foregroundStyle(Theme.amber)
                     }
                 }
@@ -182,7 +182,7 @@ struct WorldMapView: View {
 
             VStack(alignment: .trailing, spacing: 1) {
                 Text("\(days)")
-                    .font(.system(size: 21, weight: .heavy, design: .rounded))
+                    .font(Theme.display(21, weight: .heavy))
                     .foregroundStyle(isHome ? Theme.amber : Theme.aurora1)
                     .contentTransition(.numericText())
                 Text("DAYS")

@@ -51,7 +51,7 @@ struct PhotoSyncView: View {
                 .font(.system(size: 40))
                 .foregroundStyle(Theme.auroraGradient)
             Text("Ten years of travel,\nreconstructed in a minute.")
-                .font(.system(size: 22, weight: .heavy, design: .rounded))
+                .font(Theme.display(22, weight: .heavy))
                 .foregroundStyle(Theme.ink)
                 .multilineTextAlignment(.center)
             Text("Been There reads only each photo's date and location — never the pictures themselves, and nothing is downloaded from iCloud. Borders are matched entirely on this device.")
@@ -307,7 +307,7 @@ struct TimeMachineProgressView: View {
                     .animation(.easeOut(duration: 0.4), value: progress.fraction)
                 VStack(spacing: 2) {
                     Text("\(Int(progress.fraction * 100))%")
-                        .font(.system(size: 34, weight: .heavy, design: .rounded))
+                        .font(Theme.display(34, weight: .heavy))
                         .foregroundStyle(Theme.auroraGradient)
                         .contentTransition(.numericText())
                     Text(stageLabel)

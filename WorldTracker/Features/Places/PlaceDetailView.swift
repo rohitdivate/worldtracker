@@ -27,7 +27,7 @@ struct PlaceDetailView: View {
                             .font(.system(size: 30))
                         VStack(alignment: .leading, spacing: 2) {
                             Text(place.name)
-                                .font(.system(size: 22, weight: .heavy, design: .rounded))
+                                .font(Theme.display(22, weight: .heavy))
                                 .foregroundStyle(Theme.ink)
                             Text(subtitle)
                                 .font(.system(size: 12))

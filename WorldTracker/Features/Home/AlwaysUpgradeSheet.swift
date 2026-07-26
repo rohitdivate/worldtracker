@@ -84,7 +84,7 @@ struct AlwaysUpgradeSheet: View {
                 Spacer()
                 MiniGlobe(size: 84)
                 Text("Let it log while\nyou sleep")
-                    .font(.system(size: 27, weight: .heavy, design: .rounded))
+                    .font(Theme.display(27, weight: .heavy))
                     .foregroundStyle(Theme.ink)
                     .multilineTextAlignment(.center)
                 Text("Right now Been There only logs while the app is open. One more permission lets iOS wake it quietly when you change cities or countries — that's the whole magic.")

@@ -17,7 +17,7 @@ struct ComingSoonScreen: View {
                     .symbolEffect(.breathe)
 
                 Text(title)
-                    .font(.system(size: 30, weight: .heavy, design: .rounded))
+                    .font(Theme.display(30, weight: .heavy))
                     .foregroundStyle(Theme.ink)
 
                 Text(message)

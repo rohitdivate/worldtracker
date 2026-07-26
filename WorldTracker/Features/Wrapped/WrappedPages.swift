@@ -112,7 +112,7 @@ struct WrappedOpenerPage: View {
                     WrappedKicker(text: "YOUR YEAR IN TRAVEL")
                         .opacity(stage(p, 0.25, 0.45))
                     Text(String(data.stats.year))
-                        .font(.system(size: 92, weight: .heavy, design: .rounded))
+                        .font(Theme.display(92, weight: .heavy))
                         .foregroundStyle(Theme.auroraGradient)
                         .opacity(stage(p, 0.35, 0.6))
                         .offset(y: (1 - easeOutBack(stage(p, 0.35, 0.7))) * 46)
@@ -325,7 +325,7 @@ struct WrappedPodiumPage: View {
                             FlagChip(code: entry.code, size: rank == 1 ? 52 : 40)
                                 .opacity(stage(p, riseStart, riseStart + 0.2))
                             Text("\(entry.days)d")
-                                .font(.system(size: 15, weight: .heavy, design: .rounded))
+                                .font(Theme.display(15, weight: .heavy))
                                 .foregroundStyle(rank == 1 ? Theme.amber : Theme.aurora1)
                                 .opacity(stage(p, riseStart + 0.1, riseStart + 0.3))
                             RoundedRectangle(cornerRadius: 8, style: .continuous)
@@ -395,7 +395,7 @@ struct WrappedLongestTripPage: View {
                     }
 
                     Text(DayFormat.shortRange(trip.startDay, trip.endDay, todayYear: data.stats.year))
-                        .font(.system(size: 13, weight: .semibold, design: .monospaced))
+                        .font(Theme.numeric(13, weight: .semibold))
                         .foregroundStyle(Theme.ink2)
                         .opacity(stage(p, 0.6, 0.8))
 
@@ -595,7 +595,7 @@ struct WrappedMapPage: View {
     private func mapStat(value: Int, label: String, reveal: Double) -> some View {
         VStack(spacing: 3) {
             Text("\(Int((Double(value) * easeOutCubic(reveal)).rounded()))")
-                .font(.system(size: 26, weight: .heavy, design: .rounded))
+                .font(Theme.display(26, weight: .heavy))
                 .foregroundStyle(Theme.auroraGradient)
                 .monospacedDigit()
             Text(label)
@@ -688,7 +688,7 @@ struct WrappedCloserPage: View {
                         .scaleEffect(0.5 + 0.5 * easeOutBack(stage(p, 0, 0.3)))
                         .opacity(stage(p, 0, 0.2))
                     Text("That was \(String(data.stats.year)).")
-                        .font(.system(size: 30, weight: .heavy, design: .rounded))
+                        .font(Theme.display(30, weight: .heavy))
                         .foregroundStyle(Theme.ink)
                         .opacity(stage(p, 0.15, 0.35))
                         .modifier(HapticOnStep(step: p >= 0.35 ? 1 : 0) {
@@ -716,7 +716,7 @@ struct WrappedCloserPage: View {
                     .padding(.horizontal, 40)
 
                     Text("BEEN THERE")
-                        .font(.system(size: 10, weight: .heavy, design: .monospaced))
+                        .font(Theme.numeric(10, weight: .heavy))
                         .tracking(3.2)
                         .foregroundStyle(Theme.ink3)
                         .padding(.top, 8)
@@ -771,7 +771,7 @@ struct WrappedCloserPage: View {
                 .foregroundStyle(Theme.ink2)
             Spacer()
             Text(value)
-                .font(.system(size: 15, weight: .heavy, design: .rounded))
+                .font(Theme.display(15, weight: .heavy))
                 .foregroundStyle(Theme.aurora1)
         }
         .padding(.horizontal, 16)
