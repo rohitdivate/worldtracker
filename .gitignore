@@ -8,3 +8,17 @@ Tools/geodata/raw/
 __pycache__/
 *.pyc
 .claude/settings.local.json
+
+# EAS build shim (Route B — see docs/RELEASE.md). No JavaScript ships in the
+# app; these are build-infrastructure leftovers only.
+node_modules/
+package-lock.json
+.expo/
+# The `ln -sf . ios` symlink the EAS build steps create at the repo root.
+/ios
+
+# Release artifacts from the local/CI archive step. Anchored: an unanchored
+# `build/` would also swallow the .eas/build/ custom build configs.
+/build/
+*.xcarchive
+*.ipa

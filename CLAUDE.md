@@ -15,7 +15,8 @@ iCloud). iOS 18+, Xcode 16+.
 | `BeenThereWidgets/` | WidgetKit extension (`.appex`, embedded in the app's PlugIns) |
 | `Config/` | Info.plists and entitlements for both targets |
 | `Tools/` | `check.sh` (pre-commit gate), `validate_project.py` (invariants), geodata build scripts |
-| `docs/` | `ARCHITECTURE.md`, `VERIFICATION.md` (on-device QA checklists), `SETUP_MAC.md`, `APP_STORE.md` |
+| `docs/` | `ARCHITECTURE.md`, `VERIFICATION.md` (on-device QA checklists), `SETUP_MAC.md`, `APP_STORE.md`, `RELEASE.md` |
+| `package.json`, `app.json`, `eas.json`, `.eas/` | **Build infrastructure only** — an EAS Build shim. Been There ships no JavaScript; nothing here goes in the app. See `docs/RELEASE.md` |
 
 ## Commands
 
@@ -37,6 +38,15 @@ backstop: `.github/workflows/kit-tests.yml` (Linux) and `ios-build.yml` (macOS).
 Only the Kit compiles off a Mac. On Linux, `swift test --package-path
 WorldTrackerKit` is the most verification available — the app target needs
 `xcodebuild`.
+
+## Releasing
+
+`docs/APP_STORE.md` is the by-hand, sitting-at-a-Mac path. `docs/RELEASE.md`
+covers the two Mac-free CI pipelines — GitHub Actions (`testflight.yml`) and
+EAS Build (`.eas/build/`) — which exist side by side so they can be compared.
+**Neither has shipped a build yet**; both are blocked on Apple credentials, and
+the losing one gets deleted once that's settled. Don't treat the EAS scaffold
+as a sign this project uses Expo or React Native — it doesn't.
 
 ## The model: facts in, verdicts computed
 
