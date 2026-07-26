@@ -532,12 +532,12 @@ private struct GlobeSelectionCard: View {
             VStack(alignment: .leading, spacing: 3) {
                 HStack(spacing: 6) {
                     Text(countryName(code))
-                        .font(.system(size: 16, weight: .heavy, design: .rounded))
+                        .font(Theme.display(16, weight: .heavy))
                         .foregroundStyle(Theme.ink)
                         .lineLimit(1)
                     if isHome {
                         Text("HOME")
-                            .font(.system(size: 8, weight: .heavy, design: .monospaced))
+                            .font(Theme.numeric(8, weight: .heavy))
                             .foregroundStyle(Theme.amber)
                     }
                 }

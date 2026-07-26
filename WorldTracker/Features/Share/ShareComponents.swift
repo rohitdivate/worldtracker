@@ -35,7 +35,7 @@ struct ShareWordmark: View {
             HStack(spacing: 7) {
                 MiniGlobe(size: 16, showsPlane: false)
                 Text("BEEN THERE")
-                    .font(.system(size: 10, weight: .heavy, design: .monospaced))
+                    .font(Theme.numeric(10, weight: .heavy))
                     .tracking(3)
                     .foregroundStyle(Theme.ink2)
             }
@@ -63,7 +63,7 @@ struct ShareStat: View {
     var body: some View {
         VStack(spacing: 2) {
             Text(value)
-                .font(.system(size: 30, weight: .heavy, design: .rounded))
+                .font(Theme.display(30, weight: .heavy))
                 .foregroundStyle(color)
             Text(label)
                 .font(.system(size: 8.5, weight: .semibold))

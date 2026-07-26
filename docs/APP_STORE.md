@@ -4,6 +4,11 @@ Everything code-side is already done (privacy manifests, honest permission
 strings, export-compliance key, icon, launch screen, version 1.0). What
 remains is Apple-side paperwork and clicks. In order:
 
+> **No Mac?** This page assumes you're building and uploading from Xcode.
+> `docs/RELEASE.md` covers the CI alternative — archive, sign and upload to
+> TestFlight from a hosted macOS runner instead. The Apple-side steps below
+> (§1 enrolment, §3 app record, §4 metadata) are still required either way.
+
 ## 0. What you need
 
 - The **Apple Developer Program** — $99/year. Your free Personal Team can

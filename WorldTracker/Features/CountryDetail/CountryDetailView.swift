@@ -29,11 +29,11 @@ struct CountryDetailView: View {
                         .padding(.top, 10)
 
                     Text(countryName(countryCode))
-                        .font(.system(size: 30, weight: .heavy, design: .rounded))
+                        .font(Theme.display(30, weight: .heavy))
                         .foregroundStyle(Theme.ink)
 
                     Text("\(allSegments.count) \(allSegments.count == 1 ? "TRIP" : "TRIPS") · \(totalDays) TOTAL DAYS")
-                        .font(.system(size: 11, weight: .bold, design: .monospaced))
+                        .font(Theme.numeric(11, weight: .bold))
                         .tracking(1.4)
                         .foregroundStyle(Theme.aurora1)
 
@@ -51,13 +51,13 @@ struct CountryDetailView: View {
                                                 .font(.system(size: 18, weight: .bold, design: .rounded))
                                                 .foregroundStyle(Theme.ink)
                                             Text(DayFormat.shortRange(segment.startDay, segment.endDay, todayYear: todayYear))
-                                                .font(.system(size: 11, weight: .medium, design: .monospaced))
+                                                .font(Theme.numeric(11, weight: .medium))
                                                 .foregroundStyle(Theme.ink3)
                                         }
                                         Spacer()
                                         if segment.endDay >= today {
                                             Text("NOW")
-                                                .font(.system(size: 9, weight: .heavy, design: .monospaced))
+                                                .font(Theme.numeric(9, weight: .heavy))
                                                 .foregroundStyle(Theme.amber)
                                                 .padding(.horizontal, 7)
                                                 .padding(.vertical, 3)

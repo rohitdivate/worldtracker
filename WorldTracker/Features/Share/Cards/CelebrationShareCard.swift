@@ -19,13 +19,13 @@ struct CelebrationShareCard: View {
                     .shadow(color: Theme.aurora1.opacity(0.5), radius: 26)
 
                 Text("COUNTRY #\(number)")
-                    .font(.system(size: 15, weight: .heavy, design: .monospaced))
+                    .font(Theme.numeric(15, weight: .heavy))
                     .tracking(3)
                     .foregroundStyle(Theme.amber)
                     .padding(.top, 10)
 
                 Text(countryName(code))
-                    .font(.system(size: 33, weight: .heavy, design: .rounded))
+                    .font(Theme.display(33, weight: .heavy))
                     .foregroundStyle(Theme.ink)
                     .multilineTextAlignment(.center)
                     .padding(.horizontal, 24)

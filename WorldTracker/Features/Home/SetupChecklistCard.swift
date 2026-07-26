@@ -236,7 +236,7 @@ struct EmptyStateCTAs: View {
                 .font(.system(size: 34))
                 .foregroundStyle(Theme.auroraGradient)
             Text(title)
-                .font(.system(size: 17, weight: .heavy, design: .rounded))
+                .font(Theme.display(17, weight: .heavy))
                 .foregroundStyle(Theme.ink)
             Text(message)
                 .font(.system(size: 13))

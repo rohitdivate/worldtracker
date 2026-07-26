@@ -134,11 +134,11 @@ struct HomeView: View {
                     MiniGlobe(size: 46, showsPlane: false)
                     VStack(alignment: .leading, spacing: 3) {
                         Text("YOUR \(String(year)) IS READY")
-                            .font(.system(size: 11, weight: .heavy, design: .monospaced))
+                            .font(Theme.numeric(11, weight: .heavy))
                             .tracking(1.6)
                             .foregroundStyle(Theme.sky.opacity(0.75))
                         Text("Open your Year in Travel ✨")
-                            .font(.system(size: 17, weight: .heavy, design: .rounded))
+                            .font(Theme.display(17, weight: .heavy))
                             .foregroundStyle(Theme.sky)
                     }
                     Spacer()
@@ -239,7 +239,7 @@ struct HomeView: View {
                 }
                 VStack(alignment: .leading, spacing: 3) {
                     Text(code.map(countryName) ?? "Finding you…")
-                        .font(.system(size: 26, weight: .heavy, design: .rounded))
+                        .font(Theme.display(26, weight: .heavy))
                         .foregroundStyle(Theme.ink)
                         .contentTransition(.numericText())
                     if let stay {
@@ -268,7 +268,7 @@ struct HomeView: View {
     private func statTile(value: Int, label: String) -> some View {
         VStack(spacing: 2) {
             Text("\(value)")
-                .font(.system(size: 24, weight: .heavy, design: .rounded))
+                .font(Theme.display(24, weight: .heavy))
                 .foregroundStyle(Theme.auroraGradient)
                 .contentTransition(.numericText())
             Text(label.uppercased())
@@ -308,7 +308,7 @@ struct HomeView: View {
                                     .foregroundStyle(Theme.ink)
                                 if code == store.homeCountry {
                                     Text("HOME")
-                                        .font(.system(size: 8, weight: .heavy, design: .monospaced))
+                                        .font(Theme.numeric(8, weight: .heavy))
                                         .foregroundStyle(Theme.amber)
                                 }
                                 Spacer()

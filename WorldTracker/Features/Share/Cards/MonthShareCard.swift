@@ -21,10 +21,10 @@ struct MonthShareCard: View {
 
                 HStack(alignment: .firstTextBaseline, spacing: 8) {
                     Text(month.title)
-                        .font(.system(size: 30, weight: .heavy, design: .rounded))
+                        .font(Theme.display(30, weight: .heavy))
                         .foregroundStyle(Theme.auroraGradient)
                     Text(String(month.year))
-                        .font(.system(size: 15, weight: .bold, design: .monospaced))
+                        .font(Theme.numeric(15, weight: .bold))
                         .foregroundStyle(Theme.ink2)
                 }
 

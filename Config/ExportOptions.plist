@@ -1,0 +1,30 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<!--
+  Export options for App Store / TestFlight builds.
+
+  teamID is deliberately absent: it's supplied at export time by the release
+  workflow (see .github/workflows/testflight.yml), so no Apple team identifier
+  has to live in a public repo. xcodebuild resolves the signing identity from
+  the App Store Connect API key instead.
+-->
+<plist version="1.0">
+<dict>
+	<key>method</key>
+	<string>app-store-connect</string>
+	<key>signingStyle</key>
+	<string>automatic</string>
+	<key>destination</key>
+	<string>export</string>
+	<!-- Upload dSYMs so crash reports symbolicate in Xcode Organizer. -->
+	<key>uploadSymbols</key>
+	<true/>
+	<!-- App thinning off: one universal ipa is simpler to hand to altool. -->
+	<key>stripSwiftSymbols</key>
+	<true/>
+	<!-- The app declares ITSAppUsesNonExemptEncryption=false in Info.plist,
+	     so TestFlight processing won't block on export compliance. -->
+	<key>manageAppVersionAndBuildNumber</key>
+	<false/>
+</dict>
+</plist>

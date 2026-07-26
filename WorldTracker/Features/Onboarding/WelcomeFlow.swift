@@ -54,7 +54,7 @@ struct WelcomeFlow: View {
             Spacer()
             globe
             Text("Your journey,\nremembered.")
-                .font(.system(size: 34, weight: .heavy, design: .rounded))
+                .font(Theme.display(34, weight: .heavy))
                 .foregroundStyle(Theme.ink)
                 .multilineTextAlignment(.center)
             Text("Been There quietly notices which country you wake up in. No accounts. No servers. Nothing leaves this phone.")
@@ -84,7 +84,7 @@ struct WelcomeFlow: View {
             Spacer()
             globe
             Text("Let it write itself")
-                .font(.system(size: 30, weight: .heavy, design: .rounded))
+                .font(Theme.display(30, weight: .heavy))
                 .foregroundStyle(Theme.ink)
             VStack(spacing: 10) {
                 promise(icon: "lock.fill", title: "Private by design",
@@ -134,7 +134,7 @@ struct WelcomeFlow: View {
             Spacer()
             Text("🏠").font(.system(size: 44))
             Text("Where do you live?")
-                .font(.system(size: 28, weight: .heavy, design: .rounded))
+                .font(Theme.display(28, weight: .heavy))
                 .foregroundStyle(Theme.ink)
             Text("Days at home don't count as travel — this keeps every stat honest. Moved between countries before? You can add your full home history later in Settings.")
                 .font(.system(size: 14))
@@ -196,7 +196,7 @@ struct WelcomeFlow: View {
                 .font(.system(size: 48))
                 .foregroundStyle(Theme.auroraGradient)
             Text("Where have you\nalready been?")
-                .font(.system(size: 30, weight: .heavy, design: .rounded))
+                .font(Theme.display(30, weight: .heavy))
                 .foregroundStyle(Theme.ink)
                 .multilineTextAlignment(.center)
             Text("Your photo library remembers. Been There can read just the dates and locations of your photos — never the pictures — and rebuild years of travel history in about a minute.")

@@ -1,0 +1,166 @@
+name: testflight
+
+# Route A of the Mac-free release experiment: archive, sign and ship to
+# TestFlight entirely on a GitHub-hosted macOS runner. See docs/RELEASE.md.
+#
+# Deliberately NOT triggered on push/pull_request — ios-build.yml stays the
+# fast unsigned PR gate, and this one costs real minutes and a real build
+# number. Run it by hand, or by pushing a v* tag.
+on:
+  workflow_dispatch:
+    inputs:
+      submit:
+        description: "Upload to TestFlight (off = archive + export only)"
+        type: boolean
+        default: true
+  push:
+    tags:
+      - "v*"
+
+# Never let two releases race for the same build number.
+concurrency:
+  group: testflight
+  cancel-in-progress: false
+
+jobs:
+  release:
+    name: Archive, sign, upload
+    runs-on: macos-15
+    timeout-minutes: 60
+    env:
+      # Xcode resolves signing through the App Store Connect API key rather
+      # than a keychain-imported .p12, so nothing secret is written into the
+      # workspace. See "Route A" in docs/RELEASE.md for how to mint these.
+      ASC_KEY_ID: ${{ secrets.ASC_KEY_ID }}
+      ASC_ISSUER_ID: ${{ secrets.ASC_ISSUER_ID }}
+      DEVELOPMENT_TEAM: ${{ secrets.APPLE_TEAM_ID }}
+      # Repository *variable*, not a secret — a bundle id isn't sensitive, and
+      # keeping it out of the pbxproj means the public repo keeps shipping the
+      # com.example placeholder.
+      APP_BUNDLE_ID: ${{ vars.APP_BUNDLE_ID }}
+      ARCHIVE_PATH: ${{ github.workspace }}/build/BeenThere.xcarchive
+      EXPORT_DIR: ${{ github.workspace }}/build/export
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Xcode version
+        run: xcodebuild -version
+
+      - name: Preflight — required secrets present
+        env:
+          # Via env, never inlined into the script: a multi-line PEM
+          # interpolated straight into bash is both fragile and needless.
+          ASC_PRIVATE_KEY: ${{ secrets.ASC_PRIVATE_KEY }}
+        run: |
+          missing=()
+          [ -n "$ASC_KEY_ID" ]    || missing+=(ASC_KEY_ID)
+          [ -n "$ASC_ISSUER_ID" ] || missing+=(ASC_ISSUER_ID)
+          [ -n "$ASC_PRIVATE_KEY" ] || missing+=(ASC_PRIVATE_KEY)
+          [ -n "$DEVELOPMENT_TEAM" ] || missing+=(APPLE_TEAM_ID)
+          if [ ${#missing[@]} -ne 0 ]; then
+            echo "::error::Missing required secrets: ${missing[*]}"
+            echo "See docs/RELEASE.md § Route A for how to create them."
+            exit 1
+          fi
+          if [ -z "$APP_BUNDLE_ID" ]; then
+            echo "::warning::Repository variable APP_BUNDLE_ID is unset —" \
+                 "falling back to the com.example placeholder in the pbxproj," \
+                 "which will not match any real provisioning profile."
+          fi
+
+      - name: Install App Store Connect API key
+        env:
+          ASC_PRIVATE_KEY: ${{ secrets.ASC_PRIVATE_KEY }}
+        run: |
+          # ~/.appstoreconnect/private_keys is one of the locations altool
+          # searches by name, so the same file serves both xcodebuild's
+          # -authenticationKeyPath and altool's --apiKey lookup.
+          key_dir="$HOME/.appstoreconnect/private_keys"
+          mkdir -p "$key_dir"
+          printf '%s\n' "$ASC_PRIVATE_KEY" \
+            > "$key_dir/AuthKey_${ASC_KEY_ID}.p8"
+          chmod 600 "$key_dir/AuthKey_${ASC_KEY_ID}.p8"
+          echo "ASC_KEY_PATH=$key_dir/AuthKey_${ASC_KEY_ID}.p8" >> "$GITHUB_ENV"
+
+      - name: Archive
+        run: |
+          set -o pipefail
+          args=(
+            -project WorldTracker.xcodeproj
+            -scheme WorldTracker
+            -configuration Release
+            -destination 'generic/platform=iOS'
+            -archivePath "$ARCHIVE_PATH"
+            # Xcode 13+ can create the distribution certificate and BOTH
+            # provisioning profiles (app + .widgets extension) unattended when
+            # given an API key. This is what removes the fastlane match /
+            # .p12 / keychain dance from this workflow.
+            -allowProvisioningUpdates
+            -authenticationKeyPath "$ASC_KEY_PATH"
+            -authenticationKeyID "$ASC_KEY_ID"
+            -authenticationKeyIssuerID "$ASC_ISSUER_ID"
+            DEVELOPMENT_TEAM="$DEVELOPMENT_TEAM"
+            # Build number is never committed: TestFlight rejects duplicates,
+            # and run_number is monotonic per workflow. MARKETING_VERSION
+            # stays hand-bumped in the pbxproj.
+            CURRENT_PROJECT_VERSION=${{ github.run_number }}
+          )
+          [ -n "$APP_BUNDLE_ID" ] && args+=(APP_BUNDLE_ID="$APP_BUNDLE_ID")
+          xcodebuild "${args[@]}" archive
+
+      - name: Export .ipa
+        run: |
+          set -o pipefail
+          xcodebuild -exportArchive \
+            -archivePath "$ARCHIVE_PATH" \
+            -exportPath "$EXPORT_DIR" \
+            -exportOptionsPlist Config/ExportOptions.plist \
+            -allowProvisioningUpdates \
+            -authenticationKeyPath "$ASC_KEY_PATH" \
+            -authenticationKeyID "$ASC_KEY_ID" \
+            -authenticationKeyIssuerID "$ASC_ISSUER_ID"
+          ls -la "$EXPORT_DIR"
+
+      # Upload the artifacts before submitting: if App Store Connect rejects
+      # the binary we still have it, and don't pay for another archive.
+      - name: Upload build artifacts
+        uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: beenthere-ipa-${{ github.run_number }}
+          path: |
+            ${{ github.workspace }}/build/export/*.ipa
+            ${{ github.workspace }}/build/export/*.plist
+          if-no-files-found: warn
+          retention-days: 14
+
+      - name: Validate binary
+        # On a tag push `inputs.submit` is empty, and GitHub's loose equality
+        # makes empty == false — so test the event explicitly rather than
+        # letting tag releases silently skip the upload.
+        if: github.event_name == 'push' || inputs.submit
+        run: |
+          ipa=$(ls "$EXPORT_DIR"/*.ipa | head -1)
+          xcrun altool --validate-app \
+            -f "$ipa" -t ios \
+            --apiKey "$ASC_KEY_ID" --apiIssuer "$ASC_ISSUER_ID"
+
+      - name: Upload to TestFlight
+        # On a tag push `inputs.submit` is empty, and GitHub's loose equality
+        # makes empty == false — so test the event explicitly rather than
+        # letting tag releases silently skip the upload.
+        if: github.event_name == 'push' || inputs.submit
+        run: |
+          ipa=$(ls "$EXPORT_DIR"/*.ipa | head -1)
+          # --upload-app is soft-deprecated in favour of --upload-package, but
+          # --upload-package additionally requires the app record's numeric
+          # Apple ID plus bundle id/version flags. Switch once the app record
+          # exists and that number is known; --upload-app still works today.
+          xcrun altool --upload-app \
+            -f "$ipa" -t ios \
+            --apiKey "$ASC_KEY_ID" --apiIssuer "$ASC_ISSUER_ID"
+
+      - name: Scrub credentials
+        if: always()
+        run: rm -rf "$HOME/.appstoreconnect/private_keys"

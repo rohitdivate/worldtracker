@@ -130,7 +130,7 @@ struct PlacesListView: View {
     private var flatList: some View {
         VStack(alignment: .leading, spacing: 8) {
             Text(sort.rawValue.uppercased())
-                .font(.system(size: 10, weight: .bold, design: .monospaced))
+                .font(Theme.numeric(10, weight: .bold))
                 .tracking(1)
                 .foregroundStyle(Theme.ink3)
                 .padding(.top, 2)
@@ -159,7 +159,7 @@ struct PlacesListView: View {
     private func summaryTile(value: Int, label: String) -> some View {
         VStack(spacing: 1) {
             Text("\(value)")
-                .font(.system(size: 20, weight: .heavy, design: .rounded))
+                .font(Theme.display(20, weight: .heavy))
                 .foregroundStyle(Theme.auroraGradient)
                 .contentTransition(.numericText())
             Text(label)
@@ -228,7 +228,7 @@ struct PlacesListView: View {
                             .font(.system(size: 16, weight: .bold))
                             .foregroundStyle(Theme.ink)
                         Text("\(countryPlaces.count)")
-                            .font(.system(size: 11, weight: .heavy, design: .rounded))
+                            .font(Theme.display(11, weight: .heavy))
                             .foregroundStyle(Theme.aurora1)
                             .padding(.horizontal, 7)
                             .padding(.vertical, 2)
@@ -262,7 +262,7 @@ struct PlacesListView: View {
         return ForEach(cityOrder, id: \.self) { city in
             VStack(alignment: .leading, spacing: 7) {
                 Text("\(city.uppercased()) · \(byCity[city]?.count ?? 0)")
-                    .font(.system(size: 10, weight: .bold, design: .monospaced))
+                    .font(Theme.numeric(10, weight: .bold))
                     .tracking(0.8)
                     .foregroundStyle(Theme.ink3)
                     .padding(.top, 4)
@@ -385,7 +385,7 @@ struct PlaceRow: View {
                         .foregroundStyle(Theme.ink3)
                 } else {
                     Text("\(place.visitCount)")
-                        .font(.system(size: 15, weight: .heavy, design: .rounded))
+                        .font(Theme.display(15, weight: .heavy))
                         .foregroundStyle(Theme.aurora1)
                     Text(place.visitCount == 1 ? "VISIT" : "VISITS")
                         .font(.system(size: 7.5, weight: .bold))

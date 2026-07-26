@@ -166,6 +166,94 @@ def check_plists():
             )
 
 
+def check_themes():
+    """Themes span three files in two targets — keep them in step.
+
+    The Kit owns the palette data; the app and widget each map it to SwiftUI
+    colours. A token added to one target but not the other compiles fine and
+    only shows up as an unthemed surface on device, so check it here.
+    """
+    palettes = os.path.join(
+        ROOT, "WorldTrackerKit", "Sources", "WorldTrackerKit", "Design", "ThemePalettes.swift"
+    )
+    if not os.path.isfile(palettes):
+        err("WorldTrackerKit Design/ThemePalettes.swift missing")
+        return
+    with open(palettes, encoding="utf-8") as f:
+        kit = f.read()
+
+    cases = re.findall(r"^\s{4}case (\w+)$", kit, re.M)
+    if len(cases) < 2:
+        err(f"ThemePalettes: expected at least 2 ThemeID cases, found {cases}")
+
+    # Every case needs a `static let <case> = ThemePalette(` definition and a
+    # branch in palette(for:) — a missing one is a crash or a silent fallback.
+    for case in cases:
+        if case in ("standard", "rounded", "serif", "monospaced"):
+            continue  # FontDesignToken cases, not themes
+        if f"static let {case} = ThemePalette(" not in kit:
+            err(f"ThemePalettes: ThemeID.{case} has no palette definition")
+        if f"case .{case}:" not in kit:
+            err(f"ThemePalettes: ThemeID.{case} missing from palette(for:)")
+
+    # Tokens declared on ThemePalette must be surfaced by both targets, or one
+    # of them silently keeps a stale hardcoded value.
+    struct = re.search(r"public struct ThemePalette: Sendable \{(.*?)\n\}", kit, re.S)
+    tokens = set(re.findall(r"public let (\w+): ColorToken", struct.group(1) if struct else ""))
+    if not tokens:
+        err("ThemePalettes: no ColorToken properties found on ThemePalette")
+
+    for target, path, prefix in (
+        ("app", os.path.join(ROOT, "WorldTracker", "DesignSystem", "Theme.swift"), "Theme"),
+        ("widget", os.path.join(ROOT, "BeenThereWidgets", "WidgetTheme.swift"), "WTheme"),
+    ):
+        if not os.path.isfile(path):
+            err(f"{prefix}: {path} missing")
+            continue
+        with open(path, encoding="utf-8") as f:
+            body = f.read()
+        # Both must bridge Kit tokens rather than redeclaring raw colours.
+        if "palette." not in body:
+            err(f"{prefix} ({target}) does not read from the shared palette")
+        if re.search(r"static let \w+ = Color\(red:", body):
+            err(f"{prefix} ({target}) still declares hardcoded Color constants")
+
+    # Wrapped renders a full-screen story that stays dark in every theme, so
+    # its views must read Story.* (the always-dark story palette) rather than
+    # Theme.*. Using Theme here is what made the light theme's Wrapped
+    # unreadable: dark ink and cream cards on a story surface.
+    # ShareCards.swift is deliberately excluded — it renders onto StaticAurora,
+    # a themed ground, so Theme is correct there.
+    story_views = ("WrappedView.swift", "WrappedPages.swift")
+    for name in story_views:
+        path = os.path.join(ROOT, "WorldTracker", "Features", "Wrapped", name)
+        if not os.path.isfile(path):
+            err(f"Wrapped: {name} missing")
+            continue
+        with open(path, encoding="utf-8") as f:
+            body = f.read()
+        stray = re.findall(r"\bTheme\.\w+", body)
+        if stray:
+            err(
+                f"{name} uses {sorted(set(stray))} — story views must use Story.*, "
+                "which stays dark on every theme"
+            )
+
+    story_theme = os.path.join(ROOT, "WorldTracker", "Features", "Wrapped", "StoryTheme.swift")
+    if not os.path.isfile(story_theme):
+        err("Wrapped: StoryTheme.swift missing (defines the Story tokens)")
+    elif "storyPalette" not in open(story_theme, encoding="utf-8").read():
+        err("StoryTheme: must resolve to the Kit's storyPalette")
+
+    # The widget renders in its own process and can only learn the choice
+    # through the App Group.
+    widget_theme = os.path.join(ROOT, "BeenThereWidgets", "WidgetTheme.swift")
+    if os.path.isfile(widget_theme):
+        with open(widget_theme, encoding="utf-8") as f:
+            if "appGroupID" not in f.read():
+                err("WidgetTheme: must read the selected theme from the App Group")
+
+
 def check_assets():
     for cj in glob.glob(os.path.join(ROOT, "WorldTracker", "Assets.xcassets", "**", "Contents.json"), recursive=True):
         try:
@@ -184,6 +272,7 @@ def main():
     check_pbxproj()
     check_scheme()
     check_plists()
+    check_themes()
     check_assets()
     if errors:
         for e in errors:

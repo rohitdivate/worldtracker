@@ -208,7 +208,7 @@ struct MonthGridView: View {
                     .font(.system(size: 17, weight: .bold))
                     .foregroundStyle(Theme.ink)
                 Text(String(month.year))
-                    .font(.system(size: 12, weight: .medium, design: .monospaced))
+                    .font(Theme.numeric(12, weight: .medium))
                     .foregroundStyle(Theme.ink3)
                 Spacer()
                 if hasData {

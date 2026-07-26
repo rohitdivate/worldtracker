@@ -415,3 +415,54 @@ Tick them off before moving on.
       Reduce Motion shows one static frame briefly instead of the sweep
 - [ ] "Finish setting up" card: tapping ✕ dismisses it IMMEDIATELY (no
       relaunch needed); the Timeline row's Skip also updates in place
+
+## X7 — Selectable themes (v4.4)
+
+Three themes, colour + typography only. No behaviour changes anywhere, so
+anything that *acts* differently after a switch is a bug.
+
+- [ ] Settings → Appearance lists three rows — Night Flight, Tropical Spritz,
+      Mercury Dark — each with a swatch showing that theme's own ground and
+      two accents, and a checkmark on the active one
+- [ ] **Night Flight is unchanged.** Fresh install lands on it and every
+      screen looks exactly as it did before themes existed — this is the
+      regression that matters most, since it's what existing users see
+- [ ] Switching applies immediately across Home, Calendar, Globe, Places and
+      Settings — no relaunch, no half-themed screen
+- [ ] **Tropical Spritz (light):** status bar flips to dark content; no
+      white-on-cream text anywhere. Check specifically the flag chips (ring
+      and the split-flag divider), the mini globe, empty states, and the
+      setup checklist card
+- [ ] **Mercury Dark:** near-black grounds, lime accents, mono numerals on
+      counters and stats
+- [ ] Fonts shift on headers and big numbers only — Tropical gets a serif
+      display face, Mercury gets mono numerals. Body copy and controls are
+      untouched
+- [ ] Home-screen widgets follow within a few seconds of switching (all
+      sizes), and so does the Live Activity if a trip is active. Requires the
+      App Group — without it widgets stay Night Flight rather than crashing
+- [ ] The choice survives a force-quit and relaunch
+- [ ] Photo lightbox and Wrapped stay black in every theme — intentional, not
+      a miss
+- [ ] Share cards render in the active theme
+- [ ] Switch themes with VoiceOver on: each row announces its name, selected
+      state, and tagline
+
+### X7a — Year in Travel on a non-default theme
+
+Wrapped is a full-screen story and stays dark in every theme. The aurora
+behind it is the visible ground, so it uses the story palette, not the app one.
+
+- [ ] Open Year in Travel on **Tropical Spritz**: the story is dark (warm
+      near-black), NOT cream. Progress bars, the ✕ and the share button are
+      visible against it
+- [ ] Its accents are the bright reference pastels — lagoon, hibiscus, mango,
+      margarita — which only work on a dark ground and are deliberately
+      brighter here than the same tokens elsewhere in the app
+- [ ] Open it on **Mercury Dark**: near-black with lime accents; tertiary
+      labels (dates, small captions) are readable, not ghosted
+- [ ] Every page: opener, countries, travel days, podium, longest trip, first
+      visits, map, photos, closer — no invisible text on any of them
+- [ ] The Wrapped **share cards** are the exception and DO follow the app
+      theme, because they render on their own themed ground rather than on the
+      story surface. On Tropical they should be cream with dark text

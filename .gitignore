@@ -8,3 +8,8 @@ Tools/geodata/raw/
 __pycache__/
 *.pyc
 .claude/settings.local.json
+
+# Release artifacts from the archive step (see docs/RELEASE.md).
+/build/
+*.xcarchive
+*.ipa

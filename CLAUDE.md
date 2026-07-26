@@ -11,11 +11,11 @@ iCloud). iOS 18+, Xcode 16+.
 | Path | What it is |
 | --- | --- |
 | `WorldTracker/` | App target: SwiftUI screens (`Features/`), services (`Services/`), SwiftData models (`Data/`), design tokens (`DesignSystem/`) |
-| `WorldTrackerKit/` | Local Swift package holding **all pure logic** — day resolver, offline geocoding, epoch-day math, photo clustering. Tests run on Linux, no Xcode needed |
+| `WorldTrackerKit/` | Local Swift package holding **all pure logic** — day resolver, offline geocoding, epoch-day math, photo clustering, theme palettes. Tests run on Linux, no Xcode needed |
 | `BeenThereWidgets/` | WidgetKit extension (`.appex`, embedded in the app's PlugIns) |
 | `Config/` | Info.plists and entitlements for both targets |
 | `Tools/` | `check.sh` (pre-commit gate), `validate_project.py` (invariants), geodata build scripts |
-| `docs/` | `ARCHITECTURE.md`, `VERIFICATION.md` (on-device QA checklists), `SETUP_MAC.md`, `APP_STORE.md` |
+| `docs/` | `ARCHITECTURE.md`, `VERIFICATION.md` (on-device QA checklists), `SETUP_MAC.md`, `APP_STORE.md`, `RELEASE.md` |
 
 ## Commands
 
@@ -37,6 +37,22 @@ backstop: `.github/workflows/kit-tests.yml` (Linux) and `ios-build.yml` (macOS).
 Only the Kit compiles off a Mac. On Linux, `swift test --package-path
 WorldTrackerKit` is the most verification available — the app target needs
 `xcodebuild`.
+
+## Releasing
+
+`docs/APP_STORE.md` is the by-hand, sitting-at-a-Mac path. `docs/RELEASE.md`
+covers the Mac-free one: `.github/workflows/testflight.yml` archives, signs and
+uploads to TestFlight on a hosted macOS runner, using an App Store Connect API
+key with `-allowProvisioningUpdates` instead of managed certificates.
+
+**It has never produced a build** — it's blocked on Apple credentials, so don't
+describe it as working. Signing is the untested part; the compile path is the
+same one `ios-build.yml` exercises on every push.
+
+This project is pure Swift with **no JavaScript, Expo, or React Native**. An EAS
+Build scaffold was trialled as an alternative and removed; `docs/RELEASE.md`
+records why. If you find yourself adding a `package.json` here, re-read that
+section first.
 
 ## The model: facts in, verdicts computed
 
@@ -76,6 +92,42 @@ Consequences worth internalising:
 `LedgerStore` (app side) caches resolution and bumps `changeToken` when
 `.ledgerDidChange` posts; views read `store.changeToken` to refresh. Batch
 writes so one user action produces one save and one notification.
+
+## Themes
+
+Three selectable skins — Night Flight (default), Tropical Spritz (light),
+Mercury Dark. Colour and typography only; no theme changes behaviour.
+
+**Palette data lives in the Kit**
+(`WorldTrackerKit/Sources/WorldTrackerKit/Design/ThemePalettes.swift`) as plain
+RGBA numbers, because SwiftUI doesn't exist on Linux and this is the only part
+of the design system that can be tested without a Mac. The app's `Theme` and
+the widget's `WTheme` each map `ColorToken` → `Color`. That's what killed the
+old hand-synced duplication between those two files — don't reintroduce it.
+
+Things to know before touching this:
+
+- **`Theme.x` tokens are computed, not constants.** That's deliberate: it let
+  ~619 existing call sites keep working while the palette swaps underneath.
+  Adding a token means adding it to `ThemePalette` (which forces all three
+  palettes to supply it) and surfacing it on both `Theme` and `WTheme`.
+  `validate_project.py` checks that.
+- **SwiftUI can't observe a static**, so the root view is keyed on the
+  selection — `.id(themeID)` in `WorldTrackerApp` is what makes a switch
+  render. Removing it makes theme changes appear to do nothing until relaunch.
+- **`ThemeStore.select(_:)` is the only place to change theme.** It persists,
+  mirrors the id into the App Group for the widgets, swaps `Theme.palette`,
+  and reloads widget timelines. Writing the default directly skips three of
+  those four.
+- **The light theme is where bugs hide.** A hardcoded `Color.white` looks fine
+  in two themes and vanishes in Tropical Spritz. `Theme.gloss` exists for
+  exactly that case.
+- Accent colours are painted as *foreground ink* here, not as fills, so
+  palettes are contrast-tested against every ground in `ThemePaletteTests` —
+  Tropical's source pastels failed at 1.65:1 and are deliberately darkened
+  from the design reference.
+- Photo lightbox and Wrapped stay black in every theme, on purpose. Both say
+  so in a comment.
 
 ## Repo gotchas
 
