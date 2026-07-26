@@ -95,6 +95,67 @@ Nothing. This repo is public, so GitHub-hosted macOS runners are free.
 
 ---
 
+## Getting a build onto your phone
+
+Three routes, and it's worth being clear about what each can and can't do.
+**Nothing installs an app on an iPhone from the cloud** — iOS has no remote
+install path. Only TestFlight comes close, and it needs the paid programme.
+
+### Over Wi-Fi from your Mac — works today, no paid account
+
+`Tools/deploy_to_phone.sh` builds and installs to a network-paired iPhone with
+no cable:
+
+```bash
+Tools/deploy_to_phone.sh            # build, install, launch
+Tools/deploy_to_phone.sh --watch    # redeploy whenever the branch moves
+```
+
+Uses `xcrun devicectl` (Xcode 15+, iOS 17+), which is **transport-agnostic** —
+if wireless is being awkward, leave the cable in and everything still works.
+
+One-time wireless setup needs the cable once: plug in, unlock, Trust, let Xcode
+finish *Preparing device*. Then unplug and run `xcrun devicectl list devices`.
+If the phone is still listed, wireless is working.
+
+**Ignore the "Connect via network" checkbox.** Since iOS 17/Xcode 15 it is
+frequently greyed out while wireless works perfectly well — a known Apple bug,
+not a prerequisite. The devicectl listing is the source of truth.
+
+If the phone *isn't* listed after unplugging: iOS 17+ discovery is mDNS on TCP
+49152 and link-local, so it's usually one of — Mac and phone on different
+networks (Ethernet vs Wi-Fi counts as different), a VPN on either device,
+router client isolation or disabled Wi-Fi multicast, or the macOS firewall in
+stealth mode. Note that since iOS 17 even cabled debugging needs local network
+access, so a strict firewall breaks both.
+
+A free Personal Team works; the app just stops launching after 7 days.
+
+`--watch` polls the upstream branch and redeploys on every new commit, which is
+the closest thing to "install on merge" that doesn't involve Apple — but it
+needs this Mac awake. It cannot run in CI: installing to a physical device
+requires a device paired to that machine, and a hosted runner has none.
+
+### On merge, via TestFlight — needs the paid programme
+
+`testflight.yml` fires on every push to the default branch, so a merged PR
+becomes a TestFlight build with nobody pressing anything. Turn on **Automatic
+Updates** in the TestFlight app on your phone and new builds install
+themselves, roughly 10–15 minutes after the merge (Apple's processing time).
+
+That is genuinely hands-off, and it's the only route that works with no Mac
+involved at all.
+
+Automatic runs are gated on the `APP_BUNDLE_ID` repository variable being set,
+so merges don't turn the repo red before release is configured. A manual
+**Run workflow** always runs and fails loudly in preflight if something's
+missing — you asked for it explicitly, so silence would be worse.
+
+### By cable from Xcode
+
+The README path. Press ▶. Fine for one-offs, but there's no reason to keep
+using it once wireless pairing is set up.
+
 ## Expected first failure
 
 **App Group provisioning.** It's the classic headless-iOS-signing wall. If

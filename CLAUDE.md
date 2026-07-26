@@ -23,6 +23,7 @@ iCloud). iOS 18+, Xcode 16+.
 Tools/check.sh                                   # the pre-commit gate — prefer this
 swift test --package-path WorldTrackerKit        # the real logic tests
 python3 Tools/validate_project.py                # project / plist / asset invariants
+Tools/deploy_to_phone.sh [--watch]               # build → network-paired iPhone, no cable (Mac only)
 
 # Compile the app — same invocation as CI, and the authoritative check
 xcodebuild -project WorldTracker.xcodeproj -scheme WorldTracker \

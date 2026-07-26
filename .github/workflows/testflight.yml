@@ -3,9 +3,10 @@ name: testflight
 # Route A of the Mac-free release experiment: archive, sign and ship to
 # TestFlight entirely on a GitHub-hosted macOS runner. See docs/RELEASE.md.
 #
-# Deliberately NOT triggered on push/pull_request — ios-build.yml stays the
-# fast unsigned PR gate, and this one costs real minutes and a real build
-# number. Run it by hand, or by pushing a v* tag.
+# Fires on every merge to the default branch, so a merged PR becomes a
+# TestFlight build without anyone pressing anything. Pull requests are NOT
+# included — ios-build.yml stays the fast unsigned PR gate, and this one costs
+# real minutes and burns a build number.
 on:
   workflow_dispatch:
     inputs:
@@ -14,6 +15,8 @@ on:
         type: boolean
         default: true
   push:
+    branches:
+      - claude/ios-location-travel-tracker-o5galw
     tags:
       - "v*"
 
@@ -27,6 +30,11 @@ jobs:
     name: Archive, sign, upload
     runs-on: macos-15
     timeout-minutes: 60
+    # Automatic runs stay quiet until release is actually configured — nobody
+    # wants every merge going red for weeks while Apple enrolment is pending.
+    # An explicit "Run workflow" always runs, and fails loudly in preflight if
+    # something's missing, because then you asked for it.
+    if: github.event_name == 'workflow_dispatch' || vars.APP_BUNDLE_ID != ''
     env:
       # Xcode resolves signing through the App Store Connect API key rather
       # than a keychain-imported .p12, so nothing secret is written into the
