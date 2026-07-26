@@ -111,14 +111,25 @@ Tools/deploy_to_phone.sh            # build, install, launch
 Tools/deploy_to_phone.sh --watch    # redeploy whenever the branch moves
 ```
 
-One-time setup needs the cable exactly once: plug in, unlock, Trust, then
-Xcode → Window → Devices and Simulators (⇧⌘2) → select the phone → tick
-**Connect via network**. Once the globe icon appears, unplug — from then on
-it's Wi-Fi, provided the Mac and phone share a network and the phone is awake
-and unlocked.
+Uses `xcrun devicectl` (Xcode 15+, iOS 17+), which is **transport-agnostic** —
+if wireless is being awkward, leave the cable in and everything still works.
 
-Uses `xcrun devicectl` (Xcode 15+, iOS 17+). A free Personal Team works; the
-app just stops launching after 7 days.
+One-time wireless setup needs the cable once: plug in, unlock, Trust, let Xcode
+finish *Preparing device*. Then unplug and run `xcrun devicectl list devices`.
+If the phone is still listed, wireless is working.
+
+**Ignore the "Connect via network" checkbox.** Since iOS 17/Xcode 15 it is
+frequently greyed out while wireless works perfectly well — a known Apple bug,
+not a prerequisite. The devicectl listing is the source of truth.
+
+If the phone *isn't* listed after unplugging: iOS 17+ discovery is mDNS on TCP
+49152 and link-local, so it's usually one of — Mac and phone on different
+networks (Ethernet vs Wi-Fi counts as different), a VPN on either device,
+router client isolation or disabled Wi-Fi multicast, or the macOS firewall in
+stealth mode. Note that since iOS 17 even cabled debugging needs local network
+access, so a strict firewall breaks both.
+
+A free Personal Team works; the app just stops launching after 7 days.
 
 `--watch` polls the upstream branch and redeploys on every new commit, which is
 the closest thing to "install on merge" that doesn't involve Apple — but it

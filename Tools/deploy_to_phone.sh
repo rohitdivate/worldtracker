@@ -5,12 +5,24 @@
 #   Tools/deploy_to_phone.sh --watch      # same, every time the branch moves
 #   Tools/deploy_to_phone.sh --device ID  # pick a specific device
 #
-# ONE-TIME SETUP (needs the cable exactly once):
-#   1. Plug the iPhone in, unlock, Trust.
-#   2. Xcode → Window → Devices and Simulators (⇧⌘2) → select the phone →
-#      tick "Connect via network". Wait for the globe icon to appear.
-#   3. Unplug. From here on it's Wi-Fi, as long as Mac and phone share a
-#      network and the phone is unlocked and awake.
+# WORKS OVER CABLE TOO. devicectl doesn't care about the transport, so if
+# wireless is being difficult just leave the phone plugged in — everything
+# below still applies.
+#
+# ONE-TIME WIRELESS SETUP (needs the cable exactly once):
+#   1. Plug the iPhone in, unlock, Trust, let Xcode finish "Preparing device".
+#   2. Unplug, then check:  xcrun devicectl list devices
+#      If the phone is still listed, wireless is working — you're done.
+#
+# Note step 2 does NOT mention ticking "Connect via network" in Xcode. Since
+# iOS 17/Xcode 15 that checkbox is frequently greyed out while wireless works
+# anyway; it's a known Apple bug, not a prerequisite. Trust the devicectl
+# listing, not the checkbox.
+#
+# If the phone ISN'T listed after unplugging, iOS 17+ discovery is mDNS on TCP
+# 49152 and link-local, so the usual culprits are: Mac and phone on different
+# networks (Ethernet vs Wi-Fi counts), a VPN on either device, router client
+# isolation or disabled Wi-Fi multicast, or the macOS firewall in stealth mode.
 #
 # Requires Xcode 15+ and iOS 17+ (this is the devicectl flow). A free Personal
 # Team is fine — the app just expires after 7 days.
@@ -77,10 +89,15 @@ PY
     )
   fi
 
-  [ -n "${found:-}" ] || die "no paired device found.
-  Check: xcrun devicectl list devices
-  The phone must be awake, unlocked, on the same Wi-Fi, and have had
-  'Connect via network' ticked in Xcode at least once."
+  [ -n "${found:-}" ] || die "no device found.
+  Check with: xcrun devicectl list devices
+
+  The phone must be awake, unlocked, and paired with this Mac. If you're going
+  wireless, both must be on the same network with no VPN — and don't go by the
+  'Connect via network' checkbox in Xcode, which is greyed out on iOS 17+ even
+  when wireless works fine.
+
+  Plugging the cable back in also works: this script is transport-agnostic."
   echo "$found"
 }
 
