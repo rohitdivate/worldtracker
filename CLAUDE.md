@@ -16,7 +16,6 @@ iCloud). iOS 18+, Xcode 16+.
 | `Config/` | Info.plists and entitlements for both targets |
 | `Tools/` | `check.sh` (pre-commit gate), `validate_project.py` (invariants), geodata build scripts |
 | `docs/` | `ARCHITECTURE.md`, `VERIFICATION.md` (on-device QA checklists), `SETUP_MAC.md`, `APP_STORE.md`, `RELEASE.md` |
-| `package.json`, `app.json`, `eas.json`, `.eas/` | **Build infrastructure only** — an EAS Build shim. Been There ships no JavaScript; nothing here goes in the app. See `docs/RELEASE.md` |
 
 ## Commands
 
@@ -42,11 +41,18 @@ WorldTrackerKit` is the most verification available — the app target needs
 ## Releasing
 
 `docs/APP_STORE.md` is the by-hand, sitting-at-a-Mac path. `docs/RELEASE.md`
-covers the two Mac-free CI pipelines — GitHub Actions (`testflight.yml`) and
-EAS Build (`.eas/build/`) — which exist side by side so they can be compared.
-**Neither has shipped a build yet**; both are blocked on Apple credentials, and
-the losing one gets deleted once that's settled. Don't treat the EAS scaffold
-as a sign this project uses Expo or React Native — it doesn't.
+covers the Mac-free one: `.github/workflows/testflight.yml` archives, signs and
+uploads to TestFlight on a hosted macOS runner, using an App Store Connect API
+key with `-allowProvisioningUpdates` instead of managed certificates.
+
+**It has never produced a build** — it's blocked on Apple credentials, so don't
+describe it as working. Signing is the untested part; the compile path is the
+same one `ios-build.yml` exercises on every push.
+
+This project is pure Swift with **no JavaScript, Expo, or React Native**. An EAS
+Build scaffold was trialled as an alternative and removed; `docs/RELEASE.md`
+records why. If you find yourself adding a `package.json` here, re-read that
+section first.
 
 ## The model: facts in, verdicts computed
 

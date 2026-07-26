@@ -1,66 +1,62 @@
 # Releasing without a Mac
 
 `README.md` and `docs/APP_STORE.md` both assume you're sitting at a Mac with
-Xcode. This page is the alternative: get a build to TestFlight from CI, with no
-Mac in the loop.
+Xcode. This page is the alternative: archive, sign and upload to TestFlight from
+CI, with no Mac in the loop.
 
-Two pipelines are wired up so they can be compared head-to-head. **Both are
-unproven until someone with an Apple Developer account runs them** — see
-[Status](#status) at the bottom. Once one wins, delete the other; two
-half-maintained release pipelines are worse than either alone.
+**Status: unproven.** The workflow is written and its configuration validated,
+but it has never produced a build — it's blocked on the Apple-side
+prerequisites below. Treat it as ready to try, not as known-good.
 
 ---
 
-## What you need first (both routes)
+## What you need first
 
-Nothing below works without these. They're all Apple-side, and none of them can
-be automated away.
+All Apple-side, none of it automatable.
 
 1. **Apple Developer Program membership**, $99/yr. `docs/APP_STORE.md` §1 walks
    through enrolment. A free Personal Team can install on your own phone but
    cannot ship to TestFlight.
 2. **A real bundle identifier.** The repo ships the placeholder
-   `com.example.worldtracker` and will keep shipping it — see
-   [Bundle identifier](#bundle-identifier) for how each route overrides it.
+   `com.example.worldtracker` and keeps shipping it — see
+   [Bundle identifier](#bundle-identifier).
 3. **An App Store Connect API key.** App Store Connect → Users and Access →
    Integrations → App Store Connect API → generate a key with the **App
    Manager** role. You get a one-time `.p8` download plus a **Key ID** and an
    **Issuer ID**. The `.p8` cannot be re-downloaded.
 4. **An app record** in App Store Connect (`docs/APP_STORE.md` §3), and the App
-   Group `group.<your-bundle-id>` enabled on both the app and the
-   `.widgets` App IDs.
+   Group `group.<your-bundle-id>` enabled on both the app and the `.widgets`
+   App IDs.
 
 > **Never commit the `.p8`, Key ID, Issuer ID, or Team ID.** This repository is
-> public. They belong in GitHub Actions secrets or EAS secrets only.
+> public. They belong in GitHub Actions secrets only.
 
 ### Bundle identifier
 
 Been There derives every identifier from one build setting, `APP_BUNDLE_ID`
 (`WorldTracker.xcodeproj/project.pbxproj`). The widget becomes
 `$(APP_BUNDLE_ID).widgets` and both entitlements interpolate
-`group.$(APP_BUNDLE_ID)`, so there is exactly one value to change.
+`group.$(APP_BUNDLE_ID)`, so there is exactly one value to change —
+`Tools/validate_project.py` enforces that it stays that way.
 
-- **Route A** reads it from the repository *variable* `APP_BUNDLE_ID` and
-  passes it to `xcodebuild` on the command line. Nothing to commit.
-- **Route B** needs it committed in `app.json` (`expo.ios.bundleIdentifier`)
-  for EAS credential management to work, and it must match `APP_BUNDLE_ID` in
-  the pbxproj. That's a real point against Route B: the value has to live in
-  two places and be committed to a public repo.
+The release workflow reads it from the repository *variable* `APP_BUNDLE_ID` and
+passes it to `xcodebuild` on the command line, so the real identifier never has
+to be committed to a public repo.
 
 ---
 
-## Route A — GitHub Actions
+## The pipeline
 
-Extends what already exists: `.github/workflows/ios-build.yml` has been
-compiling this project on a `macos-15` runner all along. The new
-`.github/workflows/testflight.yml` adds signing and upload.
+`.github/workflows/testflight.yml`, running on `macos-15`. It sits alongside
+`ios-build.yml`, which stays the fast unsigned PR gate and is left untouched.
 
-**Why this is simpler than most iOS CI guides:** since Xcode 13, `xcodebuild`
-accepts an App Store Connect API key directly. Passing `-allowProvisioningUpdates`
-alongside `-authenticationKeyPath` / `-authenticationKeyID` /
-`-authenticationKeyIssuerID` lets Xcode create the distribution certificate and
-**both** provisioning profiles on the runner. No fastlane match, no `.p12`, no
-keychain import, no certificate rotation chore.
+**Why this is shorter than most iOS CI recipes:** since Xcode 13, `xcodebuild`
+accepts an App Store Connect API key directly. Passing
+`-allowProvisioningUpdates` alongside `-authenticationKeyPath` /
+`-authenticationKeyID` / `-authenticationKeyIssuerID` lets Xcode create the
+distribution certificate and **both** provisioning profiles — app and widget
+extension — on the runner. No fastlane match, no `.p12`, no keychain import, no
+certificate rotation chore.
 
 ### Setup
 
@@ -74,135 +70,74 @@ Repository → Settings → Secrets and variables → Actions:
 | Secret | `APPLE_TEAM_ID` | 10-character Team ID from developer.apple.com |
 | Variable | `APP_BUNDLE_ID` | e.g. `com.rohitdivate.beenthere` |
 
-### Running
+The workflow preflights all of these and fails with a named list rather than
+dying deep inside `xcodebuild`.
 
-Actions → **testflight** → Run workflow. Untick *submit* for a dry run that
-archives and exports but uploads nothing — worth doing first. Pushing a `v*`
-tag also triggers a full release.
+### Running it
+
+Actions → **testflight** → Run workflow. **Untick *submit* for the first run** —
+that archives and exports but uploads nothing, which is the cheap way to shake
+out signing problems. Pushing a `v*` tag runs a full release including upload.
+
+The `.ipa` and `.xcarchive` are uploaded as workflow artifacts before the
+submission step, so a rejected binary doesn't cost another archive.
+
+### Versioning
 
 The build number comes from `github.run_number`, injected as
-`CURRENT_PROJECT_VERSION`. It is never committed, so the pbxproj stays clean
-and TestFlight never sees a duplicate. `MARKETING_VERSION` stays hand-bumped in
-the project file.
+`CURRENT_PROJECT_VERSION`. It's never committed: TestFlight rejects duplicate
+build numbers, and this keeps the pbxproj clean while guaranteeing uniqueness.
+`MARKETING_VERSION` stays committed and hand-bumped for real version changes.
 
-**Cost: nothing.** This repo is public, so GitHub-hosted macOS runners are
-free.
+### Cost
 
----
-
-## Route B — EAS Build
-
-Uses the EAS project `6b375751-24ae-4a1d-828c-b2bac2ff718d`. Expo's docs state
-that [EAS Build is designed to work for any native project, whether or not you
-use Expo and React Native](https://docs.expo.dev/build/introduction/), via
-[custom builds](https://docs.expo.dev/custom-builds/get-started/).
-
-Files added: `package.json` and `app.json` (shims — nothing ships in the app),
-`eas.json`, and `.eas/build/{smoke,ios}.yml`.
-
-Two things make a native-only project work:
-
-- **`package.json` is mandatory** even with no JavaScript, and the `expo`
-  package must be installed for the build functions to resolve project context.
-- **EAS looks for the Xcode project under `./ios`.** Been There keeps
-  `WorldTracker.xcodeproj` at the repo root, so both build configs run
-  `ln -sf . ios` to present the root as a prebuilt iOS project. Nothing moves;
-  the hand-authored pbxproj is untouched.
-
-### Smoke test first
-
-The genuinely uncertain part of this route is whether EAS runs a zero-JavaScript
-native repo at all. `.eas/build/smoke.yml` tests exactly that, with
-`withoutCredentials` so it cannot touch your Apple account:
-
-```bash
-npx eas-cli@latest build -p ios -e smoke
-```
-
-It checks out, symlinks `ios`, compiles unsigned, and runs
-`Tools/validate_project.py`. **If this fails, stop — Route B is dead** and
-Route A is the answer.
-
-### Full build
-
-```bash
-npx eas-cli@latest build -p ios -e production
-npx eas-cli@latest submit -p ios
-```
-
-Before submitting, replace the `ascAppId` placeholder in `eas.json` with the
-app record's numeric Apple ID from App Store Connect.
-
-Credentials are EAS-managed: it detects the `BeenThereWidgets` app extension
-from the Xcode project and [generates credentials for each
-target](https://docs.expo.dev/build-reference/app-extensions/), covering the
-widget's separate bundle id. That automatic handling of the second target is
-the one place Route B may genuinely beat Route A.
-
-### Cost and fit
-
-The EAS free tier allows **15 iOS builds/month**, one concurrency, a
-low-priority queue and a 45-minute build timeout. The timeout is not a concern
-— the unsigned build of this project finishes in about a minute — and 15
-builds/month is workable for a solo release cadence. Paid tiers start at
-$19/month. Route A costs nothing at any volume, because the repo is public.
-
-Worth weighing more than the price: **Expo's own homepage names this project's
-exact situation as a reason to look elsewhere**, listing "your app is
-exclusively native Swift or Kotlin with no cross-platform requirement" among
-the cases where alternatives make more sense. EAS Build *does* support any
-native project, but Been There is not the use case it's designed around, and
-that shows up as friction throughout this route rather than as a single
-blocker.
-
-### The dependency cost — read this before choosing Route B
-
-`expo` is pinned to `57.0.8` (never `latest` — an unpinned dependency in a
-committed manifest is its own supply-chain risk). That single direct dependency
-resolves to **481 npm packages**, including `@react-native/debugger-frontend`,
-`node-forge`, `fast-xml-parser` and `yargs`. Socket Security flags several as
-"likely obfuscated" — that's its heuristic firing on minified bundles rather
-than evidence of anything malicious, and the checks pass at warn level.
-
-None of it ships inside the app. Been There stays pure Swift, and no JavaScript
-reaches the device. But it does mean a repo whose entire pitch is *no accounts,
-no servers, no analytics* would carry a React Native dependency tree in its
-build path, reviewed on every PR, and a new class of supply-chain exposure that
-Route A simply doesn't have.
-
-That's a judgement call, not a blocker — it's recorded here so it's made
-deliberately.
+Nothing. This repo is public, so GitHub-hosted macOS runners are free.
 
 ---
 
-## Status
+## Expected first failure
 
-Neither route has produced a TestFlight build yet. Both are blocked on the
-Apple Developer account and API key above. Fill this in as they run:
-
-| | Route A (GitHub Actions) | Route B (EAS) |
-| --- | --- | --- |
-| Smoke test passes | n/a | ☐ |
-| Archive + export succeeds | ☐ | ☐ |
-| Build reaches TestFlight | ☐ | ☐ |
-| Wall-clock per build | ☐ | ☐ |
-| Recurring cost | free, unlimited (public repo) | free ≤15 iOS builds/mo, then $19+/mo |
-| Vendor's own fit guidance | n/a | Expo lists native-only Swift apps as a reason to use alternatives |
-| Non-Swift files added | 2 | 5 + `node_modules` |
-| npm dependency tree | none | **481 packages** |
-| Bundle id committed? | no | yes |
-| Widget target signing | ☐ auto via `-allowProvisioningUpdates`? | ☐ auto via EAS? |
-
-### Known risk
-
-The likeliest first failure on **either** route is App Group provisioning. If
+**App Group provisioning.** It's the classic headless-iOS-signing wall. If
 signing fails on `group.<bundle-id>`, register the group manually at
 developer.apple.com → Identifiers → App Groups, enable it on both App IDs, and
-re-run.
+re-run. `-allowProvisioningUpdates` handles most capabilities unattended but is
+less reliable for App Groups specifically.
 
-### After deciding
+Second most likely: `xcrun altool --upload-app` is soft-deprecated in favour of
+`--upload-package`. It still works, and `--upload-package` needs the app
+record's numeric Apple ID plus explicit bundle/version flags — switch once that
+number exists if the deprecation ever turns into removal.
 
-Delete the losing route's files, and fold the winner into `docs/APP_STORE.md`
-(which currently assumes a Mac throughout). A hybrid is also legitimate: build
-in GitHub Actions, then upload with `eas submit --path`, which [accepts any
-correctly-signed `.ipa`](https://docs.expo.dev/submit/ios/).
+---
+
+## Why not Expo / EAS
+
+Worth recording, since the question started here and the EAS project
+`6b375751-24ae-4a1d-828c-b2bac2ff718d` still exists.
+
+EAS Build genuinely does support non-React-Native projects, and a working
+scaffold for it was built and then removed. It lost on:
+
+- **Dependency surface.** The one required `expo` dependency resolves to **481
+  npm packages**, including a React Native debugger frontend. None of it ships
+  in the app, but a project whose entire pitch is *no accounts, no servers, no
+  analytics* would carry that tree in its build path and re-review it on every
+  PR.
+- **Scaffolding.** It needs `package.json`, `app.json`, `eas.json` and
+  `.eas/build/*.yml` in a repo with no JavaScript, plus a `ln -sf . ios`
+  symlink because EAS expects the Xcode project under `ios/`. The bundle id
+  also has to be committed, in two places.
+- **Cost.** Free for 15 iOS builds/month, then $19+/month. GitHub Actions is
+  free at any volume here.
+- **Fit.** Expo's own homepage lists "your app is exclusively native Swift or
+  Kotlin with no cross-platform requirement" among the cases where alternatives
+  make more sense.
+
+The one thing EAS did better: it detects app extensions from the Xcode project
+and generates credentials per target automatically. If
+`-allowProvisioningUpdates` turns out to fight the widget's separate bundle id,
+that's the reason to reconsider — `git log` has the removed scaffold.
+
+A hybrid also remains available without any of the above: build in GitHub
+Actions and upload with `eas submit --path`, which [accepts any correctly-signed
+`.ipa`](https://docs.expo.dev/submit/ios/).
