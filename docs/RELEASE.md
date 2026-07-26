@@ -95,6 +95,56 @@ Nothing. This repo is public, so GitHub-hosted macOS runners are free.
 
 ---
 
+## Getting a build onto your phone
+
+Three routes, and it's worth being clear about what each can and can't do.
+**Nothing installs an app on an iPhone from the cloud** — iOS has no remote
+install path. Only TestFlight comes close, and it needs the paid programme.
+
+### Over Wi-Fi from your Mac — works today, no paid account
+
+`Tools/deploy_to_phone.sh` builds and installs to a network-paired iPhone with
+no cable:
+
+```bash
+Tools/deploy_to_phone.sh            # build, install, launch
+Tools/deploy_to_phone.sh --watch    # redeploy whenever the branch moves
+```
+
+One-time setup needs the cable exactly once: plug in, unlock, Trust, then
+Xcode → Window → Devices and Simulators (⇧⌘2) → select the phone → tick
+**Connect via network**. Once the globe icon appears, unplug — from then on
+it's Wi-Fi, provided the Mac and phone share a network and the phone is awake
+and unlocked.
+
+Uses `xcrun devicectl` (Xcode 15+, iOS 17+). A free Personal Team works; the
+app just stops launching after 7 days.
+
+`--watch` polls the upstream branch and redeploys on every new commit, which is
+the closest thing to "install on merge" that doesn't involve Apple — but it
+needs this Mac awake. It cannot run in CI: installing to a physical device
+requires a device paired to that machine, and a hosted runner has none.
+
+### On merge, via TestFlight — needs the paid programme
+
+`testflight.yml` fires on every push to the default branch, so a merged PR
+becomes a TestFlight build with nobody pressing anything. Turn on **Automatic
+Updates** in the TestFlight app on your phone and new builds install
+themselves, roughly 10–15 minutes after the merge (Apple's processing time).
+
+That is genuinely hands-off, and it's the only route that works with no Mac
+involved at all.
+
+Automatic runs are gated on the `APP_BUNDLE_ID` repository variable being set,
+so merges don't turn the repo red before release is configured. A manual
+**Run workflow** always runs and fails loudly in preflight if something's
+missing — you asked for it explicitly, so silence would be worse.
+
+### By cable from Xcode
+
+The README path. Press ▶. Fine for one-offs, but there's no reason to keep
+using it once wireless pairing is set up.
+
 ## Expected first failure
 
 **App Group provisioning.** It's the classic headless-iOS-signing wall. If
