@@ -1,6 +1,6 @@
 # App Store listing: the exact fields to paste
 
-Decided values for the 1.0 submission. `docs/APP_STORE.md` is the step-by-step
+Decided values for the first submission (version 2.0). `docs/APP_STORE.md` is the step-by-step
 walkthrough; this page is just the copy, so there's one place to change it.
 
 ## Identity
@@ -16,10 +16,10 @@ walkthrough; this page is just the copy, so there's one place to change it.
 The listing name and the home-screen name are deliberately different. The
 listing name is bought for search; the icon on the phone keeps the brand.
 
-## Keywords (100 char limit, 96 used)
+## Keywords (100 char limit, 97 used)
 
 ```
-residency,expat,nomad,passport,trip,journal,globe,flag,border,stay,history,timeline,visited,city
+schengen,visa,tax,183,residency,expat,nomad,limit,passport,trip,journal,globe,border,stay,visited
 ```
 
 No word here repeats one in the name or subtitle. Apple indexes name, subtitle,
@@ -27,10 +27,12 @@ keywords, developer name and IAP names, then combines words across those fields
 into phrases, so a repeat is a wasted character. The description is not indexed
 at all.
 
-Deliberately **excluded**: `183`, `schengen`, `visa`, `tax`. The app records
-days per country but computes no residency threshold, so those terms would draw
-users expecting a feature that isn't there (and risk a 2.3.7 metadata
-rejection). Add them the day a threshold feature ships.
+`schengen`, `visa`, `tax`, `183` and `limit` went in with 2.0, which ships day
+limits (Schengen 90/180, 183-day and tax-year rules, custom limits, forecasts
+over planned trips). They were held back before that so the listing never
+promised a feature the app lacked (guideline 2.3.7). The app states on the Day
+Limits screen that counts are a planning guide and not legal or tax advice;
+keep the description saying the same.
 
 ## Positioning
 
@@ -61,36 +63,32 @@ drifts from the repo.
 
 ## Screenshots
 
-> The committed screenshots predate the 2.0 redesign (they show Night Flight
-> and the old Home). Recapture all five on the Paper skin before submitting,
-> and add the iPhone Duo sizes (1398 × 2034 outer, 2007 × 2853 inner) once
-> Xcode 27.1 is available.
+Six panels at **1320 x 2868** (the 6.9-inch requirement), captured on an
+iPhone 17 Pro Max simulator on the Paper skin, against the synthetic photo
+library from `Tools/make_screenshot_library.py` plus three day-limit rules and
+two planned trips.
 
-
-Two sets, five shots each, both at **1320 × 2868** (the 6.9-inch requirement),
-captured on an iPhone 17 Pro Max simulator against a 464-photo synthetic
-library that resolves to 305 travel days across 18 countries.
-
-**Upload `docs/screenshots/framed/`.** Those are the composed panels: a caption
-over the device shot on the app's own indigo ground. `docs/screenshots/` holds
-the raw captures they're built from, kept because the compositor re-reads them.
+**Upload `docs/screenshots/framed/`.** Those are the composed panels: a mono
+label and a poster caption over the device shot, on the Paper ground.
+`docs/screenshots/` holds the raw captures they're built from, kept because
+the compositor re-reads them.
 
 | # | File | Caption | Shows |
 | --- | --- | --- | --- |
-| 1 | `01-overview.png` | Every day, logged automatically | Today's country, stat tiles, leaderboard |
-| 2 | `02-calendar.png` | A year of flags | A month of days, each wearing its flag |
-| 3 | `03-globe.png` | Your world, lit up | Lit countries, flight arcs, day chips |
-| 4 | `04-trips.png` | Trips it built for you | Derived trips with dates and durations |
-| 5 | `05-wrapped-days-away.png` | Days away from home | Year in Travel dot grid |
+| 1 | `01-overview.png` | Every day abroad, counted | Home: the globe, the day number, today's country |
+| 2 | `02-limit.png` | Know your days left | Schengen 90/180 detail: gauge, forecast, window |
+| 3 | `03-forecast.png` | See trouble before you book | Day Limits list with planned trips and warnings |
+| 4 | `04-calendar.png` | A year of flags | Months of days, each wearing its flag |
+| 5 | `05-passport.png` | Stamps for every country | Countries count, continent rings, stamps |
+| 6 | `06-countries.png` | Every country, ranked by days | World, Countries face |
 
-Shot 5 is the one that matches the listing name, so it's a good candidate to
-promote if the order is ever reshuffled.
+Shots 1 to 3 are the ones search results show inline, so they carry the
+listing name's promise: days counted, days left, days planned.
 
-Why captioned rather than bare captures: search results show roughly three
-screenshots inline, and most install decisions happen there without opening the
-listing page. At that size 11pt UI text is illegible but a five-word headline
-isn't. Guideline 2.3.3 wants screenshots to show the app in use, which real UI
-inside a frame satisfies; pure marketing art would not.
+Why captioned panels: most install decisions happen in search results without
+opening the listing page. At that size 11pt UI text is illegible but a
+four-word headline reads. Guideline 2.3.3 wants screenshots to show the app in
+use, which real UI inside a frame satisfies; pure marketing art would not.
 
 Rebuild the panels after any recapture or caption change:
 
@@ -98,27 +96,30 @@ Rebuild the panels after any recapture or caption change:
 python3 Tools/make_screenshot_panels.py docs/screenshots docs/screenshots/framed
 ```
 
-Captions live in `SHOTS` at the top of that script. Text in images means
-redoing them per language, so they stay English-only until localisation is
-actually on the table.
+Labels and captions live in `SHOTS` at the top of that script. Text in images
+means redoing them per language, so they stay English-only until localisation
+is on the table.
 
-**Status bar is pinned to 9:41**, Apple's own marketing convention, which also
-stops the clock drifting between shots taken minutes apart:
+**Recapturing.** A DEBUG build lands on any screen from the command line, so no
+tapping is needed. Pin the status bar to 9:41 first (Apple's own marketing
+convention, and it stops the clock drifting between shots):
 
 ```bash
 xcrun simctl status_bar <UDID> override --time "9:41" \
   --wifiBars 3 --cellularMode active --cellularBars 4 \
   --batteryState charged --batteryLevel 100
+xcrun simctl launch <UDID> com.rohitdivate.beenthere \
+  -themeID paper -debugOpen beenthere://limits
+xcrun simctl io <UDID> screenshot docs/screenshots/03-forecast.png
 ```
 
-A sixth shot of the Countries leaderboard was cut: country names and trailing
-metadata truncate there (see **Known cosmetic issue**), and visible clipping on
-a listing reads as an unfinished app. Reinstate it once that's fixed. The Home
-shot already carries a country leaderboard, so nothing is lost.
+The hosts are `home`, `limits`, `limits/<rule id>`, `calendar`, `passport` and
+`countries`. The first launch after an install drops its arguments, so launch
+once and throw that one away.
 
-**Regenerating them:** `Tools/make_screenshot_library.py` writes 457 gradient
+**Building the data.** `Tools/make_screenshot_library.py` writes gradient
 JPEGs carrying GPS EXIF and mid-day `DateTimeOriginal` timestamps. Load them
-with `xcrun simctl addmedia`, then scan through Settings › Time Machine ›
+with `xcrun simctl addmedia`, then scan through Settings, Time Machine,
 Re-sync from photos. Mid-day timestamps are deliberate: day boundaries use the
 timezone of the place, so an evening photo can land on the previous day.
 
@@ -130,6 +131,9 @@ find /tmp/shots -name '*.jpg' -print0 | xargs -0 -n 40 xcrun simctl addmedia <UD
 Avoid any screen that renders photo thumbnails (the Wrapped "Moments you kept"
 page, trip detail). The synthetic images are flat gradients and read as fake.
 
+**Still to add:** the iPhone Duo sizes (1398 x 2034 outer, 2007 x 2853 inner),
+once Xcode 27.1 is installed.
+
 ## App Review notes
 
 ```
@@ -138,9 +142,3 @@ No account or login is required. Location is used passively
 per day, entirely on device. Photo access is optional and reads metadata only.
 No data leaves the device.
 ```
-
-## Known cosmetic issue
-
-On the Countries list, long country names and trailing metadata truncate
-("United Ki… · 19 trips · last AUG…") even on the largest iPhone. Visible in
-`04-countries.png`. Not a blocker, worth a fix before a 1.1.

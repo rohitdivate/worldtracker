@@ -8,57 +8,92 @@ panels. Search results show roughly three screenshots inline, at a size where
 11pt UI text is unreadable, so the caption is what actually gets read. Keep
 each one under about five words and check it at thumbnail size.
 
-Ground and typeface deliberately match the app's Night Flight theme (SF
-Rounded, indigo, aurora bloom) so the device edge dissolves into the panel
-instead of reading as a sticker. Needs Pillow.
+Ground and type match the app's default Paper skin: the flat paper grey, a
+compressed black caps headline (the app's poster face) and a tracked mono
+label in the "now" colour. The device sits in an ink bezel so its white cards
+don't dissolve into the light ground. Needs Pillow and macOS system fonts.
 """
 
-from PIL import Image, ImageChops, ImageDraw, ImageFilter, ImageFont
-import sys, os
+from PIL import Image, ImageDraw, ImageFilter, ImageFont
+import os
+import sys
 
 W, H = 1320, 2868
-ROUNDED = "/System/Library/Fonts/SFNSRounded.ttf"
+SANS = "/System/Library/Fonts/SFNS.ttf"
+MONO = "/System/Library/Fonts/SFNSMono.ttf"
 
-# Raw capture -> caption. Order is the listing order.
+# The Paper skin (ThemePalettes.swift).
+PAPER = (233, 233, 230)
+INK = (17, 17, 17)
+NOW = (185, 58, 8)
+
+# Raw capture -> (label, caption). Order is the listing order.
 SHOTS = [
-    ("01-overview.png", "Every day, logged automatically"),
-    ("02-calendar.png", "A year of flags"),
-    ("03-globe.png", "Your world, lit up"),
-    ("04-trips.png", "Trips it built for you"),
-    ("05-wrapped-days-away.png", "Days away from home"),
+    ("01-overview.png", "Automatic", "Every day abroad, counted"),
+    ("02-limit.png", "Schengen 90/180", "Know your days left"),
+    ("03-forecast.png", "Planned trips", "See trouble before you book"),
+    ("04-calendar.png", "Calendar", "A year of flags"),
+    ("05-passport.png", "Passport", "Stamps for every country"),
+    ("06-countries.png", "Your world", "Every country, ranked by days"),
 ]
 
 
-def font(size, weight="Bold"):
-    f = ImageFont.truetype(ROUNDED, size)
+def poster(size):
+    """SF at its narrowest width and heaviest weight: the app's poster role."""
+    f = ImageFont.truetype(SANS, size)
     try:
-        f.set_variation_by_name(weight)
+        axes = f.get_variation_axes()
+        values = []
+        for axis in axes:
+            name = axis["name"]
+            name = name.decode() if isinstance(name, bytes) else name
+            if name == "Width":
+                values.append(axis["minimum"])
+            elif name == "Weight":
+                values.append(900)
+            elif name == "Optical Size":
+                values.append(axis["maximum"])
+            else:
+                values.append(axis["minimum"])
+        f.set_variation_by_axes(values)
     except Exception:
-        pass  # non-variable build of the face; the default weight still reads
+        pass  # non-variable build of the face; the default cut still reads
     return f
 
 
-def ground():
-    """Indigo gradient plus two blurred blooms, added rather than blended so
-    the blooms lift the gradient instead of washing it out."""
-    bg = Image.new("RGB", (W, H))
-    d = ImageDraw.Draw(bg)
-    top, bot = (9, 13, 28), (17, 25, 51)
-    for y in range(H):
-        t = y / H
-        d.line([(0, y), (W, y)],
-               fill=tuple(int(top[i] + (bot[i] - top[i]) * t) for i in range(3)))
+def mono(size):
+    f = ImageFont.truetype(MONO, size)
+    try:
+        f.set_variation_by_name("Bold")
+    except Exception:
+        pass
+    return f
 
-    glow = Image.new("RGB", (W, H), (0, 0, 0))
-    gd = ImageDraw.Draw(glow)
-    for cx, cy, radius, col in ((430, 300, 620, (14, 92, 84)),
-                                (980, 120, 520, (44, 40, 110))):
-        for i in range(28):
-            k = 1 - i / 28
-            r = int(radius * k)
-            gd.ellipse([cx - r, cy - r, cx + r, cy + r],
-                       fill=tuple(int(c * (1 - k) * 0.5) for c in col))
-    return ImageChops.add(bg, glow.filter(ImageFilter.GaussianBlur(150)))
+
+def tracked(draw, centre_x, y, text, f, fill, tracking):
+    """Pillow has no letter spacing, so place the glyphs one at a time."""
+    widths = [draw.textlength(ch, font=f) for ch in text]
+    total = sum(widths) + tracking * (len(text) - 1)
+    x = centre_x - total / 2
+    for ch, w in zip(text, widths):
+        draw.text((x, y), ch, font=f, fill=fill)
+        x += w + tracking
+
+
+def wrap(draw, text, f, maxw):
+    """One line if it fits, otherwise the two-line break with the most even
+    halves, so a caption never strands a single word. Three or more lines
+    come back only when no two-line break fits; the caller drops a size."""
+    words = text.split()
+    if draw.textlength(text, font=f) <= maxw:
+        return [text]
+    best = None
+    for k in range(1, len(words)):
+        a, b = " ".join(words[:k]), " ".join(words[k:])
+        wa, wb = draw.textlength(a, font=f), draw.textlength(b, font=f)
+        if max(wa, wb) <= maxw and (best is None or abs(wa - wb) < best[0]):
+            best = (abs(wa - wb), [a, b])
+    return best[1] if best else words
 
 
 def rounded(img, radius):
@@ -70,54 +105,43 @@ def rounded(img, radius):
     return out
 
 
-def wrap(draw, text, f, maxw):
-    lines, cur = [], ""
-    for word in text.split():
-        trial = (cur + " " + word).strip()
-        if draw.textlength(trial, font=f) <= maxw:
-            cur = trial
-        else:
-            lines.append(cur)
-            cur = word
-    if cur:
-        lines.append(cur)
-    return lines
-
-
-def panel(shot_path, caption, out_path, dev_w=980, dev_top=540):
-    bg = ground()
+def panel(shot_path, label, caption, out_path, dev_w=960, bezel=18, bottom=96):
+    bg = Image.new("RGB", (W, H), PAPER)
     d = ImageDraw.Draw(bg)
 
-    f = font(84)
-    lines = wrap(d, caption, f, W - 200)
-    if len(lines) > 2:                      # drop a size rather than run three deep
-        f = font(72)
-        lines = wrap(d, caption, f, W - 180)
-    lh = int(f.size * 1.16)
-    y = 250 - (len(lines) - 1) * lh // 2
+    tracked(d, W // 2, 150, label.upper(), mono(40), NOW, 9)
+
+    size = 176
+    f = poster(size)
+    lines = wrap(d, caption.upper(), f, W - 150)
+    while len(lines) > 2:                   # drop a size rather than run three deep
+        size -= 12
+        f = poster(size)
+        lines = wrap(d, caption.upper(), f, W - 150)
+    lh = int(size * 0.98)
+    y = 236 if len(lines) == 2 else 236 + lh // 2
     for line in lines:
-        d.text((W // 2, y), line, font=f, fill=(245, 248, 255), anchor="mt")
+        d.text((W // 2, y), line, font=f, fill=INK, anchor="mt")
         y += lh
 
     shot = Image.open(shot_path).convert("RGB")
     dev_h = round(dev_w * shot.height / shot.width)
-    dev = rounded(shot.resize((dev_w, dev_h), Image.LANCZOS), round(dev_w * 0.055))
-    r = round(dev_w * 0.055)
+    r = round(dev_w * 0.115)
+    dev = rounded(shot.resize((dev_w, dev_h), Image.LANCZOS), r)
     x = (W - dev_w) // 2
+    top = H - bottom - bezel - dev_h
 
+    body = [x - bezel, top - bezel, x + dev_w + bezel, top + dev_h + bezel]
     shadow = Image.new("RGBA", (W, H), (0, 0, 0, 0))
     ImageDraw.Draw(shadow).rounded_rectangle(
-        [x + 10, dev_top + 26, x + dev_w - 10, dev_top + dev_h + 26], r,
-        fill=(0, 0, 0, 150))
+        [body[0] + 8, body[1] + 30, body[2] - 8, body[3] + 30], r + bezel,
+        fill=(40, 40, 38, 110))
     out = Image.alpha_composite(bg.convert("RGBA"),
-                               shadow.filter(ImageFilter.GaussianBlur(38)))
+                               shadow.filter(ImageFilter.GaussianBlur(34)))
+    ImageDraw.Draw(out).rounded_rectangle(body, r + bezel, fill=INK + (255,))
+    out.alpha_composite(dev, (x, top))
 
-    out.alpha_composite(dev, (x, dev_top))
-    ImageDraw.Draw(out).rounded_rectangle(
-        [x, dev_top, x + dev_w - 1, dev_top + dev_h - 1], r,
-        outline=(255, 255, 255, 34), width=3)
-
-    out.convert("RGB").save(out_path, quality=95)
+    out.convert("RGB").save(out_path, optimize=True)
     print("wrote", out_path)
 
 
@@ -125,5 +149,5 @@ if __name__ == "__main__":
     src = sys.argv[1] if len(sys.argv) > 1 else "docs/screenshots"
     dst = sys.argv[2] if len(sys.argv) > 2 else "docs/screenshots/framed"
     os.makedirs(dst, exist_ok=True)
-    for name, caption in SHOTS:
-        panel(os.path.join(src, name), caption, os.path.join(dst, name))
+    for name, label, caption in SHOTS:
+        panel(os.path.join(src, name), label, caption, os.path.join(dst, name))
