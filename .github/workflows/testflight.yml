@@ -42,9 +42,9 @@ jobs:
       ASC_KEY_ID: ${{ secrets.ASC_KEY_ID }}
       ASC_ISSUER_ID: ${{ secrets.ASC_ISSUER_ID }}
       DEVELOPMENT_TEAM: ${{ secrets.APPLE_TEAM_ID }}
-      # Repository *variable*, not a secret — a bundle id isn't sensitive, and
-      # keeping it out of the pbxproj means the public repo keeps shipping the
-      # com.example placeholder.
+      # Repository *variable*, not a secret: a bundle id isn't sensitive. When
+      # set it overrides the id committed in the pbxproj, and it is the switch
+      # that turns automatic runs on.
       APP_BUNDLE_ID: ${{ vars.APP_BUNDLE_ID }}
       ARCHIVE_PATH: ${{ github.workspace }}/build/BeenThere.xcarchive
       EXPORT_DIR: ${{ github.workspace }}/build/export
@@ -72,9 +72,8 @@ jobs:
             exit 1
           fi
           if [ -z "$APP_BUNDLE_ID" ]; then
-            echo "::warning::Repository variable APP_BUNDLE_ID is unset —" \
-                 "falling back to the com.example placeholder in the pbxproj," \
-                 "which will not match any real provisioning profile."
+            echo "::warning::Repository variable APP_BUNDLE_ID is unset," \
+                 "using the bundle id committed in the pbxproj."
           fi
 
       - name: Install App Store Connect API key
