@@ -148,6 +148,96 @@ final class NotificationScheduler {
         }
     }
 
+    // MARK: - Day limits
+
+    /// Keeps two reminders queued for every ceiling that is counting right
+    /// now: a week before the limit and the day before it. They are scheduled
+    /// ahead rather than fired on a ledger change, because someone sitting
+    /// still abroad generates no location events to wake the app on the day
+    /// it matters. Same identifiers every time, so re-running replaces
+    /// rather than duplicates; rules that stopped counting are cleared.
+    func maybeScheduleLimitAlerts(statuses: [DayLimitStatus]) {
+        let center = UNUserNotificationCenter.current()
+        let defaults = UserDefaults.standard
+
+        let all = statuses.flatMap { ["limit-week-\($0.id)", "limit-eve-\($0.id)"] }
+        center.removePendingNotificationRequests(withIdentifiers: all)
+        guard enabled("notifyLimitAlerts") else { return }
+
+        for status in statuses where status.rule.goal == .stayUnder {
+            let overKey = "limitOverAlerted-\(status.id)"
+
+            if status.level == .over {
+                // Once per breach: the latch clears when the count drops back.
+                guard status.countsToday, !defaults.bool(forKey: overKey) else { continue }
+                defaults.set(true, forKey: overKey)
+                let content = UNMutableNotificationContent()
+                content.title = "\(status.rule.name): over the limit"
+                content.body = "\(status.headline). \(status.detail)."
+                content.sound = .default
+                content.userInfo = ["deeplink": "limits"]
+                Task {
+                    guard await ensureAuthorized(center) else { return }
+                    try? await center.add(UNNotificationRequest(
+                        identifier: "limit-over-\(status.id)", content: content, trigger: nil
+                    ))
+                }
+                continue
+            }
+            defaults.removeObject(forKey: overKey)
+
+            // Only a stay that is on the clock, with a real deadline ahead.
+            guard status.countsToday, !status.isSafeUntilReset,
+                  let runway = status.runwayDays, runway > 0 else { continue }
+            let lastDay = status.asOf + runway
+
+            var requests: [UNNotificationRequest] = []
+            if runway > 7 {
+                let content = UNMutableNotificationContent()
+                content.title = "\(status.rule.name): 7 days left"
+                content.body = "If you stay, \(DayFormat.long(lastDay)) is the last day inside the limit."
+                content.sound = .default
+                content.userInfo = ["deeplink": "limits"]
+                requests.append(UNNotificationRequest(
+                    identifier: "limit-week-\(status.id)",
+                    content: content,
+                    trigger: morning(of: lastDay - 7)
+                ))
+            }
+            if runway > 1 {
+                let content = UNMutableNotificationContent()
+                content.title = "\(status.rule.name): last day tomorrow"
+                content.body = "Tomorrow, \(DayFormat.long(lastDay)), is the final day inside the limit."
+                content.sound = .default
+                content.userInfo = ["deeplink": "limits"]
+                requests.append(UNNotificationRequest(
+                    identifier: "limit-eve-\(status.id)",
+                    content: content,
+                    trigger: morning(of: lastDay - 1)
+                ))
+            }
+            guard !requests.isEmpty else { continue }
+            let pending = requests
+            Task {
+                guard await ensureAuthorized(center) else { return }
+                for request in pending {
+                    try? await center.add(request)
+                }
+            }
+        }
+    }
+
+    /// 09:00 local on the given epoch day.
+    private func morning(of epochDay: Int) -> UNCalendarNotificationTrigger {
+        let (year, month, day) = EpochDay(value: epochDay).civil()
+        var components = DateComponents()
+        components.year = year
+        components.month = month
+        components.day = day
+        components.hour = 9
+        return UNCalendarNotificationTrigger(dateMatching: components, repeats: false)
+    }
+
     /// Provisional-auth dance shared by every notification: silently
     /// authorized, never a dialog. Returns false when delivery is impossible.
     private func ensureAuthorized(_ center: UNUserNotificationCenter) async -> Bool {

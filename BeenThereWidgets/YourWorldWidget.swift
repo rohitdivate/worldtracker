@@ -42,13 +42,13 @@ struct YourWorldWidgetView: View {
         return VStack(alignment: .leading, spacing: 8) {
             HStack {
                 Text("YOUR WORLD · \(String(snapshot.year))")
-                    .font(.system(size: 9.5, weight: .bold))
+                    .font(WTheme.label(9.5, weight: .bold))
                     .tracking(1.8)
                     .foregroundStyle(WTheme.aurora1)
                 Spacer()
                 if let code = snapshot.currentCountry {
                     Text("\(flagEmoji(code)) Day \(max(1, snapshot.dayOfStay))")
-                        .font(.system(size: 9.5, weight: .bold, design: .rounded))
+                        .font(WTheme.figure(9.5, weight: .bold))
                         .foregroundStyle(WTheme.amber)
                 }
             }
@@ -108,10 +108,10 @@ struct YourWorldWidgetView: View {
     private func stat(value: String, label: String) -> some View {
         VStack(spacing: 1) {
             Text(value)
-                .font(.system(size: 17, weight: .heavy, design: .rounded))
+                .font(WTheme.figure(17, weight: .heavy))
                 .foregroundStyle(WTheme.auroraGradient)
             Text(label)
-                .font(.system(size: 7.5, weight: .semibold))
+                .font(WTheme.label(7.5, weight: .semibold))
                 .tracking(1.2)
                 .foregroundStyle(WTheme.ink3)
         }

@@ -10,6 +10,7 @@ struct TrackingHealthView: View {
 
     var body: some View {
         List {
+            Group {
             Section("Requirements") {
                 healthRow(
                     title: "Location access",
@@ -75,11 +76,13 @@ struct TrackingHealthView: View {
                 .foregroundStyle(Theme.aurora2)
             } footer: {
                 Text("Don't force-quit the app (swipe it away) — iOS then stops waking it for location events. It uses no meaningful battery when left alone.")
+                    .textCase(nil)
             }
+            }
+            .listRowBackground(Theme.card)
         }
-        .navigationTitle("Tracking health")
-        .scrollContentBackground(.hidden)
-        .background(Theme.sky)
+        .navigationTitle(Theme.title("Tracking health"))
+        .themedList()
         .task {
             stats = await AppContainer.shared.ingestor.stats()
         }
@@ -118,7 +121,8 @@ struct TrackingHealthView: View {
                     .foregroundStyle(Theme.good)
             } else {
                 Button(warnText) { fix() }
-                    .font(.footnote)
+                    .font(Theme.footnote)
+                        .textCase(nil)
                     .foregroundStyle(Theme.amber)
             }
         }

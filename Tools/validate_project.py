@@ -157,13 +157,52 @@ def check_plists():
             m = re.search(r"struct (?:Shared|Widget)Snapshot: Codable \{(.*?)\n\}", text, re.S)
             body = m.group(1) if m else ""
             return re.findall(r"^\s+(?:var|let) (\w+):", body, re.M)
-        app_fields = snapshot_fields(app_side)[:20]
-        widget_fields = snapshot_fields(widget_side)[:20]
+        # Every field, nested structs included, in declaration order.
+        app_fields = snapshot_fields(app_side)
+        widget_fields = snapshot_fields(widget_side)
         if app_fields != widget_fields:
             err(
                 "SharedSnapshot/WidgetSnapshot field mismatch: "
                 f"app={app_fields} widget={widget_fields}"
             )
+
+
+def check_intents():
+    """The open-the-app intent is declared twice, once per target.
+
+    Control Center buttons live in the widget extension, but the system
+    performs an intent that opens the app inside the app. Both targets
+    therefore declare `OpenBeenThereIntent` and `BeenThereDestination`; if
+    the two drift, a control compiles and then opens the wrong screen, or
+    nothing at all.
+    """
+    paths = {
+        "app": os.path.join(ROOT, "WorldTracker", "Intents", "BeenThereIntents.swift"),
+        "widget": os.path.join(ROOT, "BeenThereWidgets", "WidgetIntents.swift"),
+    }
+    cases = {}
+    for target, path in paths.items():
+        if not os.path.isfile(path):
+            err(f"intents: {path} missing")
+            return
+        with open(path, encoding="utf-8") as f:
+            body = f.read()
+        m = re.search(r"enum BeenThereDestination: String, AppEnum \{(.*?)\n\}", body, re.S)
+        if not m:
+            err(f"intents ({target}): BeenThereDestination enum not found")
+            return
+        cases[target] = re.findall(r"^    case (\w+)$", m.group(1), re.M)
+        if "struct OpenBeenThereIntent: AppIntent" not in body:
+            err(f"intents ({target}): OpenBeenThereIntent missing")
+        if "var destination: BeenThereDestination" not in body:
+            err(f"intents ({target}): OpenBeenThereIntent needs a `destination` parameter")
+        if "static var openAppWhenRun = true" not in body:
+            err(f"intents ({target}): OpenBeenThereIntent must open the app when run")
+    if cases["app"] != cases["widget"]:
+        err(
+            "BeenThereDestination case mismatch: "
+            f"app={cases['app']} widget={cases['widget']}"
+        )
 
 
 def check_themes():
@@ -189,7 +228,7 @@ def check_themes():
     # Every case needs a `static let <case> = ThemePalette(` definition and a
     # branch in palette(for:) — a missing one is a crash or a silent fallback.
     for case in cases:
-        if case in ("standard", "rounded", "serif", "monospaced"):
+        if case in ("standard", "rounded", "serif", "monospaced", "expanded", "compressed", "aurora", "bold"):
             continue  # FontDesignToken cases, not themes
         if f"static let {case} = ThemePalette(" not in kit:
             err(f"ThemePalettes: ThemeID.{case} has no palette definition")
@@ -272,6 +311,7 @@ def main():
     check_pbxproj()
     check_scheme()
     check_plists()
+    check_intents()
     check_themes()
     check_assets()
     if errors:

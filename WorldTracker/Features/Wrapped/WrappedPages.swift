@@ -57,7 +57,7 @@ private struct WrappedKicker: View {
 
     var body: some View {
         Text(text)
-            .font(.system(size: 12, weight: .bold))
+            .font(Story.label(12, weight: .bold))
             .tracking(3)
             .foregroundStyle(color)
     }
@@ -71,7 +71,7 @@ private struct RollingNumber: View {
 
     var body: some View {
         Text("\(Int((Double(value) * easeOutCubic(reveal)).rounded()))")
-            .font(.system(size: size, weight: .heavy, design: .rounded))
+            .font(Story.figure(size, weight: .heavy))
             .foregroundStyle(Story.auroraGradient)
             .minimumScaleFactor(0.5)
             .lineLimit(1)
@@ -106,7 +106,7 @@ struct WrappedOpenerPage: View {
 
                 VStack(spacing: 22) {
                     Spacer()
-                    MiniGlobe(size: 118)
+                    MiniGlobe(size: 118, palette: Story.palette)
                         .scaleEffect(0.4 + 0.6 * easeOutBack(stage(p, 0, 0.4)))
                         .opacity(stage(p, 0, 0.25))
                     WrappedKicker(text: "YOUR YEAR IN TRAVEL")
@@ -152,7 +152,7 @@ struct WrappedCountriesPage: View {
                         HapticsDirector.shared.stampSlam()
                     })
                 Text(data.stats.countriesVisited == 1 ? "country" : "countries")
-                    .font(.system(size: 22, weight: .bold, design: .rounded))
+                    .font(Story.figure(22, weight: .bold))
                     .foregroundStyle(Story.ink)
                     .opacity(stage(p, 0.3, 0.5))
 
@@ -389,7 +389,7 @@ struct WrappedLongestTripPage: View {
                         RollingNumber(value: trip.dayCount,
                                       reveal: stage(p, 0.35, 0.75), size: 84)
                         Text(trip.dayCount == 1 ? "day away" : "days away")
-                            .font(.system(size: 20, weight: .bold, design: .rounded))
+                            .font(Story.figure(20, weight: .bold))
                             .foregroundStyle(Story.ink)
                             .opacity(stage(p, 0.5, 0.7))
                     }
@@ -495,7 +495,7 @@ struct WrappedFirstVisitsPage: View {
                         RollingNumber(value: firsts.count,
                                       reveal: stage(p, 0.05, 0.3), size: 84)
                         Text(firsts.count == 1 ? "country you'd\nnever seen before" : "countries you'd\nnever seen before")
-                            .font(.system(size: 17, weight: .bold, design: .rounded))
+                            .font(Story.figure(17, weight: .bold))
                             .foregroundStyle(Story.ink)
                             .opacity(stage(p, 0.15, 0.3))
                     }
@@ -599,7 +599,7 @@ struct WrappedMapPage: View {
                 .foregroundStyle(Story.auroraGradient)
                 .monospacedDigit()
             Text(label)
-                .font(.system(size: 9, weight: .semibold))
+                .font(Story.label(9, weight: .semibold))
                 .tracking(1.4)
                 .foregroundStyle(Story.ink3)
         }
@@ -684,7 +684,7 @@ struct WrappedCloserPage: View {
 
                 VStack(spacing: 18) {
                     Spacer()
-                    MiniGlobe(size: 64, showsPlane: false)
+                    MiniGlobe(size: 64, showsPlane: false, palette: Story.palette)
                         .scaleEffect(0.5 + 0.5 * easeOutBack(stage(p, 0, 0.3)))
                         .opacity(stage(p, 0, 0.2))
                     Text("That was \(String(data.stats.year)).")

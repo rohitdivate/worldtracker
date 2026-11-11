@@ -49,6 +49,7 @@ struct CountryPickerView: View {
     var body: some View {
         NavigationStack {
             List {
+                Group {
                 if query.isEmpty {
                     if !yours.isEmpty {
                         Section("Yours") {
@@ -69,17 +70,18 @@ struct CountryPickerView: View {
                 Section(query.isEmpty ? "All countries" : "Results") {
                     ForEach(filtered, id: \.self, content: row)
                 }
+                }
+                .listRowBackground(Theme.card)
             }
             .searchable(text: $query, prompt: "Search countries")
-            .navigationTitle("Country")
+            .navigationTitle(Theme.title("Country"))
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
                 ToolbarItem(placement: .cancellationAction) {
                     Button("Cancel") { dismiss() }
                 }
             }
-            .scrollContentBackground(.hidden)
-            .background(Theme.sky)
+            .themedList()
         }
     }
 

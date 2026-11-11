@@ -1,14 +1,28 @@
+import AppIntents
 import SwiftUI
 import WidgetKit
 import WorldTrackerKit
 
-/// "Your Top" (medium) — the ranked countries of the year with aurora bars.
+/// "Your Top" — the ranked countries with aurora bars. Interactive: the pill
+/// in the corner flips between this year and all time without opening the
+/// app. Medium shows three rows, large seven.
 struct YourTopWidgetView: View {
     var entry: SnapshotEntry
 
+    @Environment(\.widgetFamily) private var family
+
+    private var period: TopPeriod {
+        // No lifetime list in an older snapshot: stay on the year.
+        entry.snapshot?.allTimeTop == nil ? .year : TopPeriod.current
+    }
+
+    private func ranking(_ snapshot: WidgetSnapshot) -> [WidgetSnapshot.CountryDays] {
+        period == .allTime ? (snapshot.allTimeTop ?? snapshot.countries) : snapshot.countries
+    }
+
     var body: some View {
         Group {
-            if let snapshot = entry.snapshot, !snapshot.countries.isEmpty {
+            if let snapshot = entry.snapshot, !ranking(snapshot).isEmpty {
                 content(snapshot)
             } else {
                 empty
@@ -17,57 +31,69 @@ struct YourTopWidgetView: View {
         .containerBackground(for: .widget) {
             WTheme.background
         }
-        .widgetURL(URL(string: "beenthere://home"))
+        .widgetURL(URL(string: "beenthere://countries"))
     }
 
     private func content(_ snapshot: WidgetSnapshot) -> some View {
-        let top = Array(snapshot.countries.prefix(3))
+        let rows = family == .systemLarge ? 7 : 3
+        let top = Array(ranking(snapshot).prefix(rows))
         let maxDays = top.first?.days ?? 1
+        let total = period == .allTime
+            ? (snapshot.allTimeCountries ?? top.count)
+            : snapshot.countriesThisYear
 
-        return VStack(alignment: .leading, spacing: 7) {
+        return VStack(alignment: .leading, spacing: family == .systemLarge ? 10 : 7) {
             HStack {
-                Text("YOUR TOP · \(String(snapshot.year))")
-                    .font(.system(size: 9, weight: .bold))
-                    .tracking(1.6)
-                    .foregroundStyle(WTheme.aurora1)
-                Spacer()
-                Text("\(snapshot.countriesThisYear) countries")
+                WLabel(text: "Your top")
+                Text("\(total) countries")
                     .font(.system(size: 9, weight: .semibold))
                     .foregroundStyle(WTheme.ink3)
+                Spacer()
+                Button(intent: ToggleTopPeriodIntent()) {
+                    HStack(spacing: 3) {
+                        Text(period == .allTime ? "All time" : String(snapshot.year))
+                        Image(systemName: "arrow.left.arrow.right")
+                            .font(.system(size: 7, weight: .bold))
+                    }
+                    .font(WTheme.figure(9.5, weight: .bold))
+                    .foregroundStyle(WTheme.sky)
+                    .padding(.horizontal, 8)
+                    .padding(.vertical, 3.5)
+                    .background(WTheme.auroraGradient, in: Capsule())
+                }
+                .buttonStyle(.plain)
             }
 
-            ForEach(Array(top.enumerated()), id: \.element.code) { index, entry in
+            ForEach(Array(top.enumerated()), id: \.element.code) { index, row in
                 HStack(spacing: 8) {
-                    Text(flagEmoji(entry.code))
+                    Text(flagEmoji(row.code))
                         .font(.system(size: 18))
                     VStack(alignment: .leading, spacing: 2) {
                         HStack(spacing: 5) {
-                            Text(widgetCountryName(entry.code))
+                            Text(widgetCountryName(row.code))
                                 .font(.system(size: 12, weight: .semibold))
                                 .foregroundStyle(WTheme.ink)
                                 .lineLimit(1)
-                            if entry.code == snapshot.homeCountry {
+                            if row.code == snapshot.homeCountry {
                                 Text("HOME")
                                     .font(.system(size: 7, weight: .heavy, design: .monospaced))
                                     .foregroundStyle(WTheme.amber)
                             }
                             Spacer()
-                            Text("\(entry.days)d")
-                                .font(.system(size: 11, weight: .bold, design: .rounded))
+                            Text("\(row.days)d")
+                                .font(WTheme.figure(11, weight: .bold))
                                 .foregroundStyle(index == 0 ? WTheme.amber : WTheme.aurora1)
                         }
-                        GeometryReader { geo in
-                            Capsule()
-                                .fill(WTheme.ink3.opacity(0.25))
-                                .overlay(alignment: .leading) {
-                                    Capsule()
-                                        .fill(WTheme.auroraGradient)
-                                        .frame(width: max(4, geo.size.width * CGFloat(entry.days) / CGFloat(maxDays)))
-                                }
-                        }
-                        .frame(height: 3)
+                        WBar(
+                            fraction: Double(row.days) / Double(max(1, maxDays)),
+                            height: 3,
+                            tint: WTheme.aurora1
+                        )
                     }
                 }
+            }
+            if family == .systemLarge {
+                Spacer(minLength: 0)
             }
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .leading)
@@ -95,7 +121,7 @@ struct YourTopWidget: Widget {
             YourTopWidgetView(entry: entry)
         }
         .configurationDisplayName("Your Top")
-        .description("Where your year lived — ranked, with day counts.")
-        .supportedFamilies([.systemMedium])
+        .description("Where your days went, ranked. Tap the pill to switch between this year and all time.")
+        .supportedFamilies([.systemMedium, .systemLarge])
     }
 }

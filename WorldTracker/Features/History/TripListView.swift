@@ -65,7 +65,7 @@ struct TripListView: View {
                                     .foregroundStyle(segment.endDay >= today ? Theme.amber : Theme.aurora1)
                                 if segment.endDay < today {
                                     Text(segment.dayCount == 1 ? "DAY" : "DAYS")
-                                        .font(.system(size: 8, weight: .bold))
+                                        .font(Theme.label(8, weight: .bold))
                                         .tracking(1)
                                         .foregroundStyle(Theme.ink3)
                                 }

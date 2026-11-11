@@ -70,7 +70,7 @@ struct DayEditorView: View {
                     if let evidence, !(evidence.facts.isEmpty && evidence.photoPlaces.isEmpty && evidence.locationSampleCount == 0) {
                         VStack(alignment: .leading, spacing: 9) {
                             Text("EVIDENCE")
-                                .font(.system(size: 10, weight: .bold))
+                                .font(Theme.label(10, weight: .bold))
                                 .tracking(1.6)
                                 .foregroundStyle(Theme.ink3)
 
@@ -122,7 +122,7 @@ struct DayEditorView: View {
                     // Note
                     VStack(alignment: .leading, spacing: 6) {
                         Text("NOTE")
-                            .font(.system(size: 10, weight: .bold))
+                            .font(Theme.label(10, weight: .bold))
                             .tracking(1.6)
                             .foregroundStyle(Theme.ink3)
                         TextField("Add a note for this day…", text: $note, axis: .vertical)

@@ -6,6 +6,51 @@ struct CountryDetailView: View {
     let countryCode: String
 
     private var store: LedgerStore { AppContainer.shared.ledgerStore }
+    private var insightsStore: InsightsStore { AppContainer.shared.insightsStore }
+    private var limits: DayLimitStore { AppContainer.shared.dayLimitStore }
+    private var router: AppRouter { AppContainer.shared.router }
+
+    /// First seen, last seen, continent: the stamp's facts in a row.
+    @ViewBuilder
+    private var stampFacts: some View {
+        if let stamp = insightsStore.summary(using: store).stamps.first(where: { $0.code == countryCode }) {
+            HStack(alignment: .top) {
+                MetricColumn(value: DayFormat.monthYear(stamp.firstDay), label: "First seen", valueSize: 15)
+                Spacer()
+                MetricColumn(value: DayFormat.monthYear(stamp.lastDay), label: "Last seen", valueSize: 15)
+                Spacer()
+                MetricColumn(
+                    value: stamp.continent?.displayName ?? "—", label: "Continent", valueSize: 15
+                )
+            }
+            .padding(16)
+            .nightCard()
+        }
+    }
+
+    /// Day limits this country counts toward, with their live status.
+    @ViewBuilder
+    private var limitRows: some View {
+        let relevant = limits.statuses(using: store).filter {
+            switch $0.rule.scope {
+            case .outside: return false
+            default: return $0.rule.scope.counts([countryCode])
+            }
+        }
+        if !relevant.isEmpty {
+            VStack(alignment: .leading, spacing: 8) {
+                SectionLabel(title: "Day limits")
+                ForEach(relevant) { status in
+                    Button {
+                        router.openLimits(ruleID: status.id)
+                    } label: {
+                        LimitRow(status: status)
+                    }
+                    .buttonStyle(.plain)
+                }
+            }
+        }
+    }
 
     var body: some View {
         let _ = store.changeToken
@@ -37,6 +82,9 @@ struct CountryDetailView: View {
                         .tracking(1.4)
                         .foregroundStyle(Theme.aurora1)
 
+                    stampFacts
+                    limitRows
+
                     ForEach(byYear.keys.sorted(by: >), id: \.self) { year in
                         VStack(alignment: .leading, spacing: 8) {
                             Text(String(year))
@@ -48,7 +96,7 @@ struct CountryDetailView: View {
                                     HStack {
                                         VStack(alignment: .leading, spacing: 3) {
                                             Text("\(segment.dayCount) \(segment.dayCount == 1 ? "day" : "days")")
-                                                .font(.system(size: 18, weight: .bold, design: .rounded))
+                                                .font(Theme.figure(18, weight: .bold))
                                                 .foregroundStyle(Theme.ink)
                                             Text(DayFormat.shortRange(segment.startDay, segment.endDay, todayYear: todayYear))
                                                 .font(Theme.numeric(11, weight: .medium))
@@ -82,6 +130,8 @@ struct CountryDetailView: View {
                     Spacer(minLength: 100)
                 }
                 .padding(.horizontal, 18)
+                .frame(maxWidth: 640)
+                .frame(maxWidth: .infinity)
             }
         }
         .navigationTitle("")

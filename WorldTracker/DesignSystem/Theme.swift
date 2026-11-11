@@ -43,15 +43,28 @@ enum Theme {
     static var gloss: Color { palette.gloss.color }
     static var globeOcean: Color { palette.globeOcean.color }
 
+    /// The fill for primary buttons, selected chips, progress and hero
+    /// numerals. A two-colour sweep on the classic skins; solid ink on the
+    /// bold ones, which is what makes them read as monochrome.
     static var auroraGradient: LinearGradient {
         LinearGradient(
-            colors: [aurora1, aurora2],
+            colors: isBold ? [ink, ink] : [aurora1, aurora2],
             startPoint: .topLeading,
             endPoint: .bottomTrailing
         )
     }
 
-    static let cardCornerRadius: CGFloat = 20
+    static var isBold: Bool { palette.isBold }
+
+    static var cardCornerRadius: CGFloat { isBold ? 24 : 20 }
+
+    /// What system controls and the tab bar pick up.
+    static var tint: Color { isBold ? ink : aurora2 }
+
+    /// Screen titles are set in caps on the bold skins.
+    static func title(_ text: String) -> String {
+        isBold ? text.uppercased() : text
+    }
 
     // MARK: - Typography
     //
@@ -62,17 +75,38 @@ enum Theme {
 
     /// Headline and hero text.
     static func display(_ size: CGFloat, weight: Font.Weight = .bold) -> Font {
-        .system(size: size, weight: weight, design: palette.displayDesign.fontDesign)
+        palette.displayDesign.font(size, weight)
     }
 
     /// Counters and stats — the numerals that carry a theme's precision.
     static func numeric(_ size: CGFloat, weight: Font.Weight = .semibold) -> Font {
-        .system(size: size, weight: weight, design: palette.numericDesign.fontDesign)
+        palette.numericDesign.font(size, weight)
     }
 
     /// Body copy on themed surfaces.
     static func body(_ size: CGFloat, weight: Font.Weight = .regular) -> Font {
-        .system(size: size, weight: weight, design: palette.bodyDesign.fontDesign)
+        palette.bodyDesign.font(size, weight)
+    }
+
+    /// The one enormous number or word on a screen. Compressed and black on
+    /// the bold skins; the display face elsewhere.
+    static func poster(_ size: CGFloat, weight: Font.Weight = .black) -> Font {
+        (palette.posterDesign ?? palette.displayDesign).font(size, weight)
+    }
+
+    /// Small counts and day figures ("12d", "Day 3").
+    static func figure(_ size: CGFloat, weight: Font.Weight = .bold) -> Font {
+        palette.figureDesign.font(size, weight)
+    }
+
+    /// Tracked caps labels.
+    static func label(_ size: CGFloat, weight: Font.Weight = .bold) -> Font {
+        palette.labelDesign.font(size, weight)
+    }
+
+    /// Row subtitles and explanatory copy under a control.
+    static var footnote: Font {
+        isBold ? label(11, weight: .regular) : .footnote
     }
 }
 
@@ -90,10 +124,19 @@ extension ColorToken {
 extension FontDesignToken {
     var fontDesign: Font.Design {
         switch self {
-        case .standard: .default
+        case .standard, .expanded, .compressed: .default
         case .rounded: .rounded
         case .serif: .serif
         case .monospaced: .monospaced
+        }
+    }
+
+    /// The system font in this token's design or width.
+    func font(_ size: CGFloat, _ weight: Font.Weight) -> Font {
+        switch self {
+        case .expanded: .system(size: size, weight: weight).width(.expanded)
+        case .compressed: .system(size: size, weight: weight).width(.compressed)
+        default: .system(size: size, weight: weight, design: fontDesign)
         }
     }
 }
@@ -127,26 +170,65 @@ enum ThemeStore {
     /// e.g. `@AppStorage` writing before this type is consulted.
     static func paletteDidChange(to id: ThemeID) {
         Theme.palette = id.palette
+        ThemeChrome.apply(id.palette)
     }
 }
 
 extension View {
-    /// Standard themed card surface. Still named `nightCard()` because ~20
+    /// Standard themed card surface. Still named `nightCard()` because ~40
     /// call sites use it and renaming would be churn for no behaviour change.
+    /// Classic skins: a soft top-lit gradient with a hairline edge. Bold
+    /// skins: one flat fill, no edge.
     func nightCard() -> some View {
         background(
             RoundedRectangle(cornerRadius: Theme.cardCornerRadius, style: .continuous)
                 .fill(
                     LinearGradient(
-                        colors: [Theme.cardRaised, Theme.card],
+                        colors: Theme.isBold
+                            ? [Theme.card, Theme.card]
+                            : [Theme.cardRaised, Theme.card],
                         startPoint: .top,
                         endPoint: .bottom
                     )
                 )
                 .overlay(
                     RoundedRectangle(cornerRadius: Theme.cardCornerRadius, style: .continuous)
-                        .strokeBorder(Theme.hairline, lineWidth: 1)
+                        .strokeBorder(Theme.isBold ? Color.clear : Theme.hairline, lineWidth: 1)
                 )
         )
+    }
+
+    /// Form and list screens: the themed ground, rows on the card surface
+    /// (stock grey rows clash with every skin), and on the bold skins the
+    /// mono caps row text. Wrap the list's sections in a `Group` and apply
+    /// `.listRowBackground(Theme.card)` to it for the rows themselves.
+    func themedList() -> some View {
+        scrollContentBackground(.hidden)
+            .background(Theme.sky)
+            .font(Theme.isBold ? Theme.label(13.5, weight: .medium) : nil)
+            .textCase(Theme.isBold ? .uppercase : nil)
+    }
+}
+
+/// UIKit chrome SwiftUI has no token for: navigation title faces.
+enum ThemeChrome {
+    static func apply(_ palette: ThemePalette) {
+        let bar = UINavigationBar.appearance()
+        let ink = UIColor(palette.ink.color)
+        if palette.isBold {
+            bar.largeTitleTextAttributes = [
+                .font: UIFont.systemFont(ofSize: 44, weight: .black, width: .compressed),
+                .foregroundColor: ink,
+                .kern: 0.5,
+            ]
+            bar.titleTextAttributes = [
+                .font: UIFont.systemFont(ofSize: 19, weight: .heavy, width: .compressed),
+                .foregroundColor: ink,
+                .kern: 0.6,
+            ]
+        } else {
+            bar.largeTitleTextAttributes = [.foregroundColor: ink]
+            bar.titleTextAttributes = [.foregroundColor: ink]
+        }
     }
 }

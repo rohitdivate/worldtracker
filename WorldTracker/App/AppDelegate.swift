@@ -13,6 +13,10 @@ final class AppDelegate: NSObject, UIApplicationDelegate {
         let container = AppContainer.shared
         container.locationService.startMonitoring()
 
+        // Before the first navigation bar exists: appearance proxies only
+        // reach bars created after they are set.
+        ThemeChrome.apply(ThemeStore.currentPalette())
+
         UNUserNotificationCenter.current().delegate = self
 
         if launchOptions?[.location] != nil {

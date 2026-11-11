@@ -7,10 +7,12 @@ struct DeveloperIngestLogView: View {
 
     var body: some View {
         List {
+            Group {
             if samples.isEmpty {
                 Text("No samples yet. Grant location access and move around — significant-change events arrive at cell-tower granularity.")
                     .foregroundStyle(Theme.ink3)
-                    .font(.footnote)
+                    .font(Theme.footnote)
+                        .textCase(nil)
             }
             ForEach(samples) { sample in
                 VStack(alignment: .leading, spacing: 3) {
@@ -31,10 +33,11 @@ struct DeveloperIngestLogView: View {
                         .foregroundStyle(Theme.ink3)
                 }
             }
+            }
+            .listRowBackground(Theme.card)
         }
-        .navigationTitle("Ingest log")
-        .scrollContentBackground(.hidden)
-        .background(Theme.sky)
+        .navigationTitle(Theme.title("Ingest log"))
+        .themedList()
         .task {
             samples = await AppContainer.shared.ingestor.recentSamples(limit: 200)
         }

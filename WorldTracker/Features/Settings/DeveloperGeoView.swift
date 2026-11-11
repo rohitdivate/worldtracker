@@ -27,6 +27,7 @@ struct DeveloperGeoView: View {
 
     var body: some View {
         List {
+            Group {
             Section("Offline atlas") {
                 if let error = loadError {
                     Label(error, systemImage: "exclamationmark.triangle.fill")
@@ -70,10 +71,11 @@ struct DeveloperGeoView: View {
                     }
                 }
             }
+            }
+            .listRowBackground(Theme.card)
         }
-        .navigationTitle("Geo lookup")
-        .scrollContentBackground(.hidden)
-        .background(Theme.sky)
+        .navigationTitle(Theme.title("Geo lookup"))
+        .themedList()
         .task {
             guard lookup == nil else { return }
             do {

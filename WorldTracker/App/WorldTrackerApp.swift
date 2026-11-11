@@ -20,7 +20,7 @@ struct WorldTrackerApp: App {
                 // Light themes need the system chrome to follow, or the status
                 // bar stays white-on-cream.
                 .preferredColorScheme(palette.isLight ? .light : .dark)
-                .tint(palette.aurora2.color)
+                .tint(palette.isBold ? palette.ink.color : palette.aurora2.color)
                 .environment(AppContainer.shared.locationService)
                 .id(themeID)
                 .task(id: themeID) {

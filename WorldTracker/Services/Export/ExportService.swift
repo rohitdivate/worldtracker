@@ -61,6 +61,17 @@ final class ExportService {
         return write(data, name: "BeenThere-history.json")
     }
 
+    /// One rule's counted stretches, oldest first: the list an immigration
+    /// or tax form asks for.
+    func exportLimitReport(for rule: DayLimitRule) -> URL? {
+        let stretches = AppContainer.shared.dayLimitStore.stretches(for: rule, using: store)
+        let csv = DayLimitReport.csv(rule: rule, stretches: stretches)
+        let safe = rule.name
+            .map { $0.isLetter || $0.isNumber ? $0 : "-" }
+            .reduce(into: "") { $0.append($1) }
+        return write(Data(csv.utf8), name: "BeenThere-\(safe).csv")
+    }
+
     private func write(_ data: Data, name: String) -> URL? {
         let url = FileManager.default.temporaryDirectory.appendingPathComponent(name)
         do {

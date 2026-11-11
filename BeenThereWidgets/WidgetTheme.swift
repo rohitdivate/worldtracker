@@ -25,13 +25,34 @@ enum WTheme {
     static var aurora1: Color { palette.aurora1.color }
     static var aurora2: Color { palette.aurora2.color }
     static var amber: Color { palette.amber.color }
+    static var good: Color { palette.good.color }
+    static var alert: Color { palette.alert.color }
+    static var hairline2: Color { palette.hairline2.color }
 
+    static var isBold: Bool { palette.isBold }
+
+    /// Two-colour sweep on the classic skins, solid ink on the bold ones.
+    /// Mirrors `Theme.auroraGradient` in the app.
     static var auroraGradient: LinearGradient {
         LinearGradient(
-            colors: [aurora1, aurora2],
+            colors: isBold ? [ink, ink] : [aurora1, aurora2],
             startPoint: .topLeading,
             endPoint: .bottomTrailing
         )
+    }
+
+    // Font roles, mirroring the app's `Theme`.
+
+    static func poster(_ size: CGFloat, weight: Font.Weight = .black) -> Font {
+        (palette.posterDesign ?? palette.displayDesign).font(size, weight)
+    }
+
+    static func figure(_ size: CGFloat, weight: Font.Weight = .bold) -> Font {
+        palette.figureDesign.font(size, weight)
+    }
+
+    static func label(_ size: CGFloat, weight: Font.Weight = .bold) -> Font {
+        palette.labelDesign.font(size, weight)
     }
 
     /// Tiny identity mark for widget corners — a stranger glancing at a
@@ -39,36 +60,37 @@ enum WTheme {
     struct Wordmark: View {
         var body: some View {
             Text("BEEN THERE")
-                .font(.system(
-                    size: 6.5,
-                    weight: .heavy,
-                    design: WTheme.palette.numericDesign.fontDesign
-                ))
+                .font(WTheme.palette.numericDesign.font(6.5, .heavy))
                 .tracking(1.6)
                 .foregroundStyle(WTheme.ink3)
         }
     }
 
-    /// The widget canvas: the theme's ground with a whisper of accent in the
-    /// corner.
+    /// The widget canvas. Classic skins: the ground with a whisper of accent
+    /// in the corner. Bold skins: one flat card colour, nothing else.
+    @ViewBuilder
     static var background: some View {
-        LinearGradient(
-            colors: [skyRaised, sky],
-            startPoint: .top,
-            endPoint: .bottom
-        )
-        .overlay(alignment: .topTrailing) {
-            Circle()
-                .fill(
-                    RadialGradient(
-                        colors: [aurora2.opacity(0.35), .clear],
-                        center: .center,
-                        startRadius: 2,
-                        endRadius: 90
+        if isBold {
+            card
+        } else {
+            LinearGradient(
+                colors: [skyRaised, sky],
+                startPoint: .top,
+                endPoint: .bottom
+            )
+            .overlay(alignment: .topTrailing) {
+                Circle()
+                    .fill(
+                        RadialGradient(
+                            colors: [aurora2.opacity(0.35), .clear],
+                            center: .center,
+                            startRadius: 2,
+                            endRadius: 90
+                        )
                     )
-                )
-                .frame(width: 160, height: 160)
-                .offset(x: 50, y: -50)
+                    .frame(width: 160, height: 160)
+                    .offset(x: 50, y: -50)
+            }
         }
     }
 }
@@ -95,10 +117,18 @@ extension ColorToken {
 extension FontDesignToken {
     var fontDesign: Font.Design {
         switch self {
-        case .standard: .default
+        case .standard, .expanded, .compressed: .default
         case .rounded: .rounded
         case .serif: .serif
         case .monospaced: .monospaced
+        }
+    }
+
+    func font(_ size: CGFloat, _ weight: Font.Weight) -> Font {
+        switch self {
+        case .expanded: .system(size: size, weight: weight).width(.expanded)
+        case .compressed: .system(size: size, weight: weight).width(.compressed)
+        default: .system(size: size, weight: weight, design: fontDesign)
         }
     }
 }

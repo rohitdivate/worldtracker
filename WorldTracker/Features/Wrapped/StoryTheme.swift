@@ -48,25 +48,37 @@ enum Story {
 
     static var auroraGradient: LinearGradient {
         LinearGradient(
-            colors: [aurora1, aurora2],
+            colors: palette.isBold ? [ink, ink] : [aurora1, aurora2],
             startPoint: .topLeading,
             endPoint: .bottomTrailing
         )
     }
 
-    static let cardCornerRadius: CGFloat = Theme.cardCornerRadius
+    static var cardCornerRadius: CGFloat { Theme.cardCornerRadius }
 
     // Typography follows the theme unchanged — a typeface reads the same on
     // black as anywhere else, so only the colours needed a story variant.
     static func display(_ size: CGFloat, weight: Font.Weight = .bold) -> Font {
-        .system(size: size, weight: weight, design: palette.displayDesign.fontDesign)
+        palette.displayDesign.font(size, weight)
     }
 
     static func numeric(_ size: CGFloat, weight: Font.Weight = .semibold) -> Font {
-        .system(size: size, weight: weight, design: palette.numericDesign.fontDesign)
+        palette.numericDesign.font(size, weight)
     }
 
     static func body(_ size: CGFloat, weight: Font.Weight = .regular) -> Font {
-        .system(size: size, weight: weight, design: palette.bodyDesign.fontDesign)
+        palette.bodyDesign.font(size, weight)
+    }
+
+    static func poster(_ size: CGFloat, weight: Font.Weight = .black) -> Font {
+        (palette.posterDesign ?? palette.displayDesign).font(size, weight)
+    }
+
+    static func figure(_ size: CGFloat, weight: Font.Weight = .bold) -> Font {
+        palette.figureDesign.font(size, weight)
+    }
+
+    static func label(_ size: CGFloat, weight: Font.Weight = .bold) -> Font {
+        palette.labelDesign.font(size, weight)
     }
 }
