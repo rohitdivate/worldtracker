@@ -23,7 +23,7 @@ struct CountriesWidgetView: View {
     private func content(_ snapshot: WidgetSnapshot) -> some View {
         VStack(alignment: .leading, spacing: 0) {
             Text("COUNTRIES · \(String(snapshot.year))")
-                .font(.system(size: 8.5, weight: .bold))
+                .font(WTheme.label(8.5, weight: .bold))
                 .tracking(1.6)
                 .foregroundStyle(WTheme.aurora1)
                 .lineLimit(1)
@@ -32,7 +32,7 @@ struct CountriesWidgetView: View {
             Spacer(minLength: 2)
 
             Text("\(snapshot.countriesThisYear)")
-                .font(.system(size: 44, weight: .heavy, design: .rounded))
+                .font(WTheme.poster(44, weight: .heavy))
                 .foregroundStyle(WTheme.auroraGradient)
 
             Spacer(minLength: 2)
@@ -55,7 +55,7 @@ struct CountriesWidgetView: View {
             }
             if snapshot.countries.count > 6 {
                 Text("+\(snapshot.countries.count - 6)")
-                    .font(.system(size: 9, weight: .bold, design: .rounded))
+                    .font(WTheme.figure(9, weight: .bold))
                     .foregroundStyle(WTheme.ink3)
             }
         }
@@ -64,12 +64,12 @@ struct CountriesWidgetView: View {
     private var empty: some View {
         VStack(alignment: .leading, spacing: 4) {
             Text("COUNTRIES")
-                .font(.system(size: 8.5, weight: .bold))
+                .font(WTheme.label(8.5, weight: .bold))
                 .tracking(1.8)
                 .foregroundStyle(WTheme.aurora1)
             Spacer()
             Text("0")
-                .font(.system(size: 44, weight: .heavy, design: .rounded))
+                .font(WTheme.poster(44, weight: .heavy))
                 .foregroundStyle(WTheme.ink3)
             Text("The year is young")
                 .font(.system(size: 10))

@@ -53,7 +53,7 @@ struct PlaceDetailView: View {
 
                     VStack(alignment: .leading, spacing: 8) {
                         Text("VISITS")
-                            .font(.system(size: 10, weight: .bold))
+                            .font(Theme.label(10, weight: .bold))
                             .tracking(1.6)
                             .foregroundStyle(Theme.ink3)
 
@@ -82,7 +82,7 @@ struct PlaceDetailView: View {
                 .padding(.horizontal, 16)
             }
         }
-        .navigationTitle("")
+        .navigationTitle(Theme.title(""))
         .navigationBarTitleDisplayMode(.inline)
         .toolbar {
             ToolbarItem(placement: .primaryAction) {

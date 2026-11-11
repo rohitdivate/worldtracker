@@ -17,8 +17,8 @@ All Apple-side, none of it automatable.
 1. **Apple Developer Program membership**, $99/yr. `docs/APP_STORE.md` §1 walks
    through enrolment. A free Personal Team can install on your own phone but
    cannot ship to TestFlight.
-2. **A real bundle identifier.** The repo ships the placeholder
-   `com.example.worldtracker` and keeps shipping it — see
+2. **A real bundle identifier.** The project carries
+   `com.rohitdivate.beenthere`. A fork needs its own; see
    [Bundle identifier](#bundle-identifier).
 3. **An App Store Connect API key.** App Store Connect → Users and Access →
    Integrations → App Store Connect API → generate a key with the **App
@@ -39,9 +39,12 @@ Been There derives every identifier from one build setting, `APP_BUNDLE_ID`
 `group.$(APP_BUNDLE_ID)`, so there is exactly one value to change —
 `Tools/validate_project.py` enforces that it stays that way.
 
-The release workflow reads it from the repository *variable* `APP_BUNDLE_ID` and
-passes it to `xcodebuild` on the command line, so the real identifier never has
-to be committed to a public repo.
+The committed value is the real one, `com.rohitdivate.beenthere`. A bundle ID
+is public by nature (it is in every App Store URL), so it is safe in a public
+repo; the Team ID and the API key are what stay out. The release workflow still
+reads the repository *variable* `APP_BUNDLE_ID` and passes it to `xcodebuild`
+on the command line, which overrides the committed value, and the variable
+being set is what switches automatic runs on. Set it to the same identifier.
 
 ---
 

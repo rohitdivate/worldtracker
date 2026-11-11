@@ -49,13 +49,17 @@ struct OnThisDayWidgetView: View {
         VStack(alignment: .leading, spacing: 0) {
             HStack {
                 Text("ON THIS DAY · \(memory.yearsAgo) \(memory.yearsAgo == 1 ? "YEAR" : "YEARS") AGO")
-                    .font(.system(size: 8.5, weight: .bold))
+                    .font(WTheme.label(8.5, weight: .bold))
                     .tracking(1.4)
                     .foregroundStyle(WTheme.aurora1)
                     .lineLimit(1)
                     .minimumScaleFactor(0.8)
                 Spacer()
-                WTheme.Wordmark()
+                // The small size has no room for both: the wordmark was
+                // squeezing the header down to "ON THIS DAY…".
+                if family != .systemSmall {
+                    WTheme.Wordmark()
+                }
             }
 
             Spacer()
@@ -66,7 +70,7 @@ struct OnThisDayWidgetView: View {
                     .shadow(color: .black.opacity(0.4), radius: 3)
             }
             Text(placeLine(memory))
-                .font(.system(size: 15, weight: .heavy, design: .rounded))
+                .font(WTheme.figure(15, weight: .heavy))
                 .foregroundStyle(.white)
                 .shadow(color: .black.opacity(0.6), radius: 3)
                 .lineLimit(2)
@@ -94,7 +98,7 @@ struct OnThisDayWidgetView: View {
                         Text(flagEmoji(code)).font(.system(size: 12))
                     }
                     Text("\(memory.yearsAgo)y")
-                        .font(.system(size: 10, weight: .bold, design: .rounded))
+                        .font(WTheme.figure(10, weight: .bold))
                         .foregroundStyle(.white.opacity(0.8))
                 }
                 .padding(.horizontal, 7)
@@ -107,7 +111,7 @@ struct OnThisDayWidgetView: View {
     private var empty: some View {
         VStack(alignment: .leading, spacing: 5) {
             Text("ON THIS DAY")
-                .font(.system(size: 8.5, weight: .bold))
+                .font(WTheme.label(8.5, weight: .bold))
                 .tracking(1.8)
                 .foregroundStyle(WTheme.aurora1)
             Spacer()

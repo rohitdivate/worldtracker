@@ -10,9 +10,9 @@ iCloud). iOS 18+, Xcode 16+.
 
 | Path | What it is |
 | --- | --- |
-| `WorldTracker/` | App target: SwiftUI screens (`Features/`), services (`Services/`), SwiftData models (`Data/`), design tokens (`DesignSystem/`) |
-| `WorldTrackerKit/` | Local Swift package holding **all pure logic** — day resolver, offline geocoding, epoch-day math, photo clustering, theme palettes. Tests run on Linux, no Xcode needed |
-| `BeenThereWidgets/` | WidgetKit extension (`.appex`, embedded in the app's PlugIns) |
+| `WorldTracker/` | App target: SwiftUI screens (`Features/`), services (`Services/`), SwiftData models (`Data/`), design tokens (`DesignSystem/`), Siri/Shortcuts (`Intents/`) |
+| `WorldTrackerKit/` | Local Swift package holding **all pure logic** — day resolver, day limits, insights and badges, offline geocoding, epoch-day math, photo clustering, theme palettes. Tests run on Linux and macOS, no Xcode needed |
+| `BeenThereWidgets/` | WidgetKit extension (`.appex`, embedded in the app's PlugIns): Home Screen, Lock Screen and StandBy widgets, the Live Activity, Control Center controls |
 | `Config/` | Info.plists and entitlements for both targets |
 | `Tools/` | `check.sh` (pre-commit gate), `validate_project.py` (invariants), geodata build scripts |
 | `docs/` | `ARCHITECTURE.md`, `VERIFICATION.md` (on-device QA checklists), `SETUP_MAC.md`, `APP_STORE.md`, `RELEASE.md` |
@@ -38,6 +38,12 @@ backstop: `.github/workflows/kit-tests.yml` (Linux) and `ios-build.yml` (macOS).
 Only the Kit compiles off a Mac. On Linux, `swift test --package-path
 WorldTrackerKit` is the most verification available — the app target needs
 `xcodebuild`.
+
+There is no UI test target (the validator pins the project at two targets).
+Screens are verified by running them: `Tools/make_screenshot_library.py`
+builds a geotagged photo library that the app's own photo scan turns into
+about two years of travel, which is the fixture every screen and widget is
+checked against. `docs/VERIFICATION.md` section Z lists the pass.
 
 ## Releasing
 
@@ -94,10 +100,148 @@ Consequences worth internalising:
 `.ledgerDidChange` posts; views read `store.changeToken` to refresh. Batch
 writes so one user action produces one save and one notification.
 
+## Tabs and routing
+
+Five tabs: **Home, Calendar, World, Passport, Settings**. Places is no longer a
+tab; it is the third face of World (Globe / Countries / Places), and that mode
+lives on `AppRouter.worldMode` so links can land on it.
+
+Everything that navigates goes through `AppRouter`: tab switches, Home's
+`NavigationPath` (it pushes country codes, trip segments and `HomeRoute`s), and
+the `beenthere://` scheme. Widgets, Control Center, notifications and Siri all
+use the same hosts: `home`, `calendar`, `map`, `countries`, `places`,
+`passport`, `limits[/<rule id>]`, `settings[/<route>]`. Add a destination there,
+not as an ad-hoc `NavigationLink` from a widget URL.
+
+## Wide layouts (iPhone Duo)
+
+Screens key on `horizontalSizeClass == .regular`, which is what Duo's open
+inner display reports. Home, Passport, Calendar, World and limit detail go
+two-column; the single-column screens cap at a readable 640pt. Nothing checks
+for a device.
+
+This Mac cannot build against the Duo SDK yet (needs Xcode 27.1, which needs
+macOS 26.6). Until it can, the stand-in is an iPad mini simulator, close to
+Duo's inner display in points, built with a command-line family override that
+is never committed:
+
+```bash
+xcodebuild -project WorldTracker.xcodeproj -scheme WorldTracker \
+  -destination 'platform=iOS Simulator,name=iPad mini (A17 Pro)' \
+  -derivedDataPath build/ipad TARGETED_DEVICE_FAMILY=1,2 build
+xcrun simctl launch <UDID> <bundle id> -debugOpen beenthere://passport
+```
+
+`-debugOpen` (DEBUG builds only) lands on a screen without a tap;
+`-debugBackupTo <path>` and `-debugRestoreFrom <path>` write or merge a backup
+at a host path, which is how a ledger moves between simulators. Hinge and
+posture handling (`onHingeChange`, reserved regions) is not written: it needs
+the SDK to compile.
+
+## Derived features: limits, passport, insights
+
+Same rule as trips: **computed from resolved days, never stored**. All of it is
+in the Kit with tests.
+
+- **Day limits** (`Limits/DayLimits.swift`): a `DayLimitRule` is a scope
+  (country / Schengen / days outside a country), a window (rolling N days,
+  calendar year, year starting on a date) and a number. `DayLimitEvaluator`
+  returns used / remaining / runway / the day days free up. Rules are settings,
+  kept as one Codable blob in UserDefaults by `DayLimitStore`; no SwiftData.
+  - Counting is any-presence, so a border day counts for a country and for
+    Schengen. "Outside" is the inverse: only *whole* days away, which is how
+    absence rules count.
+  - A day with no verdict is never counted. It is reported as `unknownDays`
+    and shown, because a silently low number is the dangerous failure here.
+  - `runwayDays` for a rolling window is not `limit - used`: days roll out of
+    the window during a stay. Don't "simplify" it to a subtraction.
+- **Passport** (`Insights/`): stamps (`PassportBook`), continent rings
+  (`ContinentTable`: the 195 sovereign states are the denominators, matching
+  `MilestoneEngine.worldCountryCount`), badges (`AchievementEngine`), lifetime
+  insights (`TravelInsightsEngine`), and the week-aligned `YearGrid` shared by
+  the Home heatmap and the Travel Graph widget.
+- `InsightsStore` (app) caches one `Summary` per ledger change. Distances need
+  coordinates, which load async (`warm(store:)`); until then km reads zero and
+  `revision` bumps when they arrive. The wishlist lives there too.
+
+- **Limit analysis** (`Limits/DayLimitAnalysis.swift`): the layer a careful
+  user leans on. `forecast` runs a rule forward over planned trips
+  (`TripPlans.projectedDays` turns `PlannedTrip`s into future resolved days:
+  travel days touch home, days between trips are at home); `peak` and
+  `pastWindows` say how a rule stood historically; `stretches` are the line
+  items behind a count (the CSV report); `DayAudit` finds days with no data or
+  only assumed data. Plans are settings in `PlanStore`, never ledger facts.
+- **Backup** (`Backup/BackupArchive.swift`, app `BackupService`): a
+  full-fidelity archive of *facts*, annotations and settings. The CSV/JSON
+  exports are resolved days for people; this is for the app to read back.
+  Restore goes through `BackupMergePlan` and only ever adds. Bump
+  `BackupArchive.currentVersion` on a breaking change; older builds refuse a
+  newer archive rather than half-reading it.
+
+Where these surface, on purpose in existing screens: forecasts and planned
+trips on Day Limits (Home shows a forecast only when it breaks a limit),
+history and the report in limit detail, gap review from limit detail and
+Settings › Data, backup in Settings › Data, go-to-date in the Calendar menu.
+
+Adding a country code to the atlas means adding it to `ContinentTable`;
+`InsightsTests.testEveryAtlasCountryHasAContinent` fails otherwise.
+
+## Widgets, Live Activity, controls, Siri
+
+- The widget process only reads. `SharedSnapshotStore.write(from:)` puts one
+  JSON in the App Group with everything pre-evaluated (limit statuses, stamps,
+  continents, day tones). Widgets draw; they never recompute.
+- Two intents files, on purpose. `OpenBeenThereIntent` /
+  `BeenThereDestination` exist in **both** `WorldTracker/Intents/` and
+  `BeenThereWidgets/WidgetIntents.swift`: controls are declared in the
+  extension, but an open-the-app intent is performed by the app. The validator
+  compares the two.
+- A `WidgetBundle` body holds at most ten widgets, so the bundle is split into
+  `GlanceWidgets` and `CollectionWidgets`. Add to one of those.
+- Your Top's period pill is an interactive widget (`ToggleTopPeriodIntent`); it
+  runs in the widget process and flips a key in the App Group defaults.
+- The Day Limit widget is configurable (`SelectLimitIntent`). Unconfigured, it
+  follows the most pressing rule (`pressingLimit`).
+- Live Activity state carries optional limit fields. They must stay optional:
+  an activity started by an older build has to keep decoding.
+
 ## Themes
 
-Three selectable skins — Night Flight (default), Tropical Spritz (light),
-Mercury Dark. Colour and typography only; no theme changes behaviour.
+Seven selectable skins in two families. A palette's `style` decides which:
+
+- **Bold** (`.bold`): Paper (the default, light), Graphite, Hi-Vis, Poolside.
+  Flat grounds, borderless flat cards, solid ink fills instead of gradients,
+  compressed poster numerals, an expanded headline face, mono caps labels,
+  caps screen titles, and the 3D globe hero on Home. The look is modelled on
+  the Not Boring apps: one object, one number, one loud colour.
+- **Classic** (`.aurora`): Night Flight, Tropical Spritz, Mercury Dark. The
+  original aurora mesh, gradient fills and hairline cards, unchanged.
+
+Colour, type and surface treatment only; no skin changes behaviour.
+
+How the split is carried, so a screen never branches on a skin by name:
+
+- `Theme.auroraGradient` is solid ink on bold skins. That one token is why
+  buttons, chips, bars and big numerals go monochrome without edits.
+- `nightCard()` and `AuroraBackground` flatten themselves on bold skins.
+- Font roles: `display` (headline word), `poster` (the one huge number or
+  title), `figure` (small counts, was hardcoded rounded), `label` (tracked
+  caps), `numeric`, `body`, `footnote`. Use a role, never
+  `.system(..., design: .rounded)`: a raw font ignores the skin.
+- `Theme.title("Overview")` uppercases screen titles on bold skins;
+  `ThemeChrome` sets the navigation bar faces through UIKit appearance.
+- Lists and forms: `.themedList()` plus a `Group { … }.listRowBackground(Theme.card)`
+  around the sections. Stock grey rows clash with every skin.
+- Branch on `Theme.isBold` only where the *layout* differs (the Home hero).
+
+Home's bold hero (`Features/Home/HeroGlobe.swift`) is SceneKit: a sphere
+textured from the Kit's 110m outlines (visited countries inlaid in the ground
+colour, the current one in the "now" colour) sitting on an extruded day
+number. Two things that look like bugs and are not: the number is `SCNText`
+in the regular black face squeezed horizontally, because `SCNText` ignores the
+font's width axis and `SCNShape` produces no geometry from the compressed
+glyph outlines; and the globe's yaw is simply minus the longitude, because
+SceneKit puts the texture's centre at the front.
 
 **Palette data lives in the Kit**
 (`WorldTrackerKit/Sources/WorldTrackerKit/Design/ThemePalettes.swift`) as plain
@@ -146,7 +290,8 @@ project file, plists, entitlements, or assets.
 - **`WorldTracker/Services/Widgets/SharedSnapshot.swift` and
   `BeenThereWidgets/WidgetSnapshot.swift` must stay field-for-field in sync** —
   they're the two halves of one Codable contract, and the validator compares
-  them.
+  every field, nested structs included. New fields go at the end and are
+  optional, so a snapshot written by an older app build still decodes.
 - The shared scheme `WorldTracker.xcscheme` stays committed.
 - SwiftData models stay CloudKit-compatible: defaults everywhere, optional
   relationships, no unique constraints.

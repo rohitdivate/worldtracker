@@ -22,7 +22,7 @@ struct WorldShareCard: View {
                 Spacer().frame(height: 26)
 
                 Text("MY WORLD")
-                    .font(.system(size: 13, weight: .bold))
+                    .font(Theme.label(13, weight: .bold))
                     .tracking(4)
                     .foregroundStyle(Theme.aurora1)
 

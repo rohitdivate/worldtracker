@@ -39,7 +39,7 @@ struct PhotoSyncView: View {
                 .padding(.bottom, 90)
             }
         }
-        .navigationTitle("Time Machine")
+        .navigationTitle(Theme.title("Time Machine"))
         .task(id: progress.stage) {
             lastSync = await engine.lastSync()
         }
@@ -65,7 +65,7 @@ struct PhotoSyncView: View {
     private var gapOptions: some View {
         VStack(alignment: .leading, spacing: 4) {
             Text("DAYS WITH NO PHOTOS")
-                .font(.system(size: 10, weight: .bold))
+                .font(Theme.label(10, weight: .bold))
                 .tracking(1.6)
                 .foregroundStyle(Theme.ink3)
                 .padding(.bottom, 6)
@@ -311,7 +311,7 @@ struct TimeMachineProgressView: View {
                         .foregroundStyle(Theme.auroraGradient)
                         .contentTransition(.numericText())
                     Text(stageLabel)
-                        .font(.system(size: 10, weight: .semibold))
+                        .font(Theme.label(10, weight: .semibold))
                         .tracking(1.6)
                         .foregroundStyle(Theme.ink3)
                 }

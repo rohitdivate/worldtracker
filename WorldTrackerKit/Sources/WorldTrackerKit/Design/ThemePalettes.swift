@@ -75,11 +75,29 @@ public enum FontDesignToken: String, CaseIterable, Sendable {
     case rounded
     case serif
     case monospaced
+    /// The system face at its widest: the bold skins' headline word.
+    case expanded
+    /// The system face at its narrowest: poster numerals and screen titles.
+    case compressed
+}
+
+/// How a skin draws its surfaces, beyond which colours it uses.
+public enum ThemeStyle: String, Sendable {
+    /// The original look: aurora mesh, gradient fills, hairline-edged cards.
+    case aurora
+    /// Flat grounds, solid ink fills, borderless cards, poster numerals,
+    /// mono caps labels, and a 3D hero object on Home.
+    case bold
 }
 
 /// The themes a user can pick. Raw values are persisted in UserDefaults and
 /// shared with the widget through the App Group — don't rename them.
 public enum ThemeID: String, CaseIterable, Identifiable, Sendable {
+    // The bold skins come first: that is the order the picker shows them.
+    case paper
+    case graphite
+    case hiVis
+    case poolside
     case nightFlight
     case tropicalSpritz
     case mercuryDark
@@ -89,13 +107,27 @@ public enum ThemeID: String, CaseIterable, Identifiable, Sendable {
     /// Falls back rather than failing: an unknown stored value (older build,
     /// hand-edited defaults) should look like the default theme, not crash.
     public init(storedValue: String?) {
-        self = ThemeID(rawValue: storedValue ?? "") ?? .nightFlight
+        self = ThemeID(rawValue: storedValue ?? "") ?? .default
     }
 
-    public static var `default`: ThemeID { .nightFlight }
+    /// Paper since 2.0. An install that never picked a theme moves to it;
+    /// one that picked a classic keeps its choice.
+    public static var `default`: ThemeID { .paper }
+
+    /// The skins that predate the bold redesign, grouped in the picker.
+    public var isClassic: Bool {
+        switch self {
+        case .nightFlight, .tropicalSpritz, .mercuryDark: true
+        default: false
+        }
+    }
 
     public var displayName: String {
         switch self {
+        case .paper: "Paper"
+        case .graphite: "Graphite"
+        case .hiVis: "Hi-Vis"
+        case .poolside: "Poolside"
         case .nightFlight: "Night Flight"
         case .tropicalSpritz: "Tropical Spritz"
         case .mercuryDark: "Mercury Dark"
@@ -105,6 +137,10 @@ public enum ThemeID: String, CaseIterable, Identifiable, Sendable {
     /// One line for the Settings row — what the theme feels like, not a colour list.
     public var tagline: String {
         switch self {
+        case .paper: "Grey paper, black ink, one red. The default."
+        case .graphite: "The same ink, lights off."
+        case .hiVis: "Painted industrial yellow."
+        case .poolside: "Pale water blue and navy."
         case .nightFlight: "Deep indigo and aurora. The original."
         case .tropicalSpritz: "Warm cream, hibiscus and lagoon. Light."
         case .mercuryDark: "Near-black surfaces, electric lime, mono numerals."
@@ -165,8 +201,25 @@ public struct ThemePalette: Sendable {
     public let numericDesign: FontDesignToken
     public let bodyDesign: FontDesignToken
 
+    // Added with the bold skins. Defaulted, so the classic palettes read
+    // exactly as they did.
+
+    public var style: ThemeStyle = .aurora
+    /// Poster numerals and screen titles. Nil = the display face.
+    public var posterDesign: FontDesignToken? = nil
+    /// Small counts and day figures (was a hardcoded rounded face).
+    public var figureDesign: FontDesignToken = .rounded
+    /// Tracked caps labels.
+    public var labelDesign: FontDesignToken = .standard
+
+    public var isBold: Bool { style == .bold }
+
     public static func palette(for id: ThemeID) -> ThemePalette {
         switch id {
+        case .paper: paper
+        case .graphite: graphite
+        case .hiVis: hiVis
+        case .poolside: poolside
         case .nightFlight: nightFlight
         case .tropicalSpritz: tropicalSpritz
         case .mercuryDark: mercuryDark
@@ -174,14 +227,177 @@ public struct ThemePalette: Sendable {
     }
 
     /// Palette for the always-black story surfaces. Dark themes are already
-    /// legible there and pass straight through; the light theme needs a dark
+    /// legible there and pass straight through; a light theme needs a dark
     /// counterpart or its ink disappears.
     public static func storyPalette(for id: ThemeID) -> ThemePalette {
         switch id {
+        case .paper: graphiteStory(for: .paper, accent: graphite.aurora1)
+        case .graphite: graphite
+        case .hiVis: graphiteStory(for: .hiVis, accent: hiVis.sky)
+        case .poolside: graphiteStory(for: .poolside, accent: poolside.sky)
         case .nightFlight: nightFlight
         case .tropicalSpritz: tropicalSpritzStory
         case .mercuryDark: mercuryDark
         }
+    }
+
+    // MARK: - Bold skins
+    //
+    // One ground, one ink, one loud "now" colour, one data colour. The ink
+    // doubles as the second accent, so fills and big numerals are solid
+    // rather than gradients.
+
+    /// Light grey paper, white cards, black ink, signal red for now and
+    /// home, blue for data.
+    public static let paper = ThemePalette(
+        id: .paper,
+        isLight: true,
+        sky: ColorToken(hex: 0xE9E9E6),
+        skyRaised: ColorToken(hex: 0xF0F0ED),
+        card: ColorToken(hex: 0xFFFFFF),
+        cardRaised: ColorToken(hex: 0xFFFFFF),
+        ink: ColorToken(hex: 0x111111),
+        ink2: ColorToken(hex: 0x111111).opacity(0.64),
+        ink3: ColorToken(hex: 0x111111).opacity(0.50),
+        // Deepened from the bright data blue (#1FA8FF, 2.6:1 on this ground)
+        // until it clears AA as text, which is how this app uses accents.
+        aurora1: ColorToken(hex: 0x0A5FCC),
+        aurora2: ColorToken(hex: 0x111111),
+        amber: ColorToken(hex: 0xB93A08),
+        good: ColorToken(hex: 0x116B33),
+        alert: ColorToken(hex: 0xB00020),
+        hairline: ColorToken(hex: 0x111111).opacity(0.10),
+        hairline2: ColorToken(hex: 0x111111).opacity(0.18),
+        gloss: ColorToken(hex: 0x111111).opacity(0.14),
+        globeOcean: ColorToken(hex: 0x111111),
+        displayDesign: .expanded,
+        numericDesign: .monospaced,
+        bodyDesign: .standard,
+        style: .bold,
+        posterDesign: .compressed,
+        figureDesign: .monospaced,
+        labelDesign: .monospaced
+    )
+
+    /// Paper with the lights off.
+    public static let graphite = ThemePalette(
+        id: .graphite,
+        isLight: false,
+        sky: ColorToken(hex: 0x161616),
+        skyRaised: ColorToken(hex: 0x1C1C1C),
+        card: ColorToken(hex: 0x232323),
+        cardRaised: ColorToken(hex: 0x2A2A2A),
+        ink: ColorToken(hex: 0xF2F2F0),
+        ink2: ColorToken(hex: 0xF2F2F0).opacity(0.64),
+        ink3: ColorToken(hex: 0xF2F2F0).opacity(0.46),
+        aurora1: ColorToken(hex: 0x4DB8FF),
+        aurora2: ColorToken(hex: 0xF2F2F0),
+        amber: ColorToken(hex: 0xFF5A4D),
+        good: ColorToken(hex: 0x4ADE80),
+        alert: ColorToken(hex: 0xFF6B9A),
+        hairline: ColorToken(hex: 0xFFFFFF).opacity(0.10),
+        hairline2: ColorToken(hex: 0xFFFFFF).opacity(0.18),
+        gloss: ColorToken(hex: 0xFFFFFF).opacity(0.20),
+        globeOcean: ColorToken(hex: 0x6A6A6A),
+        displayDesign: .expanded,
+        numericDesign: .monospaced,
+        bodyDesign: .standard,
+        style: .bold,
+        posterDesign: .compressed,
+        figureDesign: .monospaced,
+        labelDesign: .monospaced
+    )
+
+    /// The material of work: excavator yellow with black ink.
+    public static let hiVis = ThemePalette(
+        id: .hiVis,
+        isLight: true,
+        sky: ColorToken(hex: 0xF2B824),
+        skyRaised: ColorToken(hex: 0xF4BF38),
+        card: ColorToken(hex: 0xF8D261),
+        cardRaised: ColorToken(hex: 0xFADB7D),
+        ink: ColorToken(hex: 0x111111),
+        ink2: ColorToken(hex: 0x111111).opacity(0.70),
+        ink3: ColorToken(hex: 0x111111).opacity(0.58),
+        // Everything painted on yellow has to be very dark to read.
+        aurora1: ColorToken(hex: 0x0A3D91),
+        aurora2: ColorToken(hex: 0x111111),
+        amber: ColorToken(hex: 0x96130A),
+        good: ColorToken(hex: 0x0D5226),
+        alert: ColorToken(hex: 0x7A0A3C),
+        hairline: ColorToken(hex: 0x111111).opacity(0.12),
+        hairline2: ColorToken(hex: 0x111111).opacity(0.22),
+        gloss: ColorToken(hex: 0x111111).opacity(0.16),
+        globeOcean: ColorToken(hex: 0x111111),
+        displayDesign: .expanded,
+        numericDesign: .monospaced,
+        bodyDesign: .standard,
+        style: .bold,
+        posterDesign: .compressed,
+        figureDesign: .monospaced,
+        labelDesign: .monospaced
+    )
+
+    /// Pale water blue with navy ink.
+    public static let poolside = ThemePalette(
+        id: .poolside,
+        isLight: true,
+        sky: ColorToken(hex: 0x86D3F6),
+        skyRaised: ColorToken(hex: 0x93D8F7),
+        card: ColorToken(hex: 0xB5E5FA),
+        cardRaised: ColorToken(hex: 0xC8ECFC),
+        ink: ColorToken(hex: 0x06243F),
+        ink2: ColorToken(hex: 0x06243F).opacity(0.72),
+        ink3: ColorToken(hex: 0x06243F).opacity(0.60),
+        aurora1: ColorToken(hex: 0x0A4697),
+        aurora2: ColorToken(hex: 0x06243F),
+        amber: ColorToken(hex: 0x9E150B),
+        good: ColorToken(hex: 0x0C5227),
+        alert: ColorToken(hex: 0x850B43),
+        hairline: ColorToken(hex: 0x06243F).opacity(0.12),
+        hairline2: ColorToken(hex: 0x06243F).opacity(0.22),
+        gloss: ColorToken(hex: 0x06243F).opacity(0.16),
+        globeOcean: ColorToken(hex: 0x06243F),
+        displayDesign: .expanded,
+        numericDesign: .monospaced,
+        bodyDesign: .standard,
+        style: .bold,
+        posterDesign: .compressed,
+        figureDesign: .monospaced,
+        labelDesign: .monospaced
+    )
+
+    /// A light bold skin on the black story surface: Graphite's grounds and
+    /// ink, with the skin's own colour as the data accent so the story still
+    /// reads as that skin.
+    static func graphiteStory(for id: ThemeID, accent: ColorToken) -> ThemePalette {
+        ThemePalette(
+            id: id,
+            isLight: false,
+            sky: graphite.sky,
+            skyRaised: graphite.skyRaised,
+            card: graphite.card,
+            cardRaised: graphite.cardRaised,
+            ink: graphite.ink,
+            ink2: graphite.ink2,
+            ink3: graphite.ink3,
+            aurora1: accent,
+            aurora2: graphite.aurora2,
+            amber: graphite.amber,
+            good: graphite.good,
+            alert: graphite.alert,
+            hairline: graphite.hairline,
+            hairline2: graphite.hairline2,
+            gloss: graphite.gloss,
+            globeOcean: graphite.globeOcean,
+            displayDesign: .expanded,
+            numericDesign: .monospaced,
+            bodyDesign: .standard,
+            style: .bold,
+            posterDesign: .compressed,
+            figureDesign: .monospaced,
+            labelDesign: .monospaced
+        )
     }
 
     /// The original identity. Values are byte-for-byte the pre-theme

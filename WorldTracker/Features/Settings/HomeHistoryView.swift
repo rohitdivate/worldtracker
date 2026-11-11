@@ -24,6 +24,7 @@ struct HomeHistoryView: View {
     var body: some View {
         NavigationStack {
             Form {
+                Group {
                 Section {
                     Button {
                         pickingFirstHome = true
@@ -41,6 +42,7 @@ struct HomeHistoryView: View {
                     }
                 } footer: {
                     Text("Your home from the beginning of your history until your first move.")
+                        .textCase(nil)
                 }
 
                 Section {
@@ -80,11 +82,13 @@ struct HomeHistoryView: View {
                     Text("Moves")
                 } footer: {
                     Text("Each move sets your home from that date until the next move. Travel stats, the trips list, and your Year in Travel all follow this history.")
+                        .textCase(nil)
                 }
+                }
+                .listRowBackground(Theme.card)
             }
-            .scrollContentBackground(.hidden)
-            .background(Theme.sky)
-            .navigationTitle("Home history")
+            .themedList()
+            .navigationTitle(Theme.title("Home history"))
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
                 ToolbarItem(placement: .cancellationAction) {
@@ -175,6 +179,7 @@ private struct MoveEditorSheet: View {
     var body: some View {
         NavigationStack {
             Form {
+                Group {
                 Button {
                     pickingCountry = true
                 } label: {
@@ -197,9 +202,10 @@ private struct MoveEditorSheet: View {
                         dismiss()
                     }
                 }
+                }
+                .listRowBackground(Theme.card)
             }
-            .scrollContentBackground(.hidden)
-            .background(Theme.sky)
+            .themedList()
             .navigationTitle(title)
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {

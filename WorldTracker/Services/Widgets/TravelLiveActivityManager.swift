@@ -34,10 +34,18 @@ enum TravelLiveActivityManager {
         let jan1 = EpochDay.daysFromCivil(year: year, month: 1, day: 1)
         let stats = store.stats(in: jan1...today)
 
+        // The ceiling this stay is on the clock for, if the user set one.
+        let limit = AppContainer.shared.dayLimitStore.activeStatus(using: store)
+
         let state = TravelActivityAttributes.ContentState(
             dayOfStay: stay.days,
             daysThisYear: store.daysThisYear(in: stay.countryCode),
-            countriesThisYear: stats.countriesVisited
+            countriesThisYear: stats.countriesVisited,
+            limitName: limit?.rule.name,
+            limitUsed: limit?.used,
+            limitMax: limit?.rule.limit,
+            limitHeadline: limit?.headline,
+            limitLevel: limit?.level.rawValue
         )
         let content = ActivityContent(state: state, staleDate: nextMidnight())
 

@@ -99,7 +99,7 @@ struct SetupChecklistCard: View {
         VStack(alignment: .leading, spacing: 4) {
             HStack {
                 Text("FINISH SETTING UP")
-                    .font(.system(size: 10, weight: .bold))
+                    .font(Theme.label(10, weight: .bold))
                     .tracking(1.8)
                     .foregroundStyle(Theme.aurora1)
                 Spacer()

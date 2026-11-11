@@ -66,7 +66,7 @@ struct ShareStat: View {
                 .font(Theme.display(30, weight: .heavy))
                 .foregroundStyle(color)
             Text(label)
-                .font(.system(size: 8.5, weight: .semibold))
+                .font(Theme.label(8.5, weight: .semibold))
                 .tracking(1.6)
                 .foregroundStyle(Theme.ink3)
         }

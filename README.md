@@ -53,13 +53,13 @@ resolves the built-in `WorldTrackerKit` package.
    same for the **BeenThereWidgets** target.
 4. Set your bundle identifier **in one place**: select the blue project icon
    (not a target) → **Build Settings** tab → type `APP_BUNDLE_ID` in the
-   search box → change `com.example.worldtracker` to something unique to
-   you, e.g. `com.rohitdivate.beenthere`.
+   search box. The project carries `com.rohitdivate.beenthere`; keep it if
+   that is your Apple account, otherwise change it to something unique to you.
    Both targets follow automatically (the widget becomes
    `<yours>.widgets`) — don't edit the per-target Bundle Identifier fields,
    they're wired to this one setting.
-   (Bundle IDs are globally unique across the App Store — the example one is a
-   placeholder on purpose.)
+   (Bundle IDs are globally unique across the App Store, so a fork cannot
+   reuse the committed one.)
 
 ## 5. Put it on your iPhone
 

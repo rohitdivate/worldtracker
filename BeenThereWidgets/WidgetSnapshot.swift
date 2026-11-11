@@ -17,6 +17,31 @@ struct WidgetSnapshot: Codable {
         let hasPhoto: Bool
     }
 
+    struct LimitStatus: Codable {
+        let id: String
+        let name: String
+        let used: Int
+        let limit: Int
+        let headline: String
+        let detail: String
+        let level: String
+        let countsToday: Bool
+        let isCeiling: Bool
+    }
+
+    struct Stamp: Codable {
+        let code: String
+        let firstDay: Int
+        let totalDays: Int
+    }
+
+    struct ContinentCount: Codable {
+        let key: String
+        let name: String
+        let visited: Int
+        let total: Int
+    }
+
     var generatedAt: Date
     var currentCountry: String?
     var dayOfStay: Int
@@ -30,6 +55,15 @@ struct WidgetSnapshot: Codable {
     var onThisDay: [OnThisDayEntry]?
     var lastNewCountryDay: Int?
     var allTimeCountries: Int?
+    var limits: [LimitStatus]?
+    var stamps: [Stamp]?
+    var continents: [ContinentCount]?
+    var allTimeTop: [CountryDays]?
+    var allTimeTravelDays: Int?
+    var totalKm: Int?
+    var badgesUnlocked: Int?
+    var badgesTotal: Int?
+    var dayTones: String?
 }
 
 extension WidgetSnapshot {
@@ -56,7 +90,52 @@ extension WidgetSnapshot {
             .init(yearsAgo: 5, countryCode: "IT", city: "Rome", hasPhoto: false),
         ],
         lastNewCountryDay: nil,
-        allTimeCountries: 14
+        allTimeCountries: 14,
+        limits: [
+            .init(id: "schengen", name: "Schengen 90/180", used: 34, limit: 90,
+                  headline: "56 days left", detail: "34 of 90 days · any 180 days",
+                  level: "clear", countsToday: false, isCeiling: true),
+            .init(id: "uk", name: "UK absences", used: 121, limit: 180,
+                  headline: "59 days left", detail: "121 of 180 days · any 365 days",
+                  level: "watch", countsToday: true, isCeiling: true),
+        ],
+        stamps: [
+            .init(code: "JP", firstDay: 20_500, totalDays: 11),
+            .init(code: "DK", firstDay: 20_400, totalDays: 3),
+            .init(code: "ES", firstDay: 20_100, totalDays: 9),
+            .init(code: "FR", firstDay: 19_900, totalDays: 8),
+            .init(code: "IT", firstDay: 19_700, totalDays: 14),
+            .init(code: "US", firstDay: 19_400, totalDays: 21),
+            .init(code: "PT", firstDay: 19_200, totalDays: 6),
+            .init(code: "GR", firstDay: 19_000, totalDays: 9),
+            .init(code: "GB", firstDay: 18_000, totalDays: 900),
+        ],
+        continents: [
+            .init(key: "europe", name: "Europe", visited: 9, total: 44),
+            .init(key: "asia", name: "Asia", visited: 2, total: 48),
+            .init(key: "africa", name: "Africa", visited: 0, total: 54),
+            .init(key: "northAmerica", name: "North America", visited: 2, total: 23),
+            .init(key: "southAmerica", name: "South America", visited: 0, total: 12),
+            .init(key: "oceania", name: "Oceania", visited: 1, total: 14),
+            .init(key: "antarctica", name: "Antarctica", visited: 0, total: 0),
+        ],
+        allTimeTop: [
+            .init(code: "GB", days: 900),
+            .init(code: "US", days: 61),
+            .init(code: "IT", days: 30),
+            .init(code: "FR", days: 24),
+            .init(code: "JP", days: 11),
+        ],
+        allTimeTravelDays: 212,
+        totalKm: 84_300,
+        badgesUnlocked: 7,
+        badgesTotal: 18,
+        dayTones: String((0..<200).map { index -> Character in
+            if (20..<29).contains(index) || (60..<74).contains(index) || (150..<161).contains(index) {
+                return index == 20 || index == 60 || index == 150 ? "c" : "a"
+            }
+            return "h"
+        })
     )
 }
 

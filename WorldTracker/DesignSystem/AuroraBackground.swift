@@ -18,7 +18,10 @@ struct AuroraBackground: View {
 
     var body: some View {
         Group {
-            if reduceMotion {
+            if palette.isBold {
+                // Bold skins have no aurora: one flat ground.
+                sky
+            } else if reduceMotion {
                 mesh(phase: 0.6)
             } else {
                 TimelineView(.animation(minimumInterval: 1.0 / 20.0)) { context in
@@ -26,6 +29,9 @@ struct AuroraBackground: View {
                 }
             }
         }
+        // The mesh's accent vertices are translucent. With nothing behind
+        // them the window showed through as a hard dark wedge.
+        .background(sky)
         .ignoresSafeArea()
     }
 

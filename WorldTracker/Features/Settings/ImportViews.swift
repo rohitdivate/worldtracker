@@ -26,7 +26,7 @@ struct ImportProgressView: View {
                         .foregroundStyle(Theme.auroraGradient)
                         .contentTransition(.numericText())
                     Text(progress.stage == .writing ? "WRITING" : "READING")
-                        .font(.system(size: 10, weight: .semibold))
+                        .font(Theme.label(10, weight: .semibold))
                         .tracking(1.6)
                         .foregroundStyle(Theme.ink3)
                 }
@@ -90,7 +90,7 @@ struct ImportTimelineView: View {
                 .padding(.bottom, 90)
             }
         }
-        .navigationTitle("Google Timeline")
+        .navigationTitle(Theme.title("Google Timeline"))
         .fileImporter(
             isPresented: $showPicker,
             allowedContentTypes: [.json],
@@ -141,7 +141,7 @@ struct ImportTimelineView: View {
     private var stageCards: some View {
         VStack(alignment: .leading, spacing: 10) {
             Text("HOW TO GET YOUR EXPORT")
-                .font(.system(size: 10, weight: .bold))
+                .font(Theme.label(10, weight: .bold))
                 .tracking(1.6)
                 .foregroundStyle(Theme.ink3)
             step(1, "Open the Google Maps app and tap your profile picture")
@@ -228,7 +228,7 @@ struct ImportFlightsView: View {
                 .padding(.bottom, 90)
             }
         }
-        .navigationTitle("Flights")
+        .navigationTitle(Theme.title("Flights"))
         .fileImporter(
             isPresented: $showPicker,
             allowedContentTypes: [.commaSeparatedText, .plainText],
@@ -279,7 +279,7 @@ struct ImportFlightsView: View {
     private var infoCard: some View {
         VStack(alignment: .leading, spacing: 10) {
             Text("SUPPORTED FILES")
-                .font(.system(size: 10, weight: .bold))
+                .font(Theme.label(10, weight: .bold))
                 .tracking(1.6)
                 .foregroundStyle(Theme.ink3)
             step(1, "Flighty: Settings → Export My Data → CSV")

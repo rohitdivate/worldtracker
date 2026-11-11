@@ -29,7 +29,7 @@ struct MomentumWidgetView: View {
 
         return VStack(alignment: .leading, spacing: 0) {
             Text("LAST NEW COUNTRY")
-                .font(.system(size: 8.5, weight: .bold))
+                .font(WTheme.label(8.5, weight: .bold))
                 .tracking(1.6)
                 .foregroundStyle(accent)
                 .lineLimit(1)
@@ -39,7 +39,7 @@ struct MomentumWidgetView: View {
 
             HStack(alignment: .firstTextBaseline, spacing: 4) {
                 Text("\(daysSince)")
-                    .font(.system(size: 40, weight: .heavy, design: .rounded))
+                    .font(WTheme.poster(40, weight: .heavy))
                     .foregroundStyle(accent)
                     .minimumScaleFactor(0.6)
                     .lineLimit(1)
@@ -75,7 +75,7 @@ struct MomentumWidgetView: View {
     private var empty: some View {
         VStack(alignment: .leading, spacing: 5) {
             Text("MOMENTUM")
-                .font(.system(size: 8.5, weight: .bold))
+                .font(WTheme.label(8.5, weight: .bold))
                 .tracking(1.8)
                 .foregroundStyle(WTheme.aurora1)
             Spacer()

@@ -75,7 +75,7 @@ struct TripDetailView: View {
                 if !photos.isEmpty {
                     VStack(alignment: .leading, spacing: 8) {
                         Text("PHOTOS FROM THIS TRIP")
-                            .font(.system(size: 10, weight: .bold))
+                            .font(Theme.label(10, weight: .bold))
                             .tracking(1.8)
                             .foregroundStyle(Theme.ink3)
                         LazyVGrid(
@@ -133,7 +133,7 @@ struct TripDetailView: View {
             .padding(.horizontal, 18)
         }
         .background(Theme.sky)
-        .navigationTitle("Trip")
+        .navigationTitle(Theme.title("Trip"))
         .navigationBarTitleDisplayMode(.inline)
         .toolbar {
             ToolbarItem(placement: .primaryAction) {
@@ -247,7 +247,7 @@ struct TripDetailView: View {
             }
             if photo.photoCount > 1 {
                 Text("\(photo.photoCount)")
-                    .font(.system(size: 9, weight: .bold, design: .rounded))
+                    .font(Theme.figure(9, weight: .bold))
                     .padding(.horizontal, 5)
                     .padding(.vertical, 2)
                     .background(.black.opacity(0.55), in: Capsule())

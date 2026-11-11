@@ -5,6 +5,17 @@ func countryName(_ code: String) -> String {
     Locale.current.localizedString(forRegionCode: code) ?? code
 }
 
+/// Country name as it reads mid-sentence in English: "the United Kingdom",
+/// "the Netherlands", but plain "France".
+func countryNameInSentence(_ code: String) -> String {
+    let takesArticle: Set<String> = [
+        "GB", "US", "NL", "AE", "PH", "BS", "DO", "CF", "MV", "GM", "CZ",
+        "CD", "CG", "KM", "MH", "SB", "VA", "KY", "TC", "VG", "VI", "FK", "FO",
+    ]
+    let name = countryName(code)
+    return takesArticle.contains(code) ? "the \(name)" : name
+}
+
 /// Circular flag chip — the app's atom.
 struct FlagChip: View {
     let code: String

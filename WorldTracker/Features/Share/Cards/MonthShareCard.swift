@@ -38,7 +38,7 @@ struct MonthShareCard: View {
                             Text(flagEmoji(code)).font(.system(size: 19))
                         }
                         Text("\(travelDays) travel \(travelDays == 1 ? "day" : "days")")
-                            .font(.system(size: 12.5, weight: .bold, design: .rounded))
+                            .font(Theme.figure(12.5, weight: .bold))
                             .foregroundStyle(Theme.aurora1)
                             .padding(.leading, 4)
                     }

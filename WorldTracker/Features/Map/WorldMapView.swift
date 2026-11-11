@@ -5,15 +5,18 @@ import WorldTrackerKit
 /// chips) plus the numbers view — a ranked day-count ledger.
 struct WorldMapView: View {
     @State private var shapes: WorldMapShapes?
-    @State private var mode: Mode = .globe
     @State private var shareItem: ShareItem?
 
-    enum Mode: String, CaseIterable {
-        case globe = "Globe"
-        case countries = "Countries"
-    }
+    typealias Mode = AppRouter.WorldMode
 
     private var store: LedgerStore { AppContainer.shared.ledgerStore }
+    private var router: AppRouter { AppContainer.shared.router }
+    /// Lives on the router so deep links (beenthere://places) and Home's
+    /// "All countries" can land on a specific face of this tab.
+    private var mode: Mode { router.worldMode }
+
+    @Environment(\.horizontalSizeClass) private var sizeClass
+    private var isWide: Bool { sizeClass == .regular }
 
     var body: some View {
         let _ = store.changeToken
@@ -23,12 +26,16 @@ struct WorldMapView: View {
         let ranked = stats.daysPerCountry.sorted { ($0.value, $1.key) > ($1.value, $0.key) }
         let home = store.homeCountry
 
+        @Bindable var router = router
         NavigationStack {
             ZStack {
                 Theme.sky.ignoresSafeArea()
 
-                if mode == .globe {
+                if mode == .places {
+                    PlacesListView(embedded: true)
+                } else if mode == .globe {
                     if let shapes {
+                        HStack(spacing: 0) {
                         GlobeView(shapes: shapes)
                             .overlay(alignment: .bottom) {
                                 if ranked.isEmpty {
@@ -41,6 +48,19 @@ struct WorldMapView: View {
                                     .padding(.bottom, 70)
                                 }
                             }
+                            // Wide canvas: the ranked ledger rides alongside
+                            // the globe instead of hiding behind a switch.
+                            if isWide && !ranked.isEmpty {
+                                ScrollView {
+                                    ledger(ranked: ranked, home: home, today: today, earliest: earliest)
+                                        .padding(.horizontal, 16)
+                                        .padding(.top, 8)
+                                        .padding(.bottom, 110)
+                                }
+                                .frame(width: 330)
+                                .background(Theme.sky)
+                            }
+                        }
                     } else {
                         ProgressView().tint(Theme.aurora1)
                     }
@@ -55,25 +75,31 @@ struct WorldMapView: View {
                     }
                 }
             }
-            .navigationTitle("Your world")
+            // The globe is full-bleed: a large title would sit on the map.
+            .navigationTitle(mode == .globe ? "" : Theme.title("Your world"))
+            .navigationBarTitleDisplayMode(mode == .globe ? .inline : .large)
             .toolbar {
                 ToolbarItem(placement: .principal) {
-                    Picker("Mode", selection: $mode) {
+                    Picker("Mode", selection: $router.worldMode) {
                         ForEach(Mode.allCases, id: \.self) { m in
                             Text(m.rawValue).tag(m)
                         }
                     }
                     .pickerStyle(.segmented)
-                    .frame(width: 190)
+                    .frame(width: 252)
                 }
-                ToolbarItem(placement: .primaryAction) {
-                    Button {
-                        shareWorld(ranked: ranked, home: home, travelDays: stats.travelDays)
-                    } label: {
-                        Image(systemName: "square.and.arrow.up")
-                            .foregroundStyle(Theme.aurora1)
+                // Places brings its own sort button; the share card is the
+                // globe's and the ledger's.
+                if mode != .places {
+                    ToolbarItem(placement: .primaryAction) {
+                        Button {
+                            shareWorld(ranked: ranked, home: home, travelDays: stats.travelDays)
+                        } label: {
+                            Image(systemName: "square.and.arrow.up")
+                                .foregroundStyle(Theme.aurora1)
+                        }
+                        .disabled(ranked.isEmpty || shapes == nil)
                     }
-                    .disabled(ranked.isEmpty || shapes == nil)
                 }
             }
             .sheet(item: $shareItem) { item in
@@ -162,23 +188,13 @@ struct WorldMapView: View {
                             .foregroundStyle(Theme.amber)
                     }
                 }
-                Capsule()
-                    .fill(Theme.hairline)
-                    .overlay(alignment: .leading) {
-                        GeometryReader { geo in
-                            Capsule()
-                                .fill(Theme.auroraGradient)
-                                .frame(width: max(4, geo.size.width * CGFloat(days) / CGFloat(maxDays)))
-                        }
-                    }
-                    .frame(width: 132, height: 3)
+                ProgressBar(fraction: Double(days) / Double(max(1, maxDays)), height: 3)
                 Text(subtitle(code: code, isHome: isHome, segments: segments, today: today))
                     .font(.system(size: 10.5))
                     .foregroundStyle(Theme.ink3)
                     .lineLimit(1)
             }
-
-            Spacer()
+            .frame(maxWidth: .infinity, alignment: .leading)
 
             VStack(alignment: .trailing, spacing: 1) {
                 Text("\(days)")
@@ -186,7 +202,7 @@ struct WorldMapView: View {
                     .foregroundStyle(isHome ? Theme.amber : Theme.aurora1)
                     .contentTransition(.numericText())
                 Text("DAYS")
-                    .font(.system(size: 7.5, weight: .bold))
+                    .font(Theme.label(7.5, weight: .bold))
                     .tracking(1.2)
                     .foregroundStyle(Theme.ink3)
             }

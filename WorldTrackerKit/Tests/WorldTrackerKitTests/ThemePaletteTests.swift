@@ -23,7 +23,29 @@ final class ThemePaletteTests: XCTestCase {
         for id in ThemeID.allCases {
             XCTAssertEqual(ThemePalette.palette(for: id).id, id, "\(id) resolved to the wrong palette")
         }
-        XCTAssertEqual(ThemeID.allCases.count, 3)
+        XCTAssertEqual(ThemeID.allCases.count, 7)
+    }
+
+    /// The four bold skins share one construction; the classics must not
+    /// pick any of it up by accident.
+    func testStyleSplitsBoldFromClassic() {
+        for id in ThemeID.allCases {
+            XCTAssertEqual(id.palette.isBold, !id.isClassic, "\(id) has the wrong style")
+            if id.isClassic {
+                XCTAssertNil(id.palette.posterDesign)
+                XCTAssertEqual(id.palette.figureDesign, .rounded)
+            } else {
+                XCTAssertEqual(id.palette.posterDesign, .compressed)
+                XCTAssertEqual(id.palette.labelDesign, .monospaced)
+                // Solid fills only work if the second accent is the ink.
+                XCTAssertEqual(id.palette.aurora2, id.palette.ink, "\(id): aurora2 should be the ink")
+                XCTAssertTrue(id.storyPalette.isBold)
+            }
+        }
+        XCTAssertEqual(ThemeID.default, .paper)
+        XCTAssertEqual(ThemeID(storedValue: nil), .paper)
+        XCTAssertEqual(ThemeID(storedValue: "nightFlight"), .nightFlight)
+        XCTAssertEqual(ThemeID(storedValue: "nonsense"), .paper)
     }
 
     func testComponentsAreInRange() {
@@ -269,13 +291,14 @@ final class ThemePaletteTests: XCTestCase {
         XCTAssertEqual(p.amber, ColorToken(hex: 0xFFB74D))
         XCTAssertEqual(p.good, ColorToken(hex: 0x4ADE80))
         XCTAssertEqual(p.alert, ColorToken(hex: 0xF87171))
-        XCTAssertEqual(ThemeID.default, .nightFlight)
+        // No longer the default, but still selectable and still byte-identical.
+        XCTAssertEqual(p.style, .aurora)
     }
 
     func testUnknownStoredValueFallsBackToDefault() {
-        XCTAssertEqual(ThemeID(storedValue: nil), .nightFlight)
-        XCTAssertEqual(ThemeID(storedValue: ""), .nightFlight)
-        XCTAssertEqual(ThemeID(storedValue: "someRemovedTheme"), .nightFlight)
+        XCTAssertEqual(ThemeID(storedValue: nil), .paper)
+        XCTAssertEqual(ThemeID(storedValue: ""), .paper)
+        XCTAssertEqual(ThemeID(storedValue: "someRemovedTheme"), .paper)
         XCTAssertEqual(ThemeID(storedValue: "mercuryDark"), .mercuryDark)
     }
 

@@ -39,6 +39,7 @@ struct TripEditorView: View {
     var body: some View {
         NavigationStack {
             Form {
+                Group {
                 Section {
                     Button {
                         showCountryPicker = true
@@ -71,6 +72,8 @@ struct TripEditorView: View {
                         }
                     }
                 }
+                }
+                .listRowBackground(Theme.card)
             }
             .navigationTitle(prefill == nil ? "New trip" : "Edit trip")
             .navigationBarTitleDisplayMode(.inline)
@@ -91,8 +94,7 @@ struct TripEditorView: View {
                     countryCode = code
                 }
             }
-            .scrollContentBackground(.hidden)
-            .background(Theme.sky)
+            .themedList()
         }
     }
 

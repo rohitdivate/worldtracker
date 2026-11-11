@@ -19,7 +19,7 @@ struct WrappedStoryCard: View {
                 Spacer().frame(height: 44)
 
                 Text("MY YEAR IN TRAVEL")
-                    .font(.system(size: 13, weight: .bold))
+                    .font(Theme.label(13, weight: .bold))
                     .tracking(4)
                     .foregroundStyle(Theme.aurora1)
                 Text(String(data.stats.year))
@@ -86,7 +86,7 @@ struct WrappedStoryCard: View {
             }
             if data.stats.firstAppearanceOrder.count > 10 {
                 Text("+\(data.stats.firstAppearanceOrder.count - 10)")
-                    .font(.system(size: 12, weight: .bold, design: .rounded))
+                    .font(Theme.figure(12, weight: .bold))
                     .foregroundStyle(Theme.ink2)
             }
         }
@@ -110,7 +110,7 @@ struct WrappedSquareCard: View {
                         .font(Theme.display(44, weight: .heavy))
                         .foregroundStyle(Theme.auroraGradient)
                     Text("IN TRAVEL")
-                        .font(.system(size: 12, weight: .bold))
+                        .font(Theme.label(12, weight: .bold))
                         .tracking(3)
                         .foregroundStyle(Theme.aurora1)
                 }
