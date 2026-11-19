@@ -87,6 +87,10 @@ struct TripDetailView: View {
                                     .onTapGesture {
                                         lightbox = LightboxSelection(id: photoIndex)
                                     }
+                                    .accessibilityElement(children: .ignore)
+                                    .accessibilityLabel("Photo \(photoIndex + 1) of \(photos.count)")
+                                    .accessibilityAddTraits([.isButton, .isImage])
+                                    .accessibilityHint("Opens the photo full screen")
                             }
                         }
                     }
@@ -143,6 +147,7 @@ struct TripDetailView: View {
                     Image(systemName: "square.and.arrow.up")
                         .foregroundStyle(Theme.aurora1)
                 }
+                .accessibilityLabel("Share trip card")
             }
         }
         .sheet(item: $shareItem) { item in

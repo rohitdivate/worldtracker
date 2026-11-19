@@ -72,9 +72,13 @@ struct WrappedView: View {
                         .contentShape(Rectangle())
                         .frame(width: geo.size.width * 0.25)
                         .onTapGesture { goBack() }
+                        .accessibilityLabel("Previous page")
+                        .accessibilityAddTraits(.isButton)
                     Color.clear
                         .contentShape(Rectangle())
                         .onTapGesture { advance() }
+                        .accessibilityLabel("Next page")
+                        .accessibilityAddTraits(.isButton)
                 }
             }
             .onLongPressGesture(minimumDuration: 0.2, perform: {}) { pressing in
@@ -173,6 +177,7 @@ struct WrappedView: View {
                             .background(Color.black.opacity(0.25), in: Circle())
                     }
                     .simultaneousGesture(TapGesture().onEnded { isPaused = true })
+                    .accessibilityLabel("Share Year in Travel")
                     .padding(.top, 6)
                 }
                 Button {
@@ -184,6 +189,7 @@ struct WrappedView: View {
                         .frame(width: 38, height: 38)
                         .background(Color.black.opacity(0.25), in: Circle())
                 }
+                .accessibilityLabel("Close")
                 .padding(.trailing, 12)
                 .padding(.top, 6)
             }

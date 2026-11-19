@@ -98,6 +98,7 @@ struct WorldMapView: View {
                             Image(systemName: "square.and.arrow.up")
                                 .foregroundStyle(Theme.aurora1)
                         }
+                        .accessibilityLabel("Share world card")
                         .disabled(ranked.isEmpty || shapes == nil)
                     }
                 }

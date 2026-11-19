@@ -192,6 +192,9 @@ struct PhotoStrip: View {
                                     onTap?(index)
                                 }
                             }
+                            .accessibilityLabel("Photo")
+                            .accessibilityAddTraits([.isButton, .isImage])
+                            .accessibilityHint("Opens the photo full screen")
                     }
                 }
             }

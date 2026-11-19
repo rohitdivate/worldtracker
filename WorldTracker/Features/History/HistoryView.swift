@@ -260,6 +260,7 @@ struct MonthGridView: View {
                             .foregroundStyle(Theme.ink3)
                     }
                     .buttonStyle(.plain)
+                    .accessibilityLabel("Share \(month.title) \(String(month.year))")
                 }
             }
 
@@ -281,6 +282,13 @@ struct MonthGridView: View {
                         isToday: day.day == today,
                         isFuture: day.day > today
                     )
+                    .accessibilityElement(children: .ignore)
+                    .accessibilityLabel(Self.spokenLabel(
+                        for: day, dayNumber: day.day - month.firstEpochDay + 1,
+                        monthTitle: month.title, isToday: day.day == today
+                    ))
+                    .accessibilityAddTraits(day.day <= today ? .isButton : [])
+                    .accessibilityHint(day.day <= today ? "Opens this day" : "")
                     .onTapGesture(coordinateSpace: .named("monthGrid")) { location in
                         guard day.day <= today else { return }
                         rippleOrigin = location
@@ -297,6 +305,23 @@ struct MonthGridView: View {
         .sheet(item: $shareItem) { item in
             SharePreviewSheet(url: item.url)
         }
+    }
+
+    /// What VoiceOver reads for one calendar cell: the date, then the
+    /// countries recorded for it (the cell itself is a number and a flag).
+    private static func spokenLabel(
+        for day: ResolvedDay, dayNumber: Int, monthTitle: String, isToday: Bool
+    ) -> String {
+        var parts = ["\(monthTitle) \(dayNumber)"]
+        if isToday { parts.append("today") }
+        if day.countryCodes.isEmpty {
+            parts.append("no data")
+        } else {
+            parts.append(day.countryCodes.map { countryName($0) }.joined(separator: " and "))
+        }
+        if day.isFilled { parts.append("assumed") }
+        if day.hasNote { parts.append("has a note") }
+        return parts.joined(separator: ", ")
     }
 
     /// Render the month card on tap — never eagerly for every scrolled month.

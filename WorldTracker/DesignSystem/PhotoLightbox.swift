@@ -90,6 +90,7 @@ struct PhotoLightboxView: View {
                         .frame(width: 40, height: 40)
                         .background(.black.opacity(0.4), in: Circle())
                 }
+                .accessibilityLabel("Close photo")
                 .padding(.leading, 14)
                 Spacer()
             }

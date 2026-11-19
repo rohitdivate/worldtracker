@@ -606,6 +606,7 @@ private struct GlobeSelectionCard: View {
                     .background(Theme.card, in: Circle())
             }
             .buttonStyle(.plain)
+            .accessibilityLabel("Close")
         }
         .padding(12)
         .background(.ultraThinMaterial, in: RoundedRectangle(cornerRadius: 18, style: .continuous))

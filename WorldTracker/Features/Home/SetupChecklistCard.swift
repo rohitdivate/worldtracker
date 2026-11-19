@@ -112,6 +112,7 @@ struct SetupChecklistCard: View {
                         .font(.system(size: 10, weight: .bold))
                         .foregroundStyle(Theme.ink3)
                 }
+                .accessibilityLabel("Dismiss setup checklist")
             }
             .padding(.bottom, 6)
 
