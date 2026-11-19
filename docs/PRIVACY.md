@@ -1,16 +1,25 @@
 # Privacy
 
-Been There is built for exactly one person: you.
+The public policy is `docs/PRIVACY_POLICY.md`. This page is the short
+engineering summary, and it must stay true to the code.
 
 - **No accounts.** Nothing to sign up for.
-- **No servers.** The app makes no network calls to any third-party service.
-  Place naming uses Apple's on-device/Apple-operated MapKit & geocoding APIs,
-  the same ones Maps uses; no third parties are involved.
-- **No analytics or tracking SDKs.** None. (Unlike the paid competitors,
-  whose App Store privacy labels admit to advertising identifiers.)
-- **Your location history never leaves the device**, except to your own
-  private iCloud database if you enable backup (M9) — encrypted, in your
-  Apple account, invisible to everyone including the app's author.
-- **Photos are never read.** Only each photo's date and GPS coordinate are
-  examined, in place. No pixels are accessed, copied, or uploaded.
-- **Full export.** Your data is yours: CSV/JSON export ships in v1.
+- **No developer server.** The developer receives no data. The app has no
+  `URLSession` use, no analytics SDK and no third-party packages.
+- **Apple services are used.** Place naming sends visit coordinates to
+  Apple's geocoder and point-of-interest search
+  (`WorldTracker/Services/Places/PlaceNamer.swift`), and the globe and place
+  maps load from Apple Maps. Opening a photo full screen can download the
+  original from the user's own iCloud Photos
+  (`WorldTracker/DesignSystem/PhotoLightbox.swift`).
+- **The travel log is stored on the device.** iCloud backup does not ship
+  in 1.0: `AppDatabase.cloudBackupAvailable` is `false`, the Settings toggle
+  is hidden and the store is always local.
+- **Photos.** The scan reads each photo's date and location only. The app
+  also shows the user's own photos (trip and place thumbnails, the
+  full-screen viewer, Year in Travel) and writes one resized copy of a photo
+  into the App Group container for the On This Day widget. Photos are never
+  uploaded or edited.
+- **Full export and deletion.** CSV and JSON export, a backup file, and
+  "Delete all my data", which also clears settings in the standard and App
+  Group defaults and the widget files.

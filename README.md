@@ -5,8 +5,9 @@ city you're in, reconstructs your past travels from your photo library's
 location data, and shows your life as a calendar of flags, a lit-up globe, and
 the places (museums, parks, cafés) you've actually visited.
 
-**Privacy first:** no accounts, no servers, no analytics. Your data lives on
-your phone (and optionally your own private iCloud).
+**Privacy first:** no accounts, no ads, no analytics. Your travel log is stored
+on your phone and the developer receives no data. Place names and maps come
+from Apple Maps.
 
 > This repo is built to be opened by a first-time Xcode user. Follow the steps
 > below top-to-bottom and you'll have the app on your iPhone in ~20 minutes
@@ -85,7 +86,14 @@ git pull
 Then press ▶ in Xcode again. With a paid developer account the app stays
 valid on your phone for ~1 year per install.
 
-## 7. Enabling iCloud backup (optional)
+## 7. Enabling iCloud backup (not in 1.0)
+
+> iCloud backup does not ship in version 1.0. The Settings toggle is hidden
+> behind `AppDatabase.cloudBackupAvailable` (currently `false`), and the
+> Info.plist no longer declares the remote-notification background mode. The
+> steps below are what a later release needs, together with flipping that
+> flag, deploying the CloudKit schema to Production and testing sync on two
+> devices.
 
 > Requires the paid Apple Developer Program — free Personal Teams can't sign
 > iCloud or push entitlements, which is why the project ships without them.
@@ -97,7 +105,7 @@ The in-app "iCloud backup" toggle needs two capabilities added once in Xcode:
    → **iCloud** → tick **CloudKit**. Xcode creates the container
    (`iCloud.<your bundle id>`) automatically.
 2. **+ Capability** → **Background Modes** → tick **Remote notifications**
-   (already in the Info.plist; adding the capability makes signing aware).
+   and **+ Capability** → **Push Notifications**.
 3. Make sure your iPhone is signed into iCloud, run the app, flip
    Settings → iCloud backup ON, and relaunch the app once.
 

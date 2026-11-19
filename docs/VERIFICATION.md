@@ -257,10 +257,10 @@ Tick them off before moving on.
 
 ## X — Widget sync, Live Activity restore, new widgets (v3.1)
 
-- [ ] Settings → Data → Widgets row: shows "App Group missing…" in amber
+- [ ] Settings → Data → Widgets row: shows "Widgets aren't available…" in amber
       until the capability is on both targets; after that, "Synced HH:MM"
       after tapping Refresh (or opening the app)
-- [ ] Widgets show a precise empty state: "Finish widget setup (README §8)"
+- [ ] Widgets show a precise empty state: "Widgets aren't available in this version of Been There"
       without the App Group vs "Open Been There once" without data
 - [ ] Trip banner: Settings → Tracking → toggle off ends the Live Activity
       immediately; on restarts it if you're abroad. Swipe the banner away →

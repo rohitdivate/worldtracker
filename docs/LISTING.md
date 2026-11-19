@@ -1,7 +1,10 @@
 # App Store listing: the exact fields to paste
 
-Decided values for the first submission (version 2.0). `docs/APP_STORE.md` is the step-by-step
-walkthrough; this page is just the copy, so there's one place to change it.
+Values for the first submission (version 1.0, build 1). `docs/APP_STORE.md` is the step-by-step
+walkthrough; this page is the single source for the listing copy, so there's one place to change it.
+
+The App Store name is still an open owner decision (see the submission pack).
+The table below holds the value planned so far.
 
 ## Identity
 
@@ -27,7 +30,7 @@ keywords, developer name and IAP names, then combines words across those fields
 into phrases, so a repeat is a wasted character. The description is not indexed
 at all.
 
-`schengen`, `visa`, `tax`, `183` and `limit` went in with 2.0, which ships day
+`schengen`, `visa`, `tax`, `183` and `limit` are in because 1.0 ships day
 limits (Schengen 90/180, 183-day and tax-year rules, custom limits, forecasts
 over planned trips). They were held back before that so the listing never
 promised a feature the app lacked (guideline 2.3.7). The app states on the Day
@@ -50,8 +53,68 @@ metadata. Every competitor in both clusters requires manual entry.
 
 <https://gist.github.com/rohitdivate/ad1396b06ae5b4e45e098526b233b737>
 
-Public gist of `docs/PRIVACY_POLICY.md`. Update both together, or the listing
-drifts from the repo.
+Public gist of `docs/PRIVACY_POLICY.md`. The gist still holds the old July 2026
+text. Republish it from the current `docs/PRIVACY_POLICY.md` (after filling in
+the `[Developer name]`, `[contact email]` and date placeholders) before
+submitting, and update both together from then on.
+
+## Promotional text (170 char limit)
+
+```
+Count your days in every country automatically. Rebuild past trips from your photos, watch Schengen 90/180 and 183-day limits, and keep your history on your iPhone.
+```
+
+## Description
+
+```
+Been There counts your days in every country, automatically.
+It rebuilds years of past travel from the dates and locations in your photo library.
+No account, no ads, no analytics. Your travel history is stored on your iPhone.
+
+AUTOMATIC
+• Logs the country and city you are in each day, using low-power location updates
+• Never runs continuous GPS
+• Borders and cities are matched with an atlas inside the app, so it works offline
+
+REBUILD THE PAST
+• Scan your photo library's dates and locations to fill in past trips
+• Import a Google Timeline export
+• Import flights from a Flighty export or a simple CSV file
+• Edit any day or trip by hand. Your edits always win
+
+KNOW YOUR DAYS
+• Day limits for Schengen 90/180, 183 days in a country, days outside a country, or your own rule
+• Days used, days left, and the date days free up
+• Add planned trips and see a forecast before you book
+• Export a CSV report for any limit
+• Review days with no data, so a count is never silently low
+Counts are a planning guide, not legal or tax advice.
+
+SEE YOUR WORLD
+• A calendar where each day shows its flag
+• A globe that lights up the countries you have visited
+• Countries ranked by days, and the places you actually went
+• Passport stamps, continent rings and badges
+• Your Year in Travel, with share cards you can send to anyone
+
+ON YOUR HOME SCREEN
+• Ten widgets, including You're In, Day Limit, Travel Graph and Passport
+• Lock Screen widgets and a Live Activity while you are abroad
+• Siri and Shortcuts: "Where am I", "Check my day limits"
+
+PRIVATE
+• No sign-up. No third-party services. The developer receives no data
+• Export everything as CSV or JSON, or make a full backup file
+• Delete your data at any time in Settings
+Place names and maps come from Apple Maps.
+City data from GeoNames (CC BY 4.0).
+```
+
+## What's New (version 1.0)
+
+```
+First release. Been There logs the country you are in each day, rebuilds past trips from your photos, counts your days against limits like Schengen 90/180, and shows it all as a calendar of flags, a globe and a passport of stamps.
+```
 
 ## Category, rating, price
 
@@ -137,8 +200,21 @@ once Xcode 27.1 is installed.
 ## App Review notes
 
 ```
-No account or login is required. Location is used passively
-(significant-location-changes only, never continuous GPS) to log the country
-per day, entirely on device. Photo access is optional and reads metadata only.
-No data leaves the device.
+No account or login is needed. The app is fully usable straight after install.
+
+How to test without travelling:
+1. Launch, tap Get started. Location is optional: "Maybe later" works.
+2. Pick a home country, then either allow the photo scan or tap Skip.
+3. To add data by hand: open the Calendar tab, tap any day and set a country, or add a trip.
+4. To see day counting: Home > Day Limits > add "Schengen 90/180", then add a planned trip.
+5. Widgets: add any "Been There" widget after opening the app once.
+
+Permissions:
+- Location (When In Use, later Always): used to log the country and city per day. The app uses significant-location-change and visit monitoring only. It never runs continuous GPS and declares no location background mode. Always access lets iOS wake the app when the user changes city or country.
+- Photos (optional): the app reads photo dates and locations to rebuild past trips, and shows the user's own photos inside trips and the On This Day widget. Photos are never uploaded.
+- Notifications (optional, local only): trip recaps and day limit reminders.
+
+Data: there is no developer server and no analytics. The travel log is stored on the device. Place names and maps use Apple MapKit and Apple's geocoder.
+
+Day limit counts are a planning guide. The app states on the Day Limits screen that they are not legal or tax advice.
 ```
