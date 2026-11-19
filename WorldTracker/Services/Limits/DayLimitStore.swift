@@ -51,6 +51,16 @@ final class DayLimitStore {
         persist()
     }
 
+    /// "Delete all my data": forget every rule, in memory and on disk.
+    /// Deliberately skips `persist()`'s side effects; the caller rewrites
+    /// the widget snapshot once the whole wipe is done.
+    func removeAll() {
+        rules = []
+        cache = []
+        cacheKey = ""
+        UserDefaults.standard.removeObject(forKey: Self.key)
+    }
+
     private func persist() {
         UserDefaults.standard.set(try? JSONEncoder().encode(rules), forKey: Self.key)
         cacheKey = ""

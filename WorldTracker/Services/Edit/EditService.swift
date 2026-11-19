@@ -1,5 +1,7 @@
 import Foundation
 import SwiftData
+import UserNotifications
+import WidgetKit
 import WorldTrackerKit
 
 /// All manual corrections go through here. Manual facts always outrank
@@ -230,16 +232,73 @@ final class EditService {
         save()
     }
 
-    /// Scorched earth.
+    /// Scorched earth: every record, plus the settings that describe the
+    /// user (home history, day limits, planned trips, wishlist, skin) in
+    /// both the app's own defaults and the App Group shared with widgets.
     func deleteAllData() {
         try? context.delete(model: CountryDayFact.self)
         try? context.delete(model: DayAnnotation.self)
         try? context.delete(model: PhotoEvidence.self)
         try? context.delete(model: LocationSample.self)
         try? context.delete(model: BackfillCheckpoint.self)
+        try? context.delete(model: ImportCheckpoint.self)
         try? context.delete(model: PlaceVisit.self)
         try? context.delete(model: Place.self)
+
+        let app = AppContainer.shared
+        app.dayLimitStore.removeAll()
+        app.planStore.removeAll()
+        app.insightsStore.removeAllWishes()
+        clearStoredSettings()
+        clearSharedContainer()
+        UNUserNotificationCenter.current().removeAllPendingNotificationRequests()
+        TravelLiveActivityManager.endAll()
+
+        // Back to the default skin, in memory and for the widgets.
+        ThemeStore.paletteDidChange(to: .default)
+        app.ledgerStore.forgetCachedSettings()
         save()
+        WidgetCenter.shared.reloadAllTimelines()
+    }
+
+    /// Keys that survive "Delete all my data". They hold no travel data:
+    /// they record that onboarding and the one-time iOS location prompt
+    /// already happened, and the switches whose absence means "on". Removing
+    /// those would silently turn tracking or notifications back on.
+    private static let keysKeptOnDeleteAll: Set<String> = [
+        "onboardingDone", "onboardingCompletedAt", "onboardingCompletedDay",
+        "alwaysSystemPromptUsed",
+        "smartTracking", "liveActivityEnabled",
+        "notifyTripRecap", "notifyLimitAlerts", "notifyMonthlyRecap",
+        "notifyWrappedTeaser", "notifyBackfillDone",
+    ]
+
+    /// Removes everything else the app wrote to UserDefaults: home history,
+    /// gap-fill choice, limits, plans, wishlist, milestones, recents, skin,
+    /// checklist and celebration latches, in the standard suite, and the
+    /// whole App Group suite (skin mirror and widget options).
+    private func clearStoredSettings() {
+        let defaults = UserDefaults.standard
+        if let bundleID = Bundle.main.bundleIdentifier {
+            let stored = defaults.persistentDomain(forName: bundleID) ?? [:]
+            for key in stored.keys where !Self.keysKeptOnDeleteAll.contains(key) {
+                defaults.removeObject(forKey: key)
+            }
+        }
+        let groupID = SharedSnapshotStore.appGroupID
+        if let shared = UserDefaults(suiteName: groupID) {
+            for key in shared.persistentDomain(forName: groupID)?.keys.map({ $0 }) ?? [] {
+                shared.removeObject(forKey: key)
+            }
+        }
+    }
+
+    /// Removes the widget snapshot and the exported On This Day photo.
+    private func clearSharedContainer() {
+        guard let folder = SharedSnapshotStore.containerURL else { return }
+        for name in ["snapshot.json", "onthisday.jpg"] {
+            try? FileManager.default.removeItem(at: folder.appendingPathComponent(name))
+        }
     }
 
     // MARK: - Internals

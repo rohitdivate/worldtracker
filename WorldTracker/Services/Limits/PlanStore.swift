@@ -53,6 +53,12 @@ final class PlanStore {
         TripPlans.projectedDays(plans: plans, after: store.todayEpoch, home: store.homeCountry)
     }
 
+    /// "Delete all my data": forget every planned trip.
+    func removeAll() {
+        plans = []
+        UserDefaults.standard.removeObject(forKey: Self.key)
+    }
+
     private func persist() {
         UserDefaults.standard.set(try? JSONEncoder().encode(plans), forKey: Self.key)
     }

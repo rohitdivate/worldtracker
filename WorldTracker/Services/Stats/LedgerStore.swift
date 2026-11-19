@@ -48,6 +48,13 @@ final class LedgerStore {
 
     @ObservationIgnored private var cachedTimeline: HomeTimeline?
 
+    /// "Delete all my data": drop the cached home history after the caller
+    /// has removed it from UserDefaults, then re-render everything.
+    func forgetCachedSettings() {
+        cachedTimeline = nil
+        invalidate()
+    }
+
     /// Today's home — what badges, the map camera, widgets, and the Live
     /// Activity mean by "home".
     var homeCountry: String? { homeTimeline.current }

@@ -57,6 +57,13 @@ final class InsightsStore {
         cacheKey = ""
     }
 
+    /// "Delete all my data": forget the wishlist.
+    func removeAllWishes() {
+        wishlistCodes = []
+        UserDefaults.standard.removeObject(forKey: Self.wishlistKey)
+        cacheKey = ""
+    }
+
     // MARK: - Coordinates
 
     /// Loads the outline atlas (once) and the user's visited cities (per
