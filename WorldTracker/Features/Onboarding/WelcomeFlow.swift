@@ -57,7 +57,7 @@ struct WelcomeFlow: View {
                 .font(Theme.display(34, weight: .heavy))
                 .foregroundStyle(Theme.ink)
                 .multilineTextAlignment(.center)
-            Text("Been There quietly notices which country you wake up in. No accounts. No servers. Nothing leaves this phone.")
+            Text("Been There quietly notices which country you wake up in. No accounts. No ads. Your travel log is stored on this phone.")
                 .font(.system(size: 15))
                 .foregroundStyle(Theme.ink2)
                 .multilineTextAlignment(.center)
@@ -88,7 +88,7 @@ struct WelcomeFlow: View {
                 .foregroundStyle(Theme.ink)
             VStack(spacing: 10) {
                 promise(icon: "lock.fill", title: "Private by design",
-                        detail: "Your location history never leaves your device")
+                        detail: "Your travel log is stored on this device. The developer never sees it")
                 promise(icon: "battery.100percent", title: "Invisible to your battery",
                         detail: "Cell-tower wake-ups, never continuous GPS")
                 promise(icon: "airplane", title: "Works offline",
@@ -199,7 +199,7 @@ struct WelcomeFlow: View {
                 .font(Theme.display(30, weight: .heavy))
                 .foregroundStyle(Theme.ink)
                 .multilineTextAlignment(.center)
-            Text("Your photo library remembers. Been There can read just the dates and locations of your photos — never the pictures — and rebuild years of travel history in about a minute.")
+            Text("Your photo library remembers. Been There can read the dates and locations of your photos and rebuild years of travel history in about a minute. Your pictures are never uploaded or edited.")
                 .font(.system(size: 14))
                 .foregroundStyle(Theme.ink2)
                 .multilineTextAlignment(.center)

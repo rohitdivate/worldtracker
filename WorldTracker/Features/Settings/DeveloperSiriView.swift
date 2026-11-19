@@ -1,3 +1,4 @@
+#if DEBUG
 import SwiftUI
 import WorldTrackerKit
 
@@ -36,3 +37,4 @@ struct DeveloperSiriView: View {
         .navigationBarTitleDisplayMode(.inline)
     }
 }
+#endif

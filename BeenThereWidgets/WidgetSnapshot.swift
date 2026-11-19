@@ -181,7 +181,7 @@ enum WidgetSnapshotReader {
 var widgetEmptyMessage: String {
     WidgetSnapshotReader.hasAppGroup
         ? "Open Been There once to light this up"
-        : "Finish widget setup in Xcode — README §8 (App Groups)"
+        : "Widgets aren't available in this version of Been There"
 }
 
 func widgetCountryName(_ code: String) -> String {

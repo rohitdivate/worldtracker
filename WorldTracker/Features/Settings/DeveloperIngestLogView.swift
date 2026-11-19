@@ -1,3 +1,4 @@
+#if DEBUG
 import SwiftUI
 import WorldTrackerKit
 
@@ -46,3 +47,4 @@ struct DeveloperIngestLogView: View {
         }
     }
 }
+#endif

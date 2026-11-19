@@ -54,7 +54,7 @@ struct PhotoSyncView: View {
                 .font(Theme.display(22, weight: .heavy))
                 .foregroundStyle(Theme.ink)
                 .multilineTextAlignment(.center)
-            Text("Been There reads only each photo's date and location — never the pictures themselves, and nothing is downloaded from iCloud. Borders are matched entirely on this device.")
+            Text("Been There reads each photo's date and location to rebuild your travels. The scan downloads nothing from iCloud, and your pictures are never uploaded or edited. Borders are matched on this device.")
                 .font(.system(size: 13))
                 .foregroundStyle(Theme.ink2)
                 .multilineTextAlignment(.center)

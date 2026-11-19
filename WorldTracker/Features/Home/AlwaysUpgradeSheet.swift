@@ -94,7 +94,7 @@ struct AlwaysUpgradeSheet: View {
                     .frame(maxWidth: 310)
                 VStack(spacing: 10) {
                     benefit(icon: "battery.100percent", text: "Still battery-invisible — cell-tower wake-ups, never GPS")
-                    benefit(icon: "lock.fill", text: "Still private — everything stays on this phone")
+                    benefit(icon: "lock.fill", text: "Still private — your travel log is stored on this phone")
                 }
                 .padding(.horizontal, 26)
                 Spacer()

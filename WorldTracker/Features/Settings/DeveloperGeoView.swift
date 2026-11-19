@@ -1,3 +1,4 @@
+#if DEBUG
 import SwiftUI
 import WorldTrackerKit
 
@@ -116,3 +117,4 @@ struct DeveloperGeoView: View {
     NavigationStack { DeveloperGeoView() }
         .preferredColorScheme(.dark)
 }
+#endif

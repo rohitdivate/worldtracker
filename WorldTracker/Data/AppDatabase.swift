@@ -6,6 +6,12 @@ import SwiftData
 ///    cloud sync flips on in M9 via `cloudKitDatabase: .automatic`.
 ///  - "Local": device-specific audit data that must never sync.
 enum AppDatabase {
+    /// iCloud backup is not part of this release: the app ships without the
+    /// iCloud capability, so the Settings toggle stays hidden and the store
+    /// is always local. Flip this to `true` only together with the CloudKit
+    /// entitlement, a deployed Production schema and a two-device sync test.
+    static let cloudBackupAvailable = false
+
     static func makeContainer() throws -> ModelContainer {
         let syncedSchema = Schema([
             CountryDayFact.self,
@@ -23,7 +29,8 @@ enum AppDatabase {
         // Private-iCloud backup. Applied at launch; if the CloudKit container
         // is unavailable (capability not yet added in Xcode, signed out of
         // iCloud), fall back to local-only rather than failing to launch.
-        let wantsCloud = UserDefaults.standard.bool(forKey: "icloudBackup")
+        let wantsCloud = cloudBackupAvailable
+            && UserDefaults.standard.bool(forKey: "icloudBackup")
 
         let synced = ModelConfiguration(
             "Synced",

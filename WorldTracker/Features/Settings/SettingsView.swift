@@ -77,7 +77,7 @@ struct SettingsView: View {
             .alert("iCloud backup", isPresented: $showCloudNote) {
                 Button("OK") {}
             } message: {
-                Text("The change applies the next time the app launches. Backup uses your personal iCloud database — nothing is shared with anyone, including the app's author. Requires the iCloud capability (README section 9).")
+                Text("The change applies the next time the app launches. Backup uses your personal iCloud database. Nothing is shared with anyone, including the developer.")
             }
             .confirmationDialog(
                 "Erase auto-detected data?",
@@ -101,7 +101,7 @@ struct SettingsView: View {
                 }
                 Button("Cancel", role: .cancel) {}
             } message: {
-                Text("Everything — including manual edits and notes. This cannot be undone.")
+                Text("Everything, including manual edits, notes, your home base, day limits, planned trips and wishlist. This cannot be undone.")
             }
         }
     }
@@ -293,7 +293,7 @@ struct SettingsView: View {
         } header: {
             Text("Notifications")
         } footer: {
-            Text("All local — nothing ever leaves your phone. Delivered quietly unless you've allowed banners.")
+            Text("Created on this phone. No push service is used. Delivered quietly unless you've allowed banners.")
                 .textCase(nil)
         }
     }
@@ -324,25 +324,29 @@ struct SettingsView: View {
 
     private var dataSection: some View {
         Section {
-            Toggle(isOn: Binding(
-                get: { icloudBackup },
-                set: { value in
-                    icloudBackup = value
-                    icloudFellBack = false
-                    showCloudNote = true
+            // iCloud backup is not part of this release (see
+            // AppDatabase.cloudBackupAvailable), so the toggle stays hidden.
+            if AppDatabase.cloudBackupAvailable {
+                Toggle(isOn: Binding(
+                    get: { icloudBackup },
+                    set: { value in
+                        icloudBackup = value
+                        icloudFellBack = false
+                        showCloudNote = true
+                    }
+                )) {
+                    VStack(alignment: .leading, spacing: 2) {
+                        Text("iCloud backup")
+                        Text(icloudFellBack
+                             ? "Couldn't reach iCloud last launch. Check that you're signed in to iCloud."
+                             : "Your own private iCloud database. Survives a lost phone.")
+                            .font(Theme.footnote)
+                            .textCase(nil)
+                            .foregroundStyle(icloudFellBack ? Theme.amber : Theme.ink3)
+                    }
                 }
-            )) {
-                VStack(alignment: .leading, spacing: 2) {
-                    Text("iCloud backup")
-                    Text(icloudFellBack
-                         ? "Couldn't reach iCloud last launch — check the capability and that you're signed in."
-                         : "Your own private iCloud database. Survives a lost phone.")
-                        .font(Theme.footnote)
-                        .textCase(nil)
-                        .foregroundStyle(icloudFellBack ? Theme.amber : Theme.ink3)
-                }
+                .tint(Theme.aurora1)
             }
-            .tint(Theme.aurora1)
 
             Button {
                 SharedSnapshotStore.write(from: store)
@@ -368,6 +372,8 @@ struct SettingsView: View {
                         .foregroundStyle(Theme.aurora1)
                 }
             }
+            .accessibilityElement(children: .combine)
+            .accessibilityHint("Refreshes the widgets with your latest travel data")
 
             NavigationLink(value: AppRouter.SettingsRoute.gaps) {
                 Label {
@@ -437,11 +443,13 @@ struct SettingsView: View {
             } label: {
                 Text("Erase auto-detected data").foregroundStyle(Theme.amber)
             }
+            .accessibilityHint("Asks for confirmation first")
             Button {
                 confirmDeleteAll = true
             } label: {
                 Text("Delete all my data").foregroundStyle(Theme.alert)
             }
+            .accessibilityHint("Asks for confirmation first")
         } header: {
             Text("Data")
         } footer: {
@@ -452,7 +460,7 @@ struct SettingsView: View {
 
     private var widgetStatusLine: String {
         guard SharedSnapshotStore.hasAppGroup else {
-            return "App Group missing — add the capability to both targets (README §8)"
+            return "Widgets aren't available in this version of the app"
         }
         if let last = SharedSnapshotStore.lastWrite {
             return "Synced \(last.formatted(date: .omitted, time: .shortened))"
@@ -477,7 +485,7 @@ struct SettingsView: View {
     private var privacySection: some View {
         Section {
             Label {
-                Text("No accounts, no servers, no analytics. Your data lives on this device (and your own iCloud if backup is on).")
+                Text("No accounts, no ads, no analytics. Your travel log is stored on this device and the developer receives no data. Place names and maps come from Apple Maps.")
                     .textCase(nil)
                     .foregroundStyle(Theme.ink2)
             } icon: {
@@ -485,12 +493,23 @@ struct SettingsView: View {
                     .foregroundStyle(Theme.aurora1)
             }
             .font(.system(size: 13))
+
+            NavigationLink {
+                AcknowledgementsView()
+            } label: {
+                Label {
+                    Text("Acknowledgements")
+                } icon: {
+                    Image(systemName: "text.book.closed.fill")
+                        .foregroundStyle(Theme.aurora1)
+                }
+            }
         } header: {
-            Text("Privacy")
+            Text("Privacy & About")
         } footer: {
             // Lives here (not the DEBUG-only developer section) so the
             // version line survives Release builds.
-            Text("Been There v\(Bundle.main.infoDictionary?["CFBundleShortVersionString"] as? String ?? "2.0")")
+            Text("Been There v\(Bundle.main.infoDictionary?["CFBundleShortVersionString"] as? String ?? "1.0")")
         }
     }
 
