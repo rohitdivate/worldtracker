@@ -3,14 +3,14 @@
 Values for the first submission (version 1.0, build 1). `docs/APP_STORE.md` is the step-by-step
 walkthrough; this page is the single source for the listing copy, so there's one place to change it.
 
-The App Store name is still an open owner decision (see the submission pack).
+The App Store name is "Been There: Days Abroad" (chosen 19 Nov 2026; final only once the App Store Connect record exists). Keywords below were written for the earlier name and need one more pass.
 The table below holds the value planned so far.
 
 ## Identity
 
 | Field | Value | Limit |
 | --- | --- | --- |
-| App name | `Days Abroad: Country Tracker` | 28 / 30 |
+| App name | `Been There: Days Abroad` | 23 / 30 |
 | Subtitle | `Been There: travel log & map` | 28 / 30 |
 | Bundle ID | `com.rohitdivate.beenthere` | n/a |
 | SKU | `beenthere-001` | n/a |
