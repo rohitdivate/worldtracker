@@ -3,10 +3,9 @@ name: testflight
 # Route A of the Mac-free release experiment: archive, sign and ship to
 # TestFlight entirely on a GitHub-hosted macOS runner. See docs/RELEASE.md.
 #
-# Fires on every merge to the default branch, so a merged PR becomes a
-# TestFlight build without anyone pressing anything. Pull requests are NOT
-# included — ios-build.yml stays the fast unsigned PR gate, and this one costs
-# real minutes and burns a build number.
+# Fires on version tags (v*) and on a manual "Run workflow" only. It does not
+# run on branch pushes or pull requests: ios-build.yml stays the fast unsigned
+# gate, and this one costs real minutes and burns a build number.
 on:
   workflow_dispatch:
     inputs:
@@ -15,8 +14,6 @@ on:
         type: boolean
         default: true
   push:
-    branches:
-      - claude/ios-location-travel-tracker-o5galw
     tags:
       - "v*"
 
