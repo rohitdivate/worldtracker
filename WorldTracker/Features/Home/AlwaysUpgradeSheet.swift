@@ -84,7 +84,7 @@ struct AlwaysUpgradeSheet: View {
                 Spacer()
                 MiniGlobe(size: 84)
                 Text("Let it log while\nyou sleep")
-                    .font(.system(size: 27, weight: .heavy, design: .rounded))
+                    .font(Theme.display(27, weight: .heavy))
                     .foregroundStyle(Theme.ink)
                     .multilineTextAlignment(.center)
                 Text("Right now Been There only logs while the app is open. One more permission lets iOS wake it quietly when you change cities or countries — that's the whole magic.")
@@ -94,7 +94,7 @@ struct AlwaysUpgradeSheet: View {
                     .frame(maxWidth: 310)
                 VStack(spacing: 10) {
                     benefit(icon: "battery.100percent", text: "Still battery-invisible — cell-tower wake-ups, never GPS")
-                    benefit(icon: "lock.fill", text: "Still private — everything stays on this phone")
+                    benefit(icon: "lock.fill", text: "Still private — your travel log is stored on this phone")
                 }
                 .padding(.horizontal, 26)
                 Spacer()

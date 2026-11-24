@@ -257,10 +257,10 @@ Tick them off before moving on.
 
 ## X — Widget sync, Live Activity restore, new widgets (v3.1)
 
-- [ ] Settings → Data → Widgets row: shows "App Group missing…" in amber
+- [ ] Settings → Data → Widgets row: shows "Widgets aren't available…" in amber
       until the capability is on both targets; after that, "Synced HH:MM"
       after tapping Refresh (or opening the app)
-- [ ] Widgets show a precise empty state: "Finish widget setup (README §8)"
+- [ ] Widgets show a precise empty state: "Widgets aren't available in this version of Been There"
       without the App Group vs "Open Been There once" without data
 - [ ] Trip banner: Settings → Tracking → toggle off ends the Live Activity
       immediately; on restarts it if you're abroad. Swipe the banner away →
@@ -415,3 +415,222 @@ Tick them off before moving on.
       Reduce Motion shows one static frame briefly instead of the sweep
 - [ ] "Finish setting up" card: tapping ✕ dismisses it IMMEDIATELY (no
       relaunch needed); the Timeline row's Skip also updates in place
+
+## X7 — Selectable themes (v4.4)
+
+Three themes, colour + typography only. No behaviour changes anywhere, so
+anything that *acts* differently after a switch is a bug.
+
+- [ ] Settings → Appearance lists three rows — Night Flight, Tropical Spritz,
+      Mercury Dark — each with a swatch showing that theme's own ground and
+      two accents, and a checkmark on the active one
+- [ ] **Night Flight is unchanged.** Fresh install lands on it and every
+      screen looks exactly as it did before themes existed — this is the
+      regression that matters most, since it's what existing users see
+- [ ] Switching applies immediately across Home, Calendar, Globe, Places and
+      Settings — no relaunch, no half-themed screen
+- [ ] **Tropical Spritz (light):** status bar flips to dark content; no
+      white-on-cream text anywhere. Check specifically the flag chips (ring
+      and the split-flag divider), the mini globe, empty states, and the
+      setup checklist card
+- [ ] **Mercury Dark:** near-black grounds, lime accents, mono numerals on
+      counters and stats
+- [ ] Fonts shift on headers and big numbers only — Tropical gets a serif
+      display face, Mercury gets mono numerals. Body copy and controls are
+      untouched
+- [ ] Home-screen widgets follow within a few seconds of switching (all
+      sizes), and so does the Live Activity if a trip is active. Requires the
+      App Group — without it widgets stay Night Flight rather than crashing
+- [ ] The choice survives a force-quit and relaunch
+- [ ] Photo lightbox and Wrapped stay black in every theme — intentional, not
+      a miss
+- [ ] Share cards render in the active theme
+- [ ] Switch themes with VoiceOver on: each row announces its name, selected
+      state, and tagline
+
+### X7a — Year in Travel on a non-default theme
+
+Wrapped is a full-screen story and stays dark in every theme. The aurora
+behind it is the visible ground, so it uses the story palette, not the app one.
+
+- [ ] Open Year in Travel on **Tropical Spritz**: the story is dark (warm
+      near-black), NOT cream. Progress bars, the ✕ and the share button are
+      visible against it
+- [ ] Its accents are the bright reference pastels — lagoon, hibiscus, mango,
+      margarita — which only work on a dark ground and are deliberately
+      brighter here than the same tokens elsewhere in the app
+- [ ] Open it on **Mercury Dark**: near-black with lime accents; tertiary
+      labels (dates, small captions) are readable, not ghosted
+- [ ] Every page: opener, countries, travel days, podium, longest trip, first
+      visits, map, photos, closer — no invisible text on any of them
+- [ ] The Wrapped **share cards** are the exception and DO follow the app
+      theme, because they render on their own themed ground rather than on the
+      story surface. On Tropical they should be cream with dark text
+
+## Z: 2.0 overhaul: limits, passport, widgets, system surfaces
+
+Fixture: `python3 Tools/make_screenshot_library.py <dir>`, load with
+`xcrun simctl addmedia`, then Settings › Time Machine › Re-sync. It produces
+about two years of travel reaching yesterday, home = United Kingdom.
+
+Automated: `Tools/check.sh` (Kit tests cover the limit maths, continents,
+stamps, insights, badges and the year grid).
+
+### Z1: Navigation
+
+- [ ] Tab bar reads Home, Calendar, World, Passport, Settings
+- [ ] World has three faces: Globe, Countries, Places. Places keeps its search
+      field, category chips and sort button
+- [ ] `beenthere://limits`, `beenthere://passport`, `beenthere://places`,
+      `beenthere://countries` and `beenthere://settings/photos` each land on
+      the right screen
+- [ ] Countries rows show full names and subtitles ("United Kingdom",
+      "22 trips · last NOV 9") with no truncation
+
+### Z2: Home
+
+- [ ] Hero shows country, "Here since", Day N, days this year, days all time
+- [ ] With a ceiling that counts today, the hero carries its bar and
+      "used/limit · N days left"; tapping it opens that limit
+- [ ] Year heatmap: travel days lit, border days in the second accent, future
+      days faint; tapping opens Calendar
+- [ ] Day limits: up to three rows, or the "Count the days that matter" card
+      when none exist
+- [ ] Insights shelf scrolls sideways; each card opens Passport
+- [ ] Setup checklist, tracking pill, Year in Travel rows and the waiting card
+      still appear in their old conditions
+
+### Z3: Day limits
+
+- [ ] Presets add in one tap: Schengen 90/180, UK absences, UK tax year (home
+      = GB), or a calendar-year 183 for any other home
+- [ ] Detail: ring, headline, outlook sentence, window dates, "Days with no
+      data" when there are any, the window day by day, where the days came
+      from, and the trip planner
+- [ ] Planner: move the arrival date later and the available days rise as old
+      days roll out of a rolling window
+- [ ] Custom limit: change country, period, goal and number; the sentence under
+      the form reads correctly; Save creates it; Edit changes it; Delete
+      removes only the rule
+- [ ] Set a day to a Schengen country on the calendar: the Schengen count
+      rises (by more than one if gap-fill extends the stay); Revert to
+      automatic restores it
+- [ ] A UK absence trip counts only the whole days away, not the travel days
+
+### Z4: Passport
+
+- [ ] Cover: country count, % of 195, continents, travel days, km, badges
+- [ ] Continent rings: seven, with visited/total; Antarctica reads "bonus"
+- [ ] Stamps: one per country, newest first by default; order menu switches
+      to Most days and A to Z; tapping a stamp opens the country
+- [ ] Badges: earned ones lit, locked ones show a progress ring and count;
+      All/Fewer toggles the full shelf
+- [ ] The long view: countries per year bars, distance, farthest, longest
+      trip, typical trip, favourite month, home stretch, share away, extremes
+- [ ] Wishlist: add a visited country and an unvisited one; the visited one
+      shows a tick and its date, the other waits at the top; ✕ removes
+
+### Z5: Widgets (needs the App Group)
+
+- [ ] Gallery lists: You're In, Day Limit, On This Day, Travel Graph,
+      Momentum, Countries, Your Top, Your World, Passport, Continents
+- [ ] Day Limit small shows the real count; long-press › Edit Widget lets you
+      pick a rule; unconfigured, it follows the most pressing one
+- [ ] Your Top: tapping the pill flips between the year and all time without
+      opening the app
+- [ ] Travel Graph large is twelve small calendars; medium is the week strip
+- [ ] Lock Screen: Day Limit circular, rectangular and inline; You're In
+      inline carries the limit headline when one is counting
+- [ ] Control Center › add a control › Been There offers Day Limits and
+      Passport; each opens the app on that screen
+
+### Z6: Live Activity
+
+- [ ] Abroad with no rule counting: banner and island as before
+- [ ] Abroad with a ceiling counting: Lock Screen banner gains the limit bar,
+      compact island shows days left instead of the day number, expanded
+      island shows the bar
+
+### Z7: Siri and Shortcuts
+
+- [ ] Shortcuts app lists Where Am I, Day Limits, Days in a Country and the
+      open-a-screen shortcut under Been There
+- [ ] **On a device**, each runs and speaks its answer. The iOS 26.5
+      simulator cannot execute App Shortcuts at all (Apple FB23504349:
+      "Unable to run App Shortcut"), so on the simulator check the wording at
+      Settings › Developer › Siri answers instead
+- [ ] Day limit reminders: with a ceiling counting and more than a week of
+      runway, two notifications are pending (a week before and the day
+      before); turning off "Day limit reminders" clears them
+
+### Z8: Themes
+
+- [ ] Home, Day limits, limit detail and Passport on Tropical Spritz: no
+      white-on-cream text, rings and bars visible, stamps legible
+- [ ] Same screens on Mercury Dark
+- [ ] Widgets follow the theme a few seconds after switching
+
+### Z9: Bold skins
+
+- [ ] A fresh install opens in Paper: grey ground, white cards, black ink.
+      An install that had picked a classic skin keeps it
+- [ ] Settings › Skin: seven hex swatches (four bold, a rule, three classic).
+      Tapping one re-skins the whole app at once and ticks a haptic
+- [ ] Home hero: a 3D globe on an extruded day number. The country you are in
+      faces you and is the "now" colour; visited countries are inlaid in the
+      ground colour. Drag sideways to spin (haptic detents), double-tap to
+      recentre. Vertical drags still scroll the page
+- [ ] With Reduce Motion on, the globe stops breathing
+- [ ] Screen titles are compressed caps; section labels and settings rows are
+      mono caps; fills (chips, bars, buttons) are solid ink
+- [ ] Graphite, Hi-Vis and Poolside: no unreadable text on any screen; the
+      globe and number read against each ground
+- [ ] The three classic skins look exactly as before, minus the dark wedge
+      that used to sit behind Home and Passport
+- [ ] Year in Travel on a light bold skin: dark story, skin-coloured accents
+- [ ] Widgets follow the skin: flat card ground, poster numerals
+
+### Z10: Wide layouts (iPhone Duo stand-in)
+
+Build for an iPad mini simulator with `TARGETED_DEVICE_FAMILY=1,2` (see
+CLAUDE.md), or on an open Duo once Xcode 27.1 is installed.
+
+- [ ] Home: hero and limits on the left, year, stats, top countries and
+      insights on the right
+- [ ] Passport: cover, continents, badges and wishlist left; stamps and the
+      long view right
+- [ ] Calendar: two months abreast, tops aligned
+- [ ] World: globe with the ranked country ledger alongside
+- [ ] Limit detail: gauge and facts left; window, breakdown and planner right
+- [ ] Day limits list and country detail stay one readable column
+- [ ] On a real Duo: fold and unfold mid-screen keeps your place; half-folded
+      nothing important sits under the hinge (not yet handled in code)
+- [ ] World on a bold skin: the map is greyscale and tinted with the skin's
+      ground (yellow on Hi-Vis, blue on Poolside, dark on Graphite); visited
+      countries are ink washes, home is solid ink, chips are printed labels
+      ("GB 479D") with home inverted. Classic skins keep the colour map and
+      flag chips
+- [ ] Settings rows are mono caps but their descriptions and section footers
+      stay in sentence case
+- [ ] App icon on the Home Screen: black globe on paper, one red country (regenerate with `python3 Tools/make_appicon.py`)
+- [ ] Year in Travel opener on Paper: the globe is a light ball on the dark
+      page, not a black one
+
+### Z11: Power-user pass
+
+- [ ] Day Limits › Planned trips: add a trip; rules it affects gain a "With
+      plans" line; rules it doesn't touch stay quiet. Remove it and the lines go
+- [ ] A plan that breaks a ceiling shows "over the limit from <date>" on Day
+      Limits and on Home; a harmless plan never appears on Home
+- [ ] Limit detail: "With your planned trips" card (peak, date, verdict)
+- [ ] Limit detail, rolling rule: "Highest ever" row. Fixed rule: "Year by
+      year" bars, newest first, empty early years trimmed, over-limit years red
+- [ ] Limit detail › ⋯ › Export report: CSV with one line per counted stretch
+- [ ] "Days with no data" row opens Review gaps scoped to that window
+- [ ] Settings › Data › Review gaps: coverage bar; No data / Assumed tabs;
+      "At home" or "Confirm" settles a run and the counts move; "Somewhere
+      else" opens the country picker; "Confirm all" asks first
+- [ ] Settings › Data › Back up everything shares a JSON; Restore from a
+      backup merges it. Restoring the same file twice reports nothing new
+- [ ] Restore a backup onto a fresh install: history, limits and home arrive
+- [ ] Calendar › + › Go to a date opens that day's editor

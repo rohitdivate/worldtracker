@@ -99,7 +99,7 @@ struct SetupChecklistCard: View {
         VStack(alignment: .leading, spacing: 4) {
             HStack {
                 Text("FINISH SETTING UP")
-                    .font(.system(size: 10, weight: .bold))
+                    .font(Theme.label(10, weight: .bold))
                     .tracking(1.8)
                     .foregroundStyle(Theme.aurora1)
                 Spacer()
@@ -112,6 +112,7 @@ struct SetupChecklistCard: View {
                         .font(.system(size: 10, weight: .bold))
                         .foregroundStyle(Theme.ink3)
                 }
+                .accessibilityLabel("Dismiss setup checklist")
             }
             .padding(.bottom, 6)
 
@@ -236,7 +237,7 @@ struct EmptyStateCTAs: View {
                 .font(.system(size: 34))
                 .foregroundStyle(Theme.auroraGradient)
             Text(title)
-                .font(.system(size: 17, weight: .heavy, design: .rounded))
+                .font(Theme.display(17, weight: .heavy))
                 .foregroundStyle(Theme.ink)
             Text(message)
                 .font(.system(size: 13))

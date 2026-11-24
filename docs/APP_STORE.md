@@ -1,8 +1,13 @@
 # Shipping Been There to the App Store — the complete walkthrough
 
-Everything code-side is already done (privacy manifests, honest permission
-strings, export-compliance key, icon, launch screen, version 1.0). What
+Everything code-side is already done (privacy manifests, accurate permission
+strings, export-compliance key, icon, launch screen, version 1.0 build 1). What
 remains is Apple-side paperwork and clicks. In order:
+
+> **No Mac?** This page assumes you're building and uploading from Xcode.
+> `docs/RELEASE.md` covers the CI alternative — archive, sign and upload to
+> TestFlight from a hosted macOS runner instead. The Apple-side steps below
+> (§1 enrolment, §3 app record, §4 metadata) are still required either way.
 
 ## 0. What you need
 
@@ -24,14 +29,15 @@ remains is Apple-side paperwork and clicks. In order:
    Team"). Repeat for the **BeenThereWidgets** target.
 2. Keep the bundle id you set in `APP_BUNDLE_ID` (README §4). It must be
    globally unique — reverse-DNS like `com.yourname.beenthere` is ideal.
-3. Optional now, fine later: re-add the iCloud capability for backup
-   (README §7) — paid teams support it. The app works fully without it.
+3. iCloud backup does not ship in 1.0. The toggle is hidden
+   (`AppDatabase.cloudBackupAvailable` is `false`) and the project carries no
+   iCloud or push entitlement. Do not add the iCloud capability for this
+   release.
 
 ## 3. Create the app record in App Store Connect (10 min)
 
 1. https://appstoreconnect.apple.com → My Apps → **+** → New App.
-2. Platform iOS · Name **Been There** (if taken, fallback:
-   **Been There — Travel Tracker**) · Primary language English ·
+2. Platform iOS · Name: the value in `docs/LISTING.md` · Primary language English ·
    Bundle ID: pick the one from step 2 (register it at
    https://developer.apple.com/account/resources/identifiers first if the
    dropdown doesn't show it) · SKU: `beenthere-001`.
@@ -41,22 +47,25 @@ remains is Apple-side paperwork and clicks. In order:
 - **Category:** Travel (secondary: Lifestyle)
 - **Age rating:** answer the questionnaire honestly → comes out 4+
 - **Privacy Policy URL:** the policy lives at `docs/PRIVACY_POLICY.md` in
-  this repo. It needs a PUBLIC URL. Easiest: create a public GitHub gist,
-  paste the policy in, use the gist URL. (Or make this repo public and use
-  the GitHub file URL, or host it anywhere.)
+  this repo. It needs a PUBLIC URL. Fill in the `[Developer name]`,
+  `[contact email]` and date placeholders first, then publish it (the gist
+  linked from `docs/LISTING.md`, or any public page).
 
 ## 5. App Privacy questionnaire (the "nutrition label")
 
-Apple asks what data the app **collects** — meaning data that leaves the
-device and reaches you or third parties. Been There sends nothing
-anywhere, so the answers are:
+Apple asks what data the app **collects**, meaning data that leaves the
+device and reaches you or your partners. The developer receives nothing.
+The only off-device traffic goes to Apple's own services (Apple Maps place
+naming and map tiles, the user's iCloud Photos), which Apple does not ask
+developers to declare. So the answers are:
 
 - "Do you or your third-party partners collect data from this app?" → **No**
-- Result: the listing shows **"Data Not Collected"** — a genuine selling
-  point; almost no travel tracker can claim it.
+- Result: the listing shows **"Data Not Collected"**.
 
-(Using location/photos ON-device does not count as collection. The privacy
-manifests in the repo say the same thing in machine-readable form.)
+(Using location and photos on the device does not count as collection. The
+privacy manifests in the repo say the same thing in machine-readable form.
+Do not describe the app as "nothing leaves the device": place naming sends
+coordinates to Apple.)
 
 ## 6. Pricing
 
@@ -77,48 +86,11 @@ Suggested shots, in order: (1) Home with the today card + stat tiles,
 (4) zoomed globe with city chips, (5) a Wrapped page, (6) Places.
 Upload under the version → App Previews and Screenshots.
 
-## 8. App Store listing copy (paste-ready)
+## 8. App Store listing copy
 
-- **Subtitle (30 chars):** `Your travel map, on autopilot`
-- **Promotional text:**
-  `Every country, every day, logged automatically — and it all stays on your phone.`
-- **Keywords (100 chars):**
-  `travel,tracker,countries,visited,map,trip,log,journal,flags,globe,wrapped,passport,days,abroad`
-- **Support URL:** your GitHub repo URL (or the gist)
-- **Description:**
-
-```
-Been There quietly logs which country you're in, every day, using the
-location work your iPhone already does — no battery drain, no check-ins,
-no accounts.
-
-REBUILD YEARS IN A MINUTE
-Your photo library remembers where you've been. Been There reads only the
-dates and locations of your photos — never the pictures — and rebuilds
-years of travel history in about a minute. Google Timeline and flight
-imports fill in the rest.
-
-YOUR WORLD, BEAUTIFULLY
-• A calendar where every day wears the flag of where you woke up
-• A cinematic globe — countries you've visited glow, your cities appear
-  as you zoom in
-• Trips with your photos, cities, and every border crossing
-• Places you actually went: the café, the museum, the beach
-• Widgets and a Dynamic Island trip banner
-• Your Year in Travel — a shareable Wrapped, every January
-
-PRIVATE BY ARCHITECTURE
-No accounts. No servers. No analytics. Your history lives on your device
-(plus your own private iCloud, if you turn backup on). The App Store
-label says "Data Not Collected" because there is nothing to collect.
-
-HONEST NUMBERS
-Days at home don't count as travel. Home moves are supported (lived in
-two countries? tell it when you moved). Every day shows its evidence, and
-everything is editable.
-
-Been There — your world, quietly logged.
-```
+All listing copy (name, subtitle, promotional text, keywords, description,
+What's New, review notes) lives in `docs/LISTING.md`. Paste from there so the
+two pages cannot drift. Support URL: any public page with a way to reach you.
 
 ## 9. Upload the build (10 min)
 
@@ -140,14 +112,11 @@ App Store reviews in waiting.
 
 ## 11. Submit for review
 
-1. On the version page: **App Review Information** → add these notes:
-   `No account or login is required. Location is used passively
-   (significant-location-changes only — no continuous GPS) to log the
-   country per day, entirely on device. Photo access is optional and reads
-   metadata only. No data leaves the device.`
+1. On the version page: **App Review Information** → paste the review notes
+   from `docs/LISTING.md`.
 2. **Save** → **Add for Review** → **Submit**.
-3. Typical wait: 24–48 hours. Location apps get an extra look; the honest
-   purpose strings + the notes above are exactly what reviewers want.
+3. Typical wait: 24–48 hours. Location apps get an extra look, so keep the
+   purpose strings and the review notes accurate.
 
 ## 12. After approval 🎉
 
@@ -164,9 +133,10 @@ App Store reviews in waiting.
 
 | Risk | Status |
 |---|---|
-| Vague location purpose strings | Honest, specific strings in `Config/Info.plist` ✓ |
+| Vague location purpose strings | Specific strings in `Config/Info.plist` that match the code ✓ |
 | Privacy manifest missing | `PrivacyInfo.xcprivacy` in both targets ✓ |
-| Privacy policy URL missing | `docs/PRIVACY_POLICY.md` — host it (step 4) |
+| Privacy policy URL missing | `docs/PRIVACY_POLICY.md`: fill the placeholders and host it (step 4) |
+| GeoNames attribution (CC BY 4.0) | Settings, Acknowledgements, plus `docs/GEODATA.md` ✓ |
 | Background location abuse (2.5.4) | Not used — passive significant-change only ✓ |
 | Account deletion rule | No accounts — N/A ✓ |
 | Minimum functionality | Very much not a problem ✓ |

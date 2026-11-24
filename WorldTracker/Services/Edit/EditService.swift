@@ -1,5 +1,7 @@
 import Foundation
 import SwiftData
+import UserNotifications
+import WidgetKit
 import WorldTrackerKit
 
 /// All manual corrections go through here. Manual facts always outrank
@@ -53,13 +55,23 @@ final class EditService {
         save()
     }
 
-    /// Edit an existing trip: purge manual facts across the union of the
-    /// old and new ranges (so a shrunk/moved trip leaves no orphans), then
-    /// write manual facts for `code` over the new range only.
-    func replaceTrip(originalRange: ClosedRange<Int>, with code: String, newRange: ClosedRange<Int>) {
-        let unionStart = min(originalRange.lowerBound, newRange.lowerBound)
-        let unionEnd = max(originalRange.upperBound, newRange.upperBound)
-        removeManualFacts(days: Array(unionStart...unionEnd))
+    /// Edit an existing trip: rewrite the new range as manual days, and give
+    /// every day the edit removes the delete treatment (cleared, or pinned
+    /// to its surviving countries) so automatic evidence and gap-fill can't
+    /// rebuild the old range. `plan` is computed by the caller from
+    /// PRE-EDIT verdicts via `TripEditPlanner`.
+    func replaceTrip(
+        originalRange: ClosedRange<Int>,
+        with code: String,
+        newRange: ClosedRange<Int>,
+        reassigning plan: TripEditPlan
+    ) {
+        // Belt-and-braces against a stale plan: purge the old country's
+        // manual facts from the removed days only. Days between disjoint
+        // old/new ranges belong to other trips and are never touched.
+        let removed = originalRange.filter { !newRange.contains($0) }
+        removeManualFacts(days: removed, ofCountry: plan.countryCode)
+        removeManualFacts(days: Array(newRange))
         for day in newRange {
             context.insert(
                 CountryDayFact(
@@ -72,6 +84,7 @@ final class EditService {
             )
             uncleara(day: day)
         }
+        apply(plan)
         save()
     }
 
@@ -79,20 +92,11 @@ final class EditService {
     /// (automatic evidence hidden, not erased — each day is individually
     /// revertible in the day editor); border days keep their surviving
     /// countries as manual facts so the deleted one can't resurface.
-    struct TripDeletionPlan {
-        let countryCode: String
-        let range: ClosedRange<Int>
-        /// Days that showed ONLY this country.
-        let clearDays: [Int]
-        /// Border days: pin the other countries that remain.
-        let overrideDays: [(day: Int, codes: [String])]
-    }
-
-    func deleteTrip(_ plan: TripDeletionPlan) {
+    func deleteTrip(range: ClosedRange<Int>, plan: TripEditPlan) {
         let manual = FactSource.manual.rawValue
         let code = plan.countryCode
-        let lower = plan.range.lowerBound
-        let upper = plan.range.upperBound
+        let lower = range.lowerBound
+        let upper = range.upperBound
         let predicate = #Predicate<CountryDayFact> {
             $0.epochDay >= lower && $0.epochDay <= upper
                 && $0.countryCode == code && $0.sourceRaw == manual
@@ -100,26 +104,32 @@ final class EditService {
         for fact in (try? context.fetch(FetchDescriptor(predicate: predicate))) ?? [] {
             context.delete(fact)
         }
+        apply(plan)
+        save()
+    }
+
+    /// The shared clear/override application for days leaving a trip.
+    /// Callers save.
+    private func apply(_ plan: TripEditPlan) {
         for day in plan.clearDays {
             removeManualFacts(days: [day])
             annotation(for: day).isCleared = true
         }
-        for entry in plan.overrideDays {
-            removeManualFacts(days: [entry.day])
-            for survivor in entry.codes {
+        for override in plan.overrideDays {
+            removeManualFacts(days: [override.day])
+            for survivor in override.countryCodes {
                 context.insert(
                     CountryDayFact(
-                        epochDay: entry.day,
+                        epochDay: override.day,
                         countryCode: survivor,
-                        sourceRaw: manual,
+                        sourceRaw: FactSource.manual.rawValue,
                         confidence: 1.0,
                         seenAt: Date()
                     )
                 )
             }
-            uncleara(day: entry.day)
+            uncleara(day: override.day)
         }
-        save()
     }
 
     /// Mark a day as "no data": hides all automatic evidence and blocks
@@ -222,25 +232,91 @@ final class EditService {
         save()
     }
 
-    /// Scorched earth.
+    /// Scorched earth: every record, plus the settings that describe the
+    /// user (home history, day limits, planned trips, wishlist, skin) in
+    /// both the app's own defaults and the App Group shared with widgets.
     func deleteAllData() {
         try? context.delete(model: CountryDayFact.self)
         try? context.delete(model: DayAnnotation.self)
         try? context.delete(model: PhotoEvidence.self)
         try? context.delete(model: LocationSample.self)
         try? context.delete(model: BackfillCheckpoint.self)
+        try? context.delete(model: ImportCheckpoint.self)
         try? context.delete(model: PlaceVisit.self)
         try? context.delete(model: Place.self)
+
+        let app = AppContainer.shared
+        app.dayLimitStore.removeAll()
+        app.planStore.removeAll()
+        app.insightsStore.removeAllWishes()
+        clearStoredSettings()
+        clearSharedContainer()
+        UNUserNotificationCenter.current().removeAllPendingNotificationRequests()
+        TravelLiveActivityManager.endAll()
+
+        // Back to the default skin, in memory and for the widgets.
+        ThemeStore.paletteDidChange(to: .default)
+        app.ledgerStore.forgetCachedSettings()
         save()
+        WidgetCenter.shared.reloadAllTimelines()
+    }
+
+    /// Keys that survive "Delete all my data". They hold no travel data:
+    /// they record that onboarding and the one-time iOS location prompt
+    /// already happened, and the switches whose absence means "on". Removing
+    /// those would silently turn tracking or notifications back on.
+    private static let keysKeptOnDeleteAll: Set<String> = [
+        "onboardingDone", "onboardingCompletedAt", "onboardingCompletedDay",
+        "alwaysSystemPromptUsed",
+        "smartTracking", "liveActivityEnabled",
+        "notifyTripRecap", "notifyLimitAlerts", "notifyMonthlyRecap",
+        "notifyWrappedTeaser", "notifyBackfillDone",
+    ]
+
+    /// Removes everything else the app wrote to UserDefaults: home history,
+    /// gap-fill choice, limits, plans, wishlist, milestones, recents, skin,
+    /// checklist and celebration latches, in the standard suite, and the
+    /// whole App Group suite (skin mirror and widget options).
+    private func clearStoredSettings() {
+        let defaults = UserDefaults.standard
+        if let bundleID = Bundle.main.bundleIdentifier {
+            let stored = defaults.persistentDomain(forName: bundleID) ?? [:]
+            for key in stored.keys where !Self.keysKeptOnDeleteAll.contains(key) {
+                defaults.removeObject(forKey: key)
+            }
+        }
+        let groupID = SharedSnapshotStore.appGroupID
+        if let shared = UserDefaults(suiteName: groupID) {
+            for key in shared.persistentDomain(forName: groupID)?.keys.map({ $0 }) ?? [] {
+                shared.removeObject(forKey: key)
+            }
+        }
+    }
+
+    /// Removes the widget snapshot and the exported On This Day photo.
+    private func clearSharedContainer() {
+        guard let folder = SharedSnapshotStore.containerURL else { return }
+        for name in ["snapshot.json", "onthisday.jpg"] {
+            try? FileManager.default.removeItem(at: folder.appendingPathComponent(name))
+        }
     }
 
     // MARK: - Internals
 
-    private func removeManualFacts(days: [Int]) {
+    /// Removes manual facts for the given days — all of them, or only the
+    /// given country's when `ofCountry` is set.
+    private func removeManualFacts(days: [Int], ofCountry code: String? = nil) {
         let manual = FactSource.manual.rawValue
         for day in days {
-            let predicate = #Predicate<CountryDayFact> {
-                $0.epochDay == day && $0.sourceRaw == manual
+            let predicate: Predicate<CountryDayFact>
+            if let code {
+                predicate = #Predicate<CountryDayFact> {
+                    $0.epochDay == day && $0.sourceRaw == manual && $0.countryCode == code
+                }
+            } else {
+                predicate = #Predicate<CountryDayFact> {
+                    $0.epochDay == day && $0.sourceRaw == manual
+                }
             }
             for fact in (try? context.fetch(FetchDescriptor(predicate: predicate))) ?? [] {
                 context.delete(fact)

@@ -139,7 +139,7 @@ struct LaunchOverlayView: View {
             HStack(spacing: 10) {
                 MiniGlobe(size: 22, showsPlane: false)
                 Text("BEEN THERE")
-                    .font(.system(size: 17, weight: .heavy, design: .monospaced))
+                    .font(Theme.numeric(17, weight: .heavy))
                     .tracking(6)
                     .foregroundStyle(Theme.ink)
             }

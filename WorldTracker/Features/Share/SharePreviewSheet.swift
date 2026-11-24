@@ -22,6 +22,7 @@ struct SharePreviewSheet: View {
                     .clipShape(RoundedRectangle(cornerRadius: 18, style: .continuous))
                     .shadow(color: .black.opacity(0.5), radius: 22, y: 8)
                     .padding(.horizontal, 30)
+                    .accessibilityLabel("Share card preview")
             }
             Spacer()
             ShareLink(item: url) {

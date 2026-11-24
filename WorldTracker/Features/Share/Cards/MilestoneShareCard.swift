@@ -16,12 +16,12 @@ struct MilestoneShareCard: View {
                 Spacer()
 
                 Text(bigValue)
-                    .font(.system(size: 84, weight: .heavy, design: .rounded))
+                    .font(Theme.display(84, weight: .heavy))
                     .foregroundStyle(Theme.auroraGradient)
                     .shadow(color: Theme.aurora1.opacity(0.4), radius: 20)
 
                 Text(headline)
-                    .font(.system(size: 14, weight: .heavy, design: .monospaced))
+                    .font(Theme.numeric(14, weight: .heavy))
                     .tracking(3)
                     .foregroundStyle(Theme.amber)
 

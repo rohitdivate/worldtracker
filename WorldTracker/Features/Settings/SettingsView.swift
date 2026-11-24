@@ -5,12 +5,16 @@ struct SettingsView: View {
     @Environment(LocationService.self) private var location
     @AppStorage("icloudBackup") private var icloudBackup = false
     @AppStorage("icloudBackupFellBack") private var icloudFellBack = false
+    @AppStorage(ThemeStore.key) private var themeID = ThemeID.default.rawValue
     @State private var showHomePicker = false
     @State private var confirmErase = false
     @State private var confirmDeleteAll = false
     @State private var showCloudNote = false
     @State private var csvURL: URL?
     @State private var jsonURL: URL?
+    @State private var backupURL: URL?
+    @State private var showRestorePicker = false
+    @State private var restoreMessage: String?
 
     private var store: LedgerStore { AppContainer.shared.ledgerStore }
     private var edit: EditService { AppContainer.shared.editService }
@@ -22,6 +26,8 @@ struct SettingsView: View {
         @Bindable var router = router
         NavigationStack(path: $router.settingsPath) {
             List {
+                Group {
+                appearanceSection
                 profileSection
                 trackingSection
                 photosSection
@@ -32,16 +38,18 @@ struct SettingsView: View {
                 #if DEBUG
                 developerSection
                 #endif
+                }
+                .listRowBackground(Theme.card)
             }
-            .navigationTitle("Settings")
-            .scrollContentBackground(.hidden)
-            .background(Theme.sky)
+            .navigationTitle(Theme.title("Settings"))
+            .themedList()
             .navigationDestination(for: AppRouter.SettingsRoute.self) { route in
                 switch route {
                 case .trackingHealth: TrackingHealthView()
                 case .timeMachine: PhotoSyncView()
                 case .importTimeline: ImportTimelineView()
                 case .importFlights: ImportFlightsView()
+                case .gaps: GapReviewView(range: nil)
                 }
             }
             .task { regenerateExports() }
@@ -49,10 +57,27 @@ struct SettingsView: View {
             .sheet(isPresented: $showHomePicker) {
                 HomeHistoryView()
             }
+            .fileImporter(isPresented: $showRestorePicker, allowedContentTypes: [.json]) { result in
+                guard case .success(let url) = result else { return }
+                do {
+                    restoreMessage = try AppContainer.shared.backupService.restore(from: url).message
+                } catch BackupArchive.BackupError.newerVersion {
+                    restoreMessage = "That backup was made by a newer version of Been There. Update the app, then restore."
+                } catch {
+                    restoreMessage = "That file isn't a Been There backup."
+                }
+            }
+            .alert("Restore", isPresented: Binding(
+                get: { restoreMessage != nil }, set: { if !$0 { restoreMessage = nil } }
+            )) {
+                Button("OK") {}
+            } message: {
+                Text(restoreMessage ?? "")
+            }
             .alert("iCloud backup", isPresented: $showCloudNote) {
                 Button("OK") {}
             } message: {
-                Text("The change applies the next time the app launches. Backup uses your personal iCloud database — nothing is shared with anyone, including the app's author. Requires the iCloud capability (README section 9).")
+                Text("The change applies the next time the app launches. Backup uses your personal iCloud database. Nothing is shared with anyone, including the developer.")
             }
             .confirmationDialog(
                 "Erase auto-detected data?",
@@ -76,7 +101,16 @@ struct SettingsView: View {
                 }
                 Button("Cancel", role: .cancel) {}
             } message: {
-                Text("Everything — including manual edits and notes. This cannot be undone.")
+                Text("Everything, including manual edits, notes, your home base, day limits, planned trips and wishlist. This cannot be undone.")
+            }
+        }
+    }
+
+    private var appearanceSection: some View {
+        Section("Skin") {
+            SkinPicker(selected: ThemeID(storedValue: themeID)) { theme in
+                ThemeStore.select(theme)
+                themeID = theme.rawValue
             }
         }
     }
@@ -136,7 +170,8 @@ struct SettingsView: View {
                 VStack(alignment: .leading, spacing: 2) {
                     Text("Smart tracking")
                     Text("Automatically logs your country each day using your location.")
-                        .font(.footnote)
+                        .font(Theme.footnote)
+                        .textCase(nil)
                         .foregroundStyle(Theme.ink3)
                 }
             }
@@ -156,7 +191,8 @@ struct SettingsView: View {
                 VStack(alignment: .leading, spacing: 2) {
                     Text("Trip banner")
                     Text("Lock Screen & Dynamic Island while you're abroad. If you swipe it away, it returns on the next location update or app open.")
-                        .font(.footnote)
+                        .font(Theme.footnote)
+                        .textCase(nil)
                         .foregroundStyle(Theme.ink3)
                 }
             }
@@ -180,7 +216,8 @@ struct SettingsView: View {
                     VStack(alignment: .leading, spacing: 2) {
                         Text("Time Machine")
                         Text("Rebuild your history from photos")
-                            .font(.footnote)
+                            .font(Theme.footnote)
+                        .textCase(nil)
                             .foregroundStyle(Theme.ink3)
                     }
                 } icon: {
@@ -198,7 +235,8 @@ struct SettingsView: View {
                     VStack(alignment: .leading, spacing: 2) {
                         Text("Google Timeline")
                         Text("Import years of Location History")
-                            .font(.footnote)
+                            .font(Theme.footnote)
+                        .textCase(nil)
                             .foregroundStyle(Theme.ink3)
                     }
                 } icon: {
@@ -211,7 +249,8 @@ struct SettingsView: View {
                     VStack(alignment: .leading, spacing: 2) {
                         Text("Flights")
                         Text("Flighty or CSV — closes airplane-mode gaps")
-                            .font(.footnote)
+                            .font(Theme.footnote)
+                        .textCase(nil)
                             .foregroundStyle(Theme.ink3)
                     }
                 } icon: {
@@ -232,6 +271,11 @@ struct SettingsView: View {
                 subtitle: "\"Welcome home — 8 days in Spain\" when you're back."
             )
             notificationToggle(
+                key: "notifyLimitAlerts",
+                title: "Day limit reminders",
+                subtitle: "A week before, and the day before, a limit you're counting toward runs out."
+            )
+            notificationToggle(
                 key: "notifyMonthlyRecap",
                 title: "Monthly recap",
                 subtitle: "Last month's flags, early in the month. Skipped when you didn't travel."
@@ -249,7 +293,8 @@ struct SettingsView: View {
         } header: {
             Text("Notifications")
         } footer: {
-            Text("All local — nothing ever leaves your phone. Delivered quietly unless you've allowed banners.")
+            Text("Created on this phone. No push service is used. Delivered quietly unless you've allowed banners.")
+                .textCase(nil)
         }
     }
 
@@ -269,7 +314,8 @@ struct SettingsView: View {
             VStack(alignment: .leading, spacing: 2) {
                 Text(title)
                 Text(subtitle)
-                    .font(.footnote)
+                    .font(Theme.footnote)
+                        .textCase(nil)
                     .foregroundStyle(Theme.ink3)
             }
         }
@@ -278,24 +324,29 @@ struct SettingsView: View {
 
     private var dataSection: some View {
         Section {
-            Toggle(isOn: Binding(
-                get: { icloudBackup },
-                set: { value in
-                    icloudBackup = value
-                    icloudFellBack = false
-                    showCloudNote = true
+            // iCloud backup is not part of this release (see
+            // AppDatabase.cloudBackupAvailable), so the toggle stays hidden.
+            if AppDatabase.cloudBackupAvailable {
+                Toggle(isOn: Binding(
+                    get: { icloudBackup },
+                    set: { value in
+                        icloudBackup = value
+                        icloudFellBack = false
+                        showCloudNote = true
+                    }
+                )) {
+                    VStack(alignment: .leading, spacing: 2) {
+                        Text("iCloud backup")
+                        Text(icloudFellBack
+                             ? "Couldn't reach iCloud last launch. Check that you're signed in to iCloud."
+                             : "Your own private iCloud database. Survives a lost phone.")
+                            .font(Theme.footnote)
+                            .textCase(nil)
+                            .foregroundStyle(icloudFellBack ? Theme.amber : Theme.ink3)
+                    }
                 }
-            )) {
-                VStack(alignment: .leading, spacing: 2) {
-                    Text("iCloud backup")
-                    Text(icloudFellBack
-                         ? "Couldn't reach iCloud last launch — check the capability and that you're signed in."
-                         : "Your own private iCloud database. Survives a lost phone.")
-                        .font(.footnote)
-                        .foregroundStyle(icloudFellBack ? Theme.amber : Theme.ink3)
-                }
+                .tint(Theme.aurora1)
             }
-            .tint(Theme.aurora1)
 
             Button {
                 SharedSnapshotStore.write(from: store)
@@ -306,7 +357,8 @@ struct SettingsView: View {
                         VStack(alignment: .leading, spacing: 2) {
                             Text("Widgets").foregroundStyle(Theme.ink)
                             Text(widgetStatusLine)
-                                .font(.footnote)
+                                .font(Theme.footnote)
+                        .textCase(nil)
                                 .foregroundStyle(SharedSnapshotStore.hasAppGroup ? Theme.ink3 : Theme.amber)
                         }
                     } icon: {
@@ -317,6 +369,50 @@ struct SettingsView: View {
                     Spacer()
                     Text("Refresh")
                         .font(.system(size: 13, weight: .semibold))
+                        .foregroundStyle(Theme.aurora1)
+                }
+            }
+            .accessibilityElement(children: .combine)
+            .accessibilityHint("Refreshes the widgets with your latest travel data")
+
+            NavigationLink(value: AppRouter.SettingsRoute.gaps) {
+                Label {
+                    VStack(alignment: .leading, spacing: 2) {
+                        Text("Review gaps")
+                        Text(coverageLine)
+                            .font(Theme.footnote)
+                            .textCase(nil)
+                            .foregroundStyle(Theme.ink3)
+                    }
+                } icon: {
+                    Image(systemName: "checklist")
+                        .foregroundStyle(Theme.aurora1)
+                }
+            }
+
+            if let url = backupURL {
+                ShareLink(item: url) {
+                    Label {
+                        VStack(alignment: .leading, spacing: 2) {
+                            Text("Back up everything")
+                            Text("Every record, note, limit and plan in one file. Restores on any install.")
+                                .font(Theme.footnote)
+                                .textCase(nil)
+                                .foregroundStyle(Theme.ink3)
+                        }
+                    } icon: {
+                        Image(systemName: "externaldrive.fill")
+                            .foregroundStyle(Theme.aurora1)
+                    }
+                }
+            }
+            Button {
+                showRestorePicker = true
+            } label: {
+                Label {
+                    Text("Restore from a backup").foregroundStyle(Theme.ink)
+                } icon: {
+                    Image(systemName: "arrow.down.doc.fill")
                         .foregroundStyle(Theme.aurora1)
                 }
             }
@@ -347,21 +443,24 @@ struct SettingsView: View {
             } label: {
                 Text("Erase auto-detected data").foregroundStyle(Theme.amber)
             }
+            .accessibilityHint("Asks for confirmation first")
             Button {
                 confirmDeleteAll = true
             } label: {
                 Text("Delete all my data").foregroundStyle(Theme.alert)
             }
+            .accessibilityHint("Asks for confirmation first")
         } header: {
             Text("Data")
         } footer: {
             Text("Exports include every resolved day with provenance — days recorded by iPhone location add credibility with authorities.")
+                .textCase(nil)
         }
     }
 
     private var widgetStatusLine: String {
         guard SharedSnapshotStore.hasAppGroup else {
-            return "App Group missing — add the capability to both targets (README §8)"
+            return "Widgets aren't available in this version of the app"
         }
         if let last = SharedSnapshotStore.lastWrite {
             return "Synced \(last.formatted(date: .omitted, time: .shortened))"
@@ -372,24 +471,45 @@ struct SettingsView: View {
     private func regenerateExports() {
         csvURL = export.exportCSV()
         jsonURL = export.exportJSON()
+        backupURL = AppContainer.shared.backupService.exportFile()
+    }
+
+    private var coverageLine: String {
+        let today = store.todayEpoch
+        let days = store.resolvedDays(in: min(store.earliestDay ?? today, today)...today)
+        let coverage = DayAudit.coverage(days)
+        guard coverage.total > 1 else { return "Days with no data or assumed data" }
+        return "\(coverage.unknown) days with no data, \(coverage.inferred) assumed"
     }
 
     private var privacySection: some View {
         Section {
             Label {
-                Text("No accounts, no servers, no analytics. Your data lives on this device (and your own iCloud if backup is on).")
+                Text("No accounts, no ads, no analytics. Your travel log is stored on this device and the developer receives no data. Place names and maps come from Apple Maps.")
+                    .textCase(nil)
                     .foregroundStyle(Theme.ink2)
             } icon: {
                 Image(systemName: "lock.fill")
                     .foregroundStyle(Theme.aurora1)
             }
             .font(.system(size: 13))
+
+            NavigationLink {
+                AcknowledgementsView()
+            } label: {
+                Label {
+                    Text("Acknowledgements")
+                } icon: {
+                    Image(systemName: "text.book.closed.fill")
+                        .foregroundStyle(Theme.aurora1)
+                }
+            }
         } header: {
-            Text("Privacy")
+            Text("Privacy & About")
         } footer: {
             // Lives here (not the DEBUG-only developer section) so the
             // version line survives Release builds.
-            Text("Been There v1.0 · Night Flight")
+            Text("Been There v\(Bundle.main.infoDictionary?["CFBundleShortVersionString"] as? String ?? "1.0")")
         }
     }
 
@@ -403,6 +523,16 @@ struct SettingsView: View {
                     Text("Geo lookup tester")
                 } icon: {
                     Image(systemName: "globe.desk")
+                        .foregroundStyle(Theme.aurora2)
+                }
+            }
+            NavigationLink {
+                DeveloperSiriView()
+            } label: {
+                Label {
+                    Text("Siri answers")
+                } icon: {
+                    Image(systemName: "waveform")
                         .foregroundStyle(Theme.aurora2)
                 }
             }

@@ -1,7 +1,7 @@
 import SwiftUI
 
 enum AppTab: Hashable {
-    case home, calendar, map, places, settings
+    case home, calendar, map, passport, settings
 }
 
 struct RootTabView: View {
@@ -22,7 +22,33 @@ struct RootTabView: View {
     var body: some View {
         @Bindable var router = router
         tabs
-            .onAppear { showOnboarding = !onboardingDone }
+            .onAppear {
+                showOnboarding = !onboardingDone
+                #if DEBUG
+                // QA aid: `simctl launch <device> <bundle> -debugOpen beenthere://passport`
+                // lands on a screen without a tap (launch arguments surface
+                // as defaults). Screenshot runs and simulators nobody is
+                // driving by hand use it.
+                // `-debugBackupTo <path>` / `-debugRestoreFrom <path>`: write
+                // or merge a backup at a host path, for moving a ledger
+                // between simulators without the share sheet.
+                let backup = AppContainer.shared.backupService
+                if let path = UserDefaults.standard.string(forKey: "debugBackupTo"),
+                   let data = try? backup.makeArchive().encoded() {
+                    try? data.write(to: URL(fileURLWithPath: path))
+                }
+                if let path = UserDefaults.standard.string(forKey: "debugRestoreFrom") {
+                    let outcome = (try? backup.restore(from: URL(fileURLWithPath: path)).message)
+                        ?? "restore failed"
+                    try? Data(outcome.utf8).write(to: URL(fileURLWithPath: path + ".result"))
+                }
+                if let link = UserDefaults.standard.string(forKey: "debugOpen"),
+                   let url = URL(string: link) {
+                    showLaunchOverlay = false
+                    router.handle(url)
+                }
+                #endif
+            }
             .onChange(of: onboardingDone) { _, done in
                 if done {
                     showOnboarding = false
@@ -66,7 +92,7 @@ struct RootTabView: View {
                     NewCountryCelebrationView(
                         celebration: moment,
                         onSeeWorld: {
-                            router.open(tab: .map)
+                            router.openWorld(.globe)
                             celebration.dismissCurrent()
                         },
                         onDismiss: { celebration.dismissCurrent() }
@@ -76,7 +102,7 @@ struct RootTabView: View {
                     MilestoneCelebrationView(
                         moment: moment,
                         onSeeWorld: {
-                            router.open(tab: .map)
+                            router.openWorld(.globe)
                             celebration.dismissCurrent()
                         },
                         onDismiss: { celebration.dismissCurrent() }
@@ -107,16 +133,19 @@ struct RootTabView: View {
             Tab("Calendar", systemImage: "calendar", value: AppTab.calendar) {
                 HistoryView()
             }
-            Tab("Map", systemImage: "globe.europe.africa.fill", value: AppTab.map) {
+            Tab("World", systemImage: "globe.europe.africa.fill", value: AppTab.map) {
                 WorldMapView()
             }
-            Tab("Places", systemImage: "mappin.and.ellipse", value: AppTab.places) {
-                PlacesListView()
+            Tab("Passport", systemImage: "book.closed.fill", value: AppTab.passport) {
+                PassportView()
             }
             Tab("Settings", systemImage: "gearshape.fill", value: AppTab.settings) {
                 SettingsView()
             }
         }
+        // Everything you press answers back.
+        .sensoryFeedback(.selection, trigger: router.selectedTab)
+        .sensoryFeedback(.selection, trigger: router.worldMode)
     }
 }
 

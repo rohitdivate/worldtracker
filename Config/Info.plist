@@ -25,20 +25,18 @@
 	<key>LSRequiresIPhoneOS</key>
 	<true/>
 	<key>NSLocationAlwaysAndWhenInUseUsageDescription</key>
-	<string>With "Always" access, Been There can quietly notice which country and city you're in — even when the app is closed — so your travel log writes itself. Your location history never leaves your device.</string>
+	<string>With Always access, Been There can notice which country and city you're in even when the app is closed, so your travel log writes itself. Your travel log is stored on this device.</string>
 	<key>NSLocationWhenInUseUsageDescription</key>
-	<string>Been There uses your location to log which country and city you're in. Nothing is sent anywhere — everything stays on your device.</string>
+	<string>Been There uses your location to log which country and city you're in. Your travel log is stored on this device. Apple's maps service is used to name places you visit.</string>
+	<key>NSPhotoLibraryAddUsageDescription</key>
+	<string>Been There saves a share card to your photo library only when you choose Save Image in the share sheet.</string>
 	<key>NSPhotoLibraryUsageDescription</key>
-	<string>Been There reads only the date and location details of your photos to rebuild your past travels. It never uploads, edits, or copies your pictures.</string>
+	<string>Been There reads the dates and locations of your photos to rebuild your past travels, and shows your own photos inside your trips and widgets. Your pictures are never uploaded or edited.</string>
 	<key>UILaunchScreen</key>
 	<dict>
 		<key>UIColorName</key>
 		<string>LaunchBackground</string>
 	</dict>
-	<key>UIBackgroundModes</key>
-	<array>
-		<string>remote-notification</string>
-	</array>
 	<key>NSSupportsLiveActivities</key>
 	<true/>
 	<key>CFBundleURLTypes</key>

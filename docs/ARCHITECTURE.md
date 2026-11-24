@@ -73,3 +73,44 @@ files) and flight CSVs (Flighty or `date,origin,destination`) become
 own origin's rows and can be undone the same way; a bundled ~9k-airport
 IATA database resolves flights, with arrival days bucketed in the arrival
 airport's timezone.
+
+## Day limits, passport and insights (2.0)
+
+Everything added in 2.0 follows the facts-in, verdicts-computed rule: nothing
+new is stored about travel.
+
+- **Day limits.** A rule is a scope (a country, the Schengen area, or days
+  *outside* a country), a window (rolling N days, calendar year, or a year
+  starting on a fixed date) and a number that is either a ceiling or a floor.
+  `DayLimitEvaluator` (Kit) turns resolved days into used, remaining, how many
+  more days a stay can run (`runwayDays`, which simulates the window sliding,
+  since old days roll off during a new stay), and for a ceiling that is full,
+  the first day one more day is allowed. Days with no verdict are reported
+  rather than guessed. Rules are user settings in UserDefaults.
+- **Passport.** Stamps are per-country first/last/total/visits derived from
+  resolved days. Continents use a bundled ISO → continent table whose 195
+  sovereign states are the ring denominators. Badges are a fixed shelf with a
+  target each; unlike milestones they are a standing display, not a one-off
+  celebration.
+- **Insights.** Distance is great-circle length along the chain of countries
+  in the order they were entered, measured between one point per country: the
+  user's own busiest city there when known, else the outline's centre. It is
+  labelled approximate because it is.
+- **Year grid.** One week-aligned layout (`YearGrid`) drives both the Home
+  heatmap and the Travel Graph widget, so a day sits in the same cell in both.
+
+## System surfaces (2.0)
+
+- **Widgets**: You're In, Day Limit (configurable), On This Day, Travel Graph,
+  Momentum, Countries, Your Top (interactive), Your World, Passport,
+  Continents. Lock Screen families exist for You're In and Day Limit.
+- **Live Activity / Dynamic Island**: when the current stay counts toward a
+  ceiling, the banner carries that limit's progress bar and the compact island
+  shows days left instead of the day number.
+- **Control Center**: two buttons that open Day Limits and Passport.
+- **Siri / Shortcuts / Action button**: Where Am I, Check Day Limits, Days in
+  a Country, Open a Screen. All answered from the on-device ledger.
+- **Notifications**: for a ceiling that is counting today, two reminders are
+  scheduled ahead (seven days before the last allowed day, and the day
+  before). They are scheduled rather than triggered, because someone staying
+  put abroad produces no location events to wake the app.

@@ -22,11 +22,11 @@ struct ImportProgressView: View {
                     .animation(.easeOut(duration: 0.4), value: progress.fraction)
                 VStack(spacing: 2) {
                     Text("\(Int(progress.fraction * 100))%")
-                        .font(.system(size: 32, weight: .heavy, design: .rounded))
+                        .font(Theme.display(32, weight: .heavy))
                         .foregroundStyle(Theme.auroraGradient)
                         .contentTransition(.numericText())
                     Text(progress.stage == .writing ? "WRITING" : "READING")
-                        .font(.system(size: 10, weight: .semibold))
+                        .font(Theme.label(10, weight: .semibold))
                         .tracking(1.6)
                         .foregroundStyle(Theme.ink3)
                 }
@@ -90,7 +90,7 @@ struct ImportTimelineView: View {
                 .padding(.bottom, 90)
             }
         }
-        .navigationTitle("Google Timeline")
+        .navigationTitle(Theme.title("Google Timeline"))
         .fileImporter(
             isPresented: $showPicker,
             allowedContentTypes: [.json],
@@ -127,7 +127,7 @@ struct ImportTimelineView: View {
                 .font(.system(size: 38))
                 .foregroundStyle(Theme.auroraGradient)
             Text("Years of history,\nfrom Google Timeline.")
-                .font(.system(size: 22, weight: .heavy, design: .rounded))
+                .font(Theme.display(22, weight: .heavy))
                 .foregroundStyle(Theme.ink)
                 .multilineTextAlignment(.center)
             Text("If you've used Google Maps for years, your Timeline remembers your travels. Export it and Been There will rebuild everything — parsed entirely on this device.")
@@ -141,7 +141,7 @@ struct ImportTimelineView: View {
     private var stageCards: some View {
         VStack(alignment: .leading, spacing: 10) {
             Text("HOW TO GET YOUR EXPORT")
-                .font(.system(size: 10, weight: .bold))
+                .font(Theme.label(10, weight: .bold))
                 .tracking(1.6)
                 .foregroundStyle(Theme.ink3)
             step(1, "Open the Google Maps app and tap your profile picture")
@@ -228,7 +228,7 @@ struct ImportFlightsView: View {
                 .padding(.bottom, 90)
             }
         }
-        .navigationTitle("Flights")
+        .navigationTitle(Theme.title("Flights"))
         .fileImporter(
             isPresented: $showPicker,
             allowedContentTypes: [.commaSeparatedText, .plainText],
@@ -265,7 +265,7 @@ struct ImportFlightsView: View {
                 .font(.system(size: 38))
                 .foregroundStyle(Theme.auroraGradient)
             Text("Every flight,\non the record.")
-                .font(.system(size: 22, weight: .heavy, design: .rounded))
+                .font(Theme.display(22, weight: .heavy))
                 .foregroundStyle(Theme.ink)
                 .multilineTextAlignment(.center)
             Text("Flights close the gaps your phone can't see (airplane mode). A flight credits the departure day in the origin country and the arrival day where you landed — timezone-correct for overnight routes.")
@@ -279,7 +279,7 @@ struct ImportFlightsView: View {
     private var infoCard: some View {
         VStack(alignment: .leading, spacing: 10) {
             Text("SUPPORTED FILES")
-                .font(.system(size: 10, weight: .bold))
+                .font(Theme.label(10, weight: .bold))
                 .tracking(1.6)
                 .foregroundStyle(Theme.ink3)
             step(1, "Flighty: Settings → Export My Data → CSV")
@@ -343,7 +343,7 @@ struct ImportFlightsView: View {
 private func step(_ number: Int, _ text: String) -> some View {
     HStack(alignment: .top, spacing: 10) {
         Text("\(number)")
-            .font(.system(size: 11, weight: .heavy, design: .monospaced))
+            .font(Theme.numeric(11, weight: .heavy))
             .foregroundStyle(Theme.sky)
             .frame(width: 18, height: 18)
             .background(Theme.auroraGradient, in: Circle())

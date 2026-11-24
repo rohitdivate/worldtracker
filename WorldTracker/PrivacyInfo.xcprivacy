@@ -2,10 +2,10 @@
 <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
 <plist version="1.0">
 <dict>
-	<!-- Been There collects nothing and tracks nothing: all data stays on
-	     device (plus the user's own private iCloud if they enable backup).
-	     The only "required reasons" API in use is UserDefaults, for the
-	     app's own settings and widget snapshot bookkeeping (CA92.1). -->
+	<!-- Been There collects nothing and tracks nothing: the developer
+	     receives no data. The only "required reasons" API in use is
+	     UserDefaults: the target's own settings (CA92.1) and the App Group
+	     defaults shared between the app and its widgets (1C8F.1). -->
 	<key>NSPrivacyTracking</key>
 	<false/>
 	<key>NSPrivacyTrackingDomains</key>
@@ -20,6 +20,7 @@
 			<key>NSPrivacyAccessedAPITypeReasons</key>
 			<array>
 				<string>CA92.1</string>
+				<string>1C8F.1</string>
 			</array>
 		</dict>
 	</array>

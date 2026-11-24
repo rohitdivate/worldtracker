@@ -39,7 +39,7 @@ struct PhotoSyncView: View {
                 .padding(.bottom, 90)
             }
         }
-        .navigationTitle("Time Machine")
+        .navigationTitle(Theme.title("Time Machine"))
         .task(id: progress.stage) {
             lastSync = await engine.lastSync()
         }
@@ -51,10 +51,10 @@ struct PhotoSyncView: View {
                 .font(.system(size: 40))
                 .foregroundStyle(Theme.auroraGradient)
             Text("Ten years of travel,\nreconstructed in a minute.")
-                .font(.system(size: 22, weight: .heavy, design: .rounded))
+                .font(Theme.display(22, weight: .heavy))
                 .foregroundStyle(Theme.ink)
                 .multilineTextAlignment(.center)
-            Text("Been There reads only each photo's date and location — never the pictures themselves, and nothing is downloaded from iCloud. Borders are matched entirely on this device.")
+            Text("Been There reads each photo's date and location to rebuild your travels. The scan downloads nothing from iCloud, and your pictures are never uploaded or edited. Borders are matched on this device.")
                 .font(.system(size: 13))
                 .foregroundStyle(Theme.ink2)
                 .multilineTextAlignment(.center)
@@ -65,7 +65,7 @@ struct PhotoSyncView: View {
     private var gapOptions: some View {
         VStack(alignment: .leading, spacing: 4) {
             Text("DAYS WITH NO PHOTOS")
-                .font(.system(size: 10, weight: .bold))
+                .font(Theme.label(10, weight: .bold))
                 .tracking(1.6)
                 .foregroundStyle(Theme.ink3)
                 .padding(.bottom, 6)
@@ -307,11 +307,11 @@ struct TimeMachineProgressView: View {
                     .animation(.easeOut(duration: 0.4), value: progress.fraction)
                 VStack(spacing: 2) {
                     Text("\(Int(progress.fraction * 100))%")
-                        .font(.system(size: 34, weight: .heavy, design: .rounded))
+                        .font(Theme.display(34, weight: .heavy))
                         .foregroundStyle(Theme.auroraGradient)
                         .contentTransition(.numericText())
                     Text(stageLabel)
-                        .font(.system(size: 10, weight: .semibold))
+                        .font(Theme.label(10, weight: .semibold))
                         .tracking(1.6)
                         .foregroundStyle(Theme.ink3)
                 }

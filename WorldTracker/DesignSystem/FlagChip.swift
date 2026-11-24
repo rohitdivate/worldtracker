@@ -5,6 +5,17 @@ func countryName(_ code: String) -> String {
     Locale.current.localizedString(forRegionCode: code) ?? code
 }
 
+/// Country name as it reads mid-sentence in English: "the United Kingdom",
+/// "the Netherlands", but plain "France".
+func countryNameInSentence(_ code: String) -> String {
+    let takesArticle: Set<String> = [
+        "GB", "US", "NL", "AE", "PH", "BS", "DO", "CF", "MV", "GM", "CZ",
+        "CD", "CG", "KM", "MH", "SB", "VA", "KY", "TC", "VG", "VI", "FK", "FO",
+    ]
+    let name = countryName(code)
+    return takesArticle.contains(code) ? "the \(name)" : name
+}
+
 /// Circular flag chip — the app's atom.
 struct FlagChip: View {
     let code: String
@@ -19,7 +30,7 @@ struct FlagChip: View {
                     .font(.system(size: size * 0.58))
             )
             .overlay(
-                Circle().strokeBorder(Color.white.opacity(0.14), lineWidth: 1)
+                Circle().strokeBorder(Theme.hairline2, lineWidth: 1)
             )
     }
 }
@@ -44,7 +55,9 @@ struct SplitFlagChip: View {
                     Rectangle().frame(width: size / 2)
                 }
             Rectangle()
-                .fill(Color.white.opacity(0.25))
+                // Themed, not white: on a light ground a white divider between
+                // the two half-flags is invisible.
+                .fill(Theme.gloss)
                 .frame(width: 1, height: size * 0.7)
                 .rotationEffect(.degrees(12))
         }

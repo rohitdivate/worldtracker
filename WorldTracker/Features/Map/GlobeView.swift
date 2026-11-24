@@ -42,9 +42,15 @@ struct GlobeView: View {
                         dayChips(visited: visited, home: home)
                     }
                 }
-                // Vector globe, dark scheme — the aurora glows on night
-                // instead of fighting green terrain.
-                .mapStyle(.standard(elevation: .realistic, pointsOfInterest: .excludingAll, showsTraffic: false))
+                // Vector globe. Classic skins: the full-colour map under an
+                // aurora glow. Bold skins: the muted map, so the earth is a
+                // quiet grey object and only your ink is on it.
+                .mapStyle(.standard(
+                    elevation: .realistic,
+                    emphasis: Theme.isBold ? .muted : .automatic,
+                    pointsOfInterest: .excludingAll,
+                    showsTraffic: false
+                ))
                 .onMapCameraChange(frequency: .onEnd) { context in
                     cameraRegion = context.region
                     updateMode(distance: context.camera.distance)
@@ -53,6 +59,13 @@ struct GlobeView: View {
                     handleTap(screenPoint, proxy: proxy, visited: visited, homeCenter: homeCenter)
                 }
             }
+            // Bold skins: the whole map drops to greyscale and, on the light
+            // ones, takes the skin's ground colour, so the earth is printed
+            // in the same ink as the rest of the app. Everything drawn on the
+            // map goes through the same filter, which is why the fills and
+            // chips below are pure ink on those skins.
+            .grayscale(Theme.isBold ? 1 : 0)
+            .colorMultiply(Theme.isBold && Theme.palette.isLight ? Theme.sky : .white)
             .ignoresSafeArea(edges: .bottom)
 
             VStack(spacing: 10) {
@@ -83,6 +96,21 @@ struct GlobeView: View {
 
     // MARK: - Map content (small builders keep the type-checker fast)
 
+    /// What visited countries, borders and day chips are drawn in: the data
+    /// accent on classic skins, plain ink on bold ones.
+    private var mark: Color { Theme.isBold ? Theme.ink : Theme.aurora1 }
+
+    /// Bold skins: home is solid ink and everywhere else a lighter wash of
+    /// it. Classic skins: amber home, aurora elsewhere.
+    private func fill(isHome: Bool, ratio: Double) -> Color {
+        if Theme.isBold {
+            return mark.opacity(isHome ? 0.95 : 0.42 + 0.3 * ratio)
+        }
+        return isHome
+            ? Theme.amber.opacity(0.45)
+            : Theme.aurora1.opacity(0.32 + 0.30 * ratio)
+    }
+
     private func coords(_ ring: [GeoPoint]) -> [CLLocationCoordinate2D] {
         ring.map { CLLocationCoordinate2D(latitude: $0.latitude, longitude: $0.longitude) }
     }
@@ -92,9 +120,7 @@ struct GlobeView: View {
         ForEach(Array(visited.keys), id: \.self) { code in
             let isHome = code == home
             let ratio = Double(visited[code] ?? 0) / Double(maxDays)
-            let fillColor: Color = isHome
-                ? Theme.amber.opacity(0.45)
-                : Theme.aurora1.opacity(0.32 + 0.30 * ratio)
+            let fillColor = fill(isHome: isHome, ratio: ratio)
             ForEach(Array(shapes.rings(forCountry: code).enumerated()), id: \.offset) { _, ring in
                 MapPolygon(coordinates: coords(ring))
                     .foregroundStyle(fillColor)
@@ -108,7 +134,7 @@ struct GlobeView: View {
             let isHome = code == home
             let isSelected = code == selectedCode
             let ratio = Double(visited[code] ?? 0) / Double(maxDays)
-            let base: Color = isHome ? Theme.amber : Theme.aurora1
+            let base: Color = Theme.isBold ? mark : (isHome ? Theme.amber : Theme.aurora1)
             // Overlay budget: barely-visited countries skip the glow pass.
             let withGlow = isSelected || isHome || ratio >= 0.15
             ForEach(Array(shapes.rings(forCountry: code).enumerated()), id: \.offset) { _, ring in
@@ -193,7 +219,7 @@ struct GlobeView: View {
                 anchor: .bottom
             ) {
                 CityChip(name: city.name, days: city.days) {
-                    flyTo(city)
+                    selectCity(city)
                 }
             }
             .annotationTitles(.hidden)
@@ -296,6 +322,29 @@ struct GlobeView: View {
         }
     }
 
+    /// City tap = camera to the city PLUS the country selection card — the
+    /// card's "Open" is the existing route into CountryDetailView. Never
+    /// select() here: that would yank the camera back out to country
+    /// flyover distance.
+    private func selectCity(_ city: CityDays) {
+        flyTo(city)
+        if let code = city.countryCode {
+            selectedCode = code
+        } else {
+            // Rare "??"-keyed city: resolve the country from the pin
+            // through the offline atlas, like background taps do.
+            Task {
+                guard let lookup = try? await AppContainer.shared.geoProvider.lookup() else { return }
+                let resolved = lookup.resolve(
+                    GeoPoint(latitude: city.latitude, longitude: city.longitude)
+                ).countryCode
+                await MainActor.run {
+                    if let resolved { selectedCode = resolved }
+                }
+            }
+        }
+    }
+
     private func handleTap(
         _ point: CGPoint, proxy: MapProxy,
         visited: [String: Int], homeCenter: GeoPoint?
@@ -384,23 +433,36 @@ private struct DayChip: View {
 
     var body: some View {
         Button(action: onTap) {
-            HStack(spacing: 4) {
-                Text(flagEmoji(code)).font(.system(size: 13))
-                Text("\(days)d")
-                    .font(.system(size: 11.5, weight: .heavy, design: .monospaced))
-                    .foregroundStyle(isHome ? Theme.amber : Theme.aurora1)
-            }
-            .padding(.horizontal, 8)
-            .padding(.vertical, 4)
-            .background(
-                Capsule().fill(Theme.sky.opacity(0.85))
-                    .overlay(
-                        Capsule().strokeBorder(
-                            (isHome ? Theme.amber : Theme.aurora1).opacity(0.45), lineWidth: 1
+            if Theme.isBold {
+                // The map is greyscale on bold skins, so a flag would turn to
+                // mud: the chip is a printed label instead. Home is inverted.
+                Text("\(code) \(days)D")
+                    .font(Theme.label(11, weight: .heavy))
+                    .tracking(0.6)
+                    .foregroundStyle(isHome ? Color.white : Color.black)
+                    .padding(.horizontal, 8)
+                    .padding(.vertical, 4.5)
+                    .background(Capsule().fill(isHome ? Color.black : Color.white))
+                    .overlay(Capsule().strokeBorder(Color.black, lineWidth: 1.2))
+            } else {
+                HStack(spacing: 4) {
+                    Text(flagEmoji(code)).font(.system(size: 13))
+                    Text("\(days)d")
+                        .font(.system(size: 11.5, weight: .heavy, design: .monospaced))
+                        .foregroundStyle(isHome ? Theme.amber : Theme.aurora1)
+                }
+                .padding(.horizontal, 8)
+                .padding(.vertical, 4)
+                .background(
+                    Capsule().fill(Theme.sky.opacity(0.85))
+                        .overlay(
+                            Capsule().strokeBorder(
+                                (isHome ? Theme.amber : Theme.aurora1).opacity(0.45), lineWidth: 1
+                            )
                         )
-                    )
-            )
-            .shadow(color: .black.opacity(0.5), radius: 5, y: 2)
+                )
+                .shadow(color: .black.opacity(0.5), radius: 5, y: 2)
+            }
         }
         .buttonStyle(.plain)
     }
@@ -419,7 +481,7 @@ private struct CityChip: View {
         Button(action: onTap) {
             HStack(spacing: 4) {
                 Text(name)
-                    .font(.system(size: 11, weight: .bold, design: .rounded))
+                    .font(Theme.figure(11, weight: .bold))
                     .foregroundStyle(Theme.ink)
                     .lineLimit(1)
                 Text("\(days)d")
@@ -509,12 +571,12 @@ private struct GlobeSelectionCard: View {
             VStack(alignment: .leading, spacing: 3) {
                 HStack(spacing: 6) {
                     Text(countryName(code))
-                        .font(.system(size: 16, weight: .heavy, design: .rounded))
+                        .font(Theme.display(16, weight: .heavy))
                         .foregroundStyle(Theme.ink)
                         .lineLimit(1)
                     if isHome {
                         Text("HOME")
-                            .font(.system(size: 8, weight: .heavy, design: .monospaced))
+                            .font(Theme.numeric(8, weight: .heavy))
                             .foregroundStyle(Theme.amber)
                     }
                 }
@@ -544,6 +606,7 @@ private struct GlobeSelectionCard: View {
                     .background(Theme.card, in: Circle())
             }
             .buttonStyle(.plain)
+            .accessibilityLabel("Close")
         }
         .padding(12)
         .background(.ultraThinMaterial, in: RoundedRectangle(cornerRadius: 18, style: .continuous))

@@ -89,8 +89,12 @@ final class MilestoneTracker {
         }
         persist(snapshot: snapshot, awarded: awarded)
 
-        // The trip-ended recap rides the same settled-ledger pass.
+        // The trip-ended recap rides the same settled-ledger pass, and so do
+        // the day-limit reminders: both want numbers that have stopped moving.
         NotificationScheduler.shared.maybeScheduleTripRecap(store: store)
+        NotificationScheduler.shared.maybeScheduleLimitAlerts(
+            statuses: AppContainer.shared.dayLimitStore.statuses(using: store)
+        )
     }
 
     private func buildSnapshot() -> (MilestoneSnapshot, TripSegment?) {

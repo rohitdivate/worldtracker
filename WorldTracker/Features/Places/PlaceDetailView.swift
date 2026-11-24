@@ -27,7 +27,7 @@ struct PlaceDetailView: View {
                             .font(.system(size: 30))
                         VStack(alignment: .leading, spacing: 2) {
                             Text(place.name)
-                                .font(.system(size: 22, weight: .heavy, design: .rounded))
+                                .font(Theme.display(22, weight: .heavy))
                                 .foregroundStyle(Theme.ink)
                             Text(subtitle)
                                 .font(.system(size: 12))
@@ -53,7 +53,7 @@ struct PlaceDetailView: View {
 
                     VStack(alignment: .leading, spacing: 8) {
                         Text("VISITS")
-                            .font(.system(size: 10, weight: .bold))
+                            .font(Theme.label(10, weight: .bold))
                             .tracking(1.6)
                             .foregroundStyle(Theme.ink3)
 
@@ -82,7 +82,7 @@ struct PlaceDetailView: View {
                 .padding(.horizontal, 16)
             }
         }
-        .navigationTitle("")
+        .navigationTitle(Theme.title(""))
         .navigationBarTitleDisplayMode(.inline)
         .toolbar {
             ToolbarItem(placement: .primaryAction) {
@@ -192,6 +192,9 @@ struct PhotoStrip: View {
                                     onTap?(index)
                                 }
                             }
+                            .accessibilityLabel("Photo")
+                            .accessibilityAddTraits([.isButton, .isImage])
+                            .accessibilityHint("Opens the photo full screen")
                     }
                 }
             }

@@ -30,6 +30,9 @@ struct PhotoLightboxView: View {
 
     var body: some View {
         ZStack {
+            // Stays black in every theme, deliberately: this is a photo
+            // viewer, and a cream backdrop would wreck the contrast of the
+            // photo itself. Not an oversight in the light-theme audit.
             Color.black
                 .opacity(1 - Double(min(dismissDrag, 300)) / 400)
                 .ignoresSafeArea()
@@ -87,6 +90,7 @@ struct PhotoLightboxView: View {
                         .frame(width: 40, height: 40)
                         .background(.black.opacity(0.4), in: Circle())
                 }
+                .accessibilityLabel("Close photo")
                 .padding(.leading, 14)
                 Spacer()
             }
@@ -102,7 +106,7 @@ struct PhotoLightboxView: View {
                 }
                 if items.count > 1 {
                     Text("\(index + 1) / \(items.count)")
-                        .font(.system(size: 11, weight: .medium, design: .monospaced))
+                        .font(Theme.numeric(11, weight: .medium))
                         .foregroundStyle(.white.opacity(0.5))
                 }
             }

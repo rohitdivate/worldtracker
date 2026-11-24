@@ -52,51 +52,67 @@ struct PlacesListView: View {
         }
     }
 
+    /// True when hosted inside another screen's NavigationStack (the World
+    /// tab). Standalone, it brings its own.
+    var embedded = false
+
     var body: some View {
-        NavigationStack {
-            ZStack {
-                Theme.sky.ignoresSafeArea()
-
-                ScrollView {
-                    VStack(alignment: .leading, spacing: 12) {
-                        summaryStrip
-                        categoryBar
-
-                        if filtered.isEmpty {
-                            emptyState
-                        } else if sort == .grouped {
-                            groupedList
-                        } else {
-                            flatList
-                        }
-
-                        Spacer(minLength: 100)
-                    }
-                    .padding(.horizontal, 16)
-                }
-            }
-            .navigationTitle("Places")
-            .searchable(text: $query, prompt: "Search places and cities")
-            .toolbar {
-                ToolbarItem(placement: .primaryAction) {
-                    Menu {
-                        Picker("Sort", selection: $sort) {
-                            ForEach(SortMode.allCases) { mode in
-                                Label(mode.rawValue, systemImage: mode.icon).tag(mode)
-                            }
-                        }
-                    } label: {
-                        Image(systemName: "arrow.up.arrow.down")
-                            .fontWeight(.semibold)
-                    }
-                }
-            }
-            .navigationDestination(for: PlaceSnapshot.self) { place in
-                PlaceDetailView(place: place, onChanged: reload)
-            }
-            .task { reload() }
-            .refreshable { reload() }
+        if embedded {
+            content
+        } else {
+            NavigationStack { content }
         }
+    }
+
+    private var content: some View {
+        ZStack {
+            Theme.sky.ignoresSafeArea()
+
+            ScrollView {
+                VStack(alignment: .leading, spacing: 12) {
+                    summaryStrip
+                    categoryBar
+
+                    if filtered.isEmpty {
+                        emptyState
+                    } else if sort == .grouped {
+                        groupedList
+                    } else {
+                        flatList
+                    }
+
+                    Spacer(minLength: 100)
+                }
+                .padding(.horizontal, 16)
+            }
+        }
+        .navigationTitle(Theme.title("Places"))
+        // Always shown: switched into from the World tab's picker, the
+        // default drawer starts collapsed and the search looks missing.
+        .searchable(
+            text: $query,
+            placement: .navigationBarDrawer(displayMode: .always),
+            prompt: "Search places and cities"
+        )
+        .toolbar {
+            ToolbarItem(placement: .primaryAction) {
+                Menu {
+                    Picker("Sort", selection: $sort) {
+                        ForEach(SortMode.allCases) { mode in
+                            Label(mode.rawValue, systemImage: mode.icon).tag(mode)
+                        }
+                    }
+                } label: {
+                    Image(systemName: "arrow.up.arrow.down")
+                        .fontWeight(.semibold)
+                }
+            }
+        }
+        .navigationDestination(for: PlaceSnapshot.self) { place in
+            PlaceDetailView(place: place, onChanged: reload)
+        }
+        .task { reload() }
+        .refreshable { reload() }
     }
 
     // MARK: - Data shaping
@@ -130,7 +146,7 @@ struct PlacesListView: View {
     private var flatList: some View {
         VStack(alignment: .leading, spacing: 8) {
             Text(sort.rawValue.uppercased())
-                .font(.system(size: 10, weight: .bold, design: .monospaced))
+                .font(Theme.numeric(10, weight: .bold))
                 .tracking(1)
                 .foregroundStyle(Theme.ink3)
                 .padding(.top, 2)
@@ -159,11 +175,11 @@ struct PlacesListView: View {
     private func summaryTile(value: Int, label: String) -> some View {
         VStack(spacing: 1) {
             Text("\(value)")
-                .font(.system(size: 20, weight: .heavy, design: .rounded))
+                .font(Theme.display(20, weight: .heavy))
                 .foregroundStyle(Theme.auroraGradient)
                 .contentTransition(.numericText())
             Text(label)
-                .font(.system(size: 8, weight: .semibold))
+                .font(Theme.label(8, weight: .semibold))
                 .tracking(1.2)
                 .foregroundStyle(Theme.ink3)
         }
@@ -228,7 +244,7 @@ struct PlacesListView: View {
                             .font(.system(size: 16, weight: .bold))
                             .foregroundStyle(Theme.ink)
                         Text("\(countryPlaces.count)")
-                            .font(.system(size: 11, weight: .heavy, design: .rounded))
+                            .font(Theme.display(11, weight: .heavy))
                             .foregroundStyle(Theme.aurora1)
                             .padding(.horizontal, 7)
                             .padding(.vertical, 2)
@@ -262,7 +278,7 @@ struct PlacesListView: View {
         return ForEach(cityOrder, id: \.self) { city in
             VStack(alignment: .leading, spacing: 7) {
                 Text("\(city.uppercased()) · \(byCity[city]?.count ?? 0)")
-                    .font(.system(size: 10, weight: .bold, design: .monospaced))
+                    .font(Theme.numeric(10, weight: .bold))
                     .tracking(0.8)
                     .foregroundStyle(Theme.ink3)
                     .padding(.top, 4)
@@ -284,7 +300,7 @@ struct PlacesListView: View {
                 .foregroundStyle(Theme.auroraGradient)
                 .symbolEffect(.breathe)
             Text(query.isEmpty ? "No places yet" : "No matches")
-                .font(.system(size: 18, weight: .bold, design: .rounded))
+                .font(Theme.figure(18, weight: .bold))
                 .foregroundStyle(Theme.ink)
             Text(query.isEmpty
                  ? "Spend 30+ minutes somewhere with the app installed, or run the photo Time Machine — the shops, parks and museums you visit will collect here, named automatically."
@@ -376,19 +392,19 @@ struct PlaceRow: View {
             VStack(alignment: .trailing, spacing: 2) {
                 if showsRecency, let last = place.lastVisit {
                     Text(last.formatted(.relative(presentation: .named)))
-                        .font(.system(size: 11, weight: .bold, design: .rounded))
+                        .font(Theme.figure(11, weight: .bold))
                         .foregroundStyle(Theme.aurora1)
                         .lineLimit(1)
                     Text("\(place.visitCount) \(place.visitCount == 1 ? "VISIT" : "VISITS")")
-                        .font(.system(size: 7.5, weight: .bold))
+                        .font(Theme.label(7.5, weight: .bold))
                         .tracking(1)
                         .foregroundStyle(Theme.ink3)
                 } else {
                     Text("\(place.visitCount)")
-                        .font(.system(size: 15, weight: .heavy, design: .rounded))
+                        .font(Theme.display(15, weight: .heavy))
                         .foregroundStyle(Theme.aurora1)
                     Text(place.visitCount == 1 ? "VISIT" : "VISITS")
-                        .font(.system(size: 7.5, weight: .bold))
+                        .font(Theme.label(7.5, weight: .bold))
                         .tracking(1)
                         .foregroundStyle(Theme.ink3)
                 }

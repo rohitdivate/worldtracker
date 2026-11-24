@@ -62,13 +62,13 @@ struct NewCountryCelebrationView: View {
                 stampFlag(p)
 
                 Text("COUNTRY #\(celebration.number)")
-                    .font(.system(size: 15, weight: .heavy, design: .monospaced))
+                    .font(Theme.numeric(15, weight: .heavy))
                     .tracking(3)
                     .foregroundStyle(Theme.amber)
                     .opacity(reveal(p, 0.35, 0.5))
 
                 Text(countryName(celebration.countryCode))
-                    .font(.system(size: 34, weight: .heavy, design: .rounded))
+                    .font(Theme.display(34, weight: .heavy))
                     .foregroundStyle(Theme.ink)
                     .multilineTextAlignment(.center)
                     .opacity(reveal(p, 0.4, 0.55))

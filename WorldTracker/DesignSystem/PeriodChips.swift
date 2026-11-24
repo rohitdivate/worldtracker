@@ -74,6 +74,7 @@ struct PeriodChips: View {
             }
             .padding(.horizontal, 2)
         }
+        .sensoryFeedback(.selection, trigger: selection)
     }
 }
 

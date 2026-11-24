@@ -36,6 +36,10 @@ final class AppContainer {
     let celebrationCoordinator = CelebrationCoordinator()
     let router = AppRouter()
     let setupChecklist = SetupChecklist()
+    let dayLimitStore = DayLimitStore()
+    let insightsStore = InsightsStore()
+    let planStore = PlanStore()
+    let backupService: BackupService
     let milestoneTracker: MilestoneTracker
 
     private init() {
@@ -61,6 +65,7 @@ final class AppContainer {
         backfillEngine = PhotoBackfillEngine(container: modelContainer, geoProvider: geoProvider, places: placesEngine)
         editService = EditService(container: modelContainer)
         exportService = ExportService(store: ledgerStore)
+        backupService = BackupService(container: modelContainer)
         importEngine = ImportEngine(container: modelContainer, geoProvider: geoProvider)
         wrappedBuilder = YearInReviewBuilder(
             store: ledgerStore, container: modelContainer, placesEngine: placesEngine

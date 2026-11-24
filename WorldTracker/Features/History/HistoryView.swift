@@ -13,6 +13,7 @@ struct HistoryView: View {
     @State private var selectedDay: SelectedDay?
     @State private var viewMode: ViewMode = .calendar
     @State private var showTripEditor = false
+    @State private var showDateJump = false
 
     enum ViewMode: String, CaseIterable {
         case calendar = "Calendar"
@@ -20,6 +21,9 @@ struct HistoryView: View {
     }
 
     private var store: LedgerStore { AppContainer.shared.ledgerStore }
+
+    @Environment(\.horizontalSizeClass) private var sizeClass
+    private var isWide: Bool { sizeClass == .regular }
 
     var body: some View {
         NavigationStack {
@@ -32,7 +36,7 @@ struct HistoryView: View {
                     TripListView()
                 }
             }
-            .navigationTitle("Calendar")
+            .navigationTitle(Theme.title("Calendar"))
             .toolbar {
                 ToolbarItem(placement: .principal) {
                     Picker("View", selection: $viewMode) {
@@ -44,8 +48,17 @@ struct HistoryView: View {
                     .frame(width: 190)
                 }
                 ToolbarItem(placement: .primaryAction) {
-                    Button {
-                        showTripEditor = true
+                    Menu {
+                        Button {
+                            showTripEditor = true
+                        } label: {
+                            Label("Add a trip", systemImage: "airplane")
+                        }
+                        Button {
+                            showDateJump = true
+                        } label: {
+                            Label("Go to a date", systemImage: "calendar.badge.clock")
+                        }
                     } label: {
                         Image(systemName: "plus")
                             .fontWeight(.semibold)
@@ -55,6 +68,16 @@ struct HistoryView: View {
             }
             .sheet(isPresented: $showTripEditor) {
                 TripEditorView()
+            }
+            .sheet(isPresented: $showDateJump) {
+                DateJumpSheet { day in
+                    showDateJump = false
+                    // Let this sheet finish closing before the day opens.
+                    DispatchQueue.main.asyncAfter(deadline: .now() + 0.35) {
+                        selectedDay = SelectedDay(epochDay: day)
+                    }
+                }
+                .presentationDetents([.medium])
             }
             .navigationDestination(for: String.self) { code in
                 CountryDetailView(countryCode: code)
@@ -86,14 +109,31 @@ struct HistoryView: View {
                 // Newest month first: "now" lives at the top, so the system
                 // double-tap-the-tab scroll-to-top gesture jumps to today —
                 // not to some EXIF-glitch month in the year 2000.
-                ForEach(months.reversed()) { month in
-                    MonthGridView(month: month) { day in
-                        selectedDay = SelectedDay(epochDay: day)
+                if isWide {
+                    // Two months abreast on a wide canvas.
+                    LazyVGrid(
+                        columns: [
+                            GridItem(.flexible(), spacing: 20, alignment: .top),
+                            GridItem(.flexible(), alignment: .top),
+                        ],
+                        alignment: .leading, spacing: 22
+                    ) {
+                        ForEach(months.reversed()) { month in
+                            MonthGridView(month: month) { day in
+                                selectedDay = SelectedDay(epochDay: day)
+                            }
+                        }
+                    }
+                } else {
+                    ForEach(months.reversed()) { month in
+                        MonthGridView(month: month) { day in
+                            selectedDay = SelectedDay(epochDay: day)
+                        }
                     }
                 }
                 Spacer(minLength: 90)
             }
-            .padding(.horizontal, 16)
+            .padding(.horizontal, isWide ? 28 : 16)
         }
         .defaultScrollAnchor(.top)
     }
@@ -204,11 +244,11 @@ struct MonthGridView: View {
 
         VStack(alignment: .leading, spacing: 8) {
             HStack(alignment: .firstTextBaseline, spacing: 8) {
-                Text(month.title)
-                    .font(.system(size: 17, weight: .bold))
+                Text(Theme.title(month.title))
+                    .font(Theme.isBold ? Theme.poster(26) : .system(size: 17, weight: .bold))
                     .foregroundStyle(Theme.ink)
                 Text(String(month.year))
-                    .font(.system(size: 12, weight: .medium, design: .monospaced))
+                    .font(Theme.numeric(12, weight: .medium))
                     .foregroundStyle(Theme.ink3)
                 Spacer()
                 if hasData {
@@ -220,6 +260,7 @@ struct MonthGridView: View {
                             .foregroundStyle(Theme.ink3)
                     }
                     .buttonStyle(.plain)
+                    .accessibilityLabel("Share \(month.title) \(String(month.year))")
                 }
             }
 
@@ -241,6 +282,13 @@ struct MonthGridView: View {
                         isToday: day.day == today,
                         isFuture: day.day > today
                     )
+                    .accessibilityElement(children: .ignore)
+                    .accessibilityLabel(Self.spokenLabel(
+                        for: day, dayNumber: day.day - month.firstEpochDay + 1,
+                        monthTitle: month.title, isToday: day.day == today
+                    ))
+                    .accessibilityAddTraits(day.day <= today ? .isButton : [])
+                    .accessibilityHint(day.day <= today ? "Opens this day" : "")
                     .onTapGesture(coordinateSpace: .named("monthGrid")) { location in
                         guard day.day <= today else { return }
                         rippleOrigin = location
@@ -257,6 +305,23 @@ struct MonthGridView: View {
         .sheet(item: $shareItem) { item in
             SharePreviewSheet(url: item.url)
         }
+    }
+
+    /// What VoiceOver reads for one calendar cell: the date, then the
+    /// countries recorded for it (the cell itself is a number and a flag).
+    private static func spokenLabel(
+        for day: ResolvedDay, dayNumber: Int, monthTitle: String, isToday: Bool
+    ) -> String {
+        var parts = ["\(monthTitle) \(dayNumber)"]
+        if isToday { parts.append("today") }
+        if day.countryCodes.isEmpty {
+            parts.append("no data")
+        } else {
+            parts.append(day.countryCodes.map { countryName($0) }.joined(separator: " and "))
+        }
+        if day.isFilled { parts.append("assumed") }
+        if day.hasNote { parts.append("has a note") }
+        return parts.joined(separator: ", ")
     }
 
     /// Render the month card on tap — never eagerly for every scrolled month.
@@ -348,4 +413,32 @@ struct DayCellView: View {
 #Preview {
     HistoryView()
         .preferredColorScheme(.dark)
+}
+
+
+/// "Where was I on…": pick any past date and open that day.
+struct DateJumpSheet: View {
+    let onPick: (Int) -> Void
+    @State private var date = Date()
+
+    var body: some View {
+        VStack(spacing: 14) {
+            DatePicker("Date", selection: $date, in: ...Date(), displayedComponents: .date)
+                .datePickerStyle(.wheel)
+                .labelsHidden()
+            Button {
+                onPick(EpochDay(date: date, timeZone: .current).value)
+            } label: {
+                Text("Open this day")
+                    .font(.system(size: 15, weight: .bold))
+                    .foregroundStyle(Theme.sky)
+                    .frame(maxWidth: .infinity)
+                    .frame(height: 48)
+                    .background(Theme.auroraGradient, in: RoundedRectangle(cornerRadius: 14))
+            }
+            .buttonStyle(.plain)
+        }
+        .padding(20)
+        .presentationBackground(Theme.skyRaised)
+    }
 }

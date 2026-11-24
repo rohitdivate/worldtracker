@@ -59,7 +59,7 @@ struct MilestoneCelebrationView: View {
                 slamValue(p)
 
                 Text(headline)
-                    .font(.system(size: 15, weight: .heavy, design: .monospaced))
+                    .font(Theme.numeric(15, weight: .heavy))
                     .tracking(3)
                     .foregroundStyle(Theme.amber)
                     .opacity(reveal(p, 0.35, 0.5))
@@ -119,7 +119,7 @@ struct MilestoneCelebrationView: View {
     private func slamValue(_ p: Double) -> some View {
         let slam = easeOutBack(reveal(p, 0.12, 0.32))
         return Text(bigValue)
-            .font(.system(size: 74, weight: .heavy, design: .rounded))
+            .font(Theme.display(74, weight: .heavy))
             .foregroundStyle(Theme.auroraGradient)
             .shadow(color: Theme.aurora1.opacity(0.5), radius: 26)
             .scaleEffect(2.2 - 1.2 * slam)

@@ -5,8 +5,9 @@ city you're in, reconstructs your past travels from your photo library's
 location data, and shows your life as a calendar of flags, a lit-up globe, and
 the places (museums, parks, cafés) you've actually visited.
 
-**Privacy first:** no accounts, no servers, no analytics. Your data lives on
-your phone (and optionally your own private iCloud).
+**Privacy first:** no accounts, no ads, no analytics. Your travel log is stored
+on your phone and the developer receives no data. Place names and maps come
+from Apple Maps.
 
 > This repo is built to be opened by a first-time Xcode user. Follow the steps
 > below top-to-bottom and you'll have the app on your iPhone in ~20 minutes
@@ -53,13 +54,13 @@ resolves the built-in `WorldTrackerKit` package.
    same for the **BeenThereWidgets** target.
 4. Set your bundle identifier **in one place**: select the blue project icon
    (not a target) → **Build Settings** tab → type `APP_BUNDLE_ID` in the
-   search box → change `com.example.worldtracker` to something unique to
-   you, e.g. `com.rohitdivate.beenthere`.
+   search box. The project carries `com.rohitdivate.beenthere`; keep it if
+   that is your Apple account, otherwise change it to something unique to you.
    Both targets follow automatically (the widget becomes
    `<yours>.widgets`) — don't edit the per-target Bundle Identifier fields,
    they're wired to this one setting.
-   (Bundle IDs are globally unique across the App Store — the example one is a
-   placeholder on purpose.)
+   (Bundle IDs are globally unique across the App Store, so a fork cannot
+   reuse the committed one.)
 
 ## 5. Put it on your iPhone
 
@@ -85,7 +86,14 @@ git pull
 Then press ▶ in Xcode again. With a paid developer account the app stays
 valid on your phone for ~1 year per install.
 
-## 7. Enabling iCloud backup (optional)
+## 7. Enabling iCloud backup (not in 1.0)
+
+> iCloud backup does not ship in version 1.0. The Settings toggle is hidden
+> behind `AppDatabase.cloudBackupAvailable` (currently `false`), and the
+> Info.plist no longer declares the remote-notification background mode. The
+> steps below are what a later release needs, together with flipping that
+> flag, deploying the CloudKit schema to Production and testing sync on two
+> devices.
 
 > Requires the paid Apple Developer Program — free Personal Teams can't sign
 > iCloud or push entitlements, which is why the project ships without them.
@@ -97,7 +105,7 @@ The in-app "iCloud backup" toggle needs two capabilities added once in Xcode:
    → **iCloud** → tick **CloudKit**. Xcode creates the container
    (`iCloud.<your bundle id>`) automatically.
 2. **+ Capability** → **Background Modes** → tick **Remote notifications**
-   (already in the Info.plist; adding the capability makes signing aware).
+   and **+ Capability** → **Push Notifications**.
 3. Make sure your iPhone is signed into iCloud, run the app, flip
    Settings → iCloud backup ON, and relaunch the app once.
 

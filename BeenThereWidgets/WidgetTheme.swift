@@ -1,54 +1,134 @@
 import SwiftUI
+import WorldTrackerKit
 
-/// Night Flight tokens, duplicated for the widget target — the app's
-/// DesignSystem lives in the app target only, and widgets should stay lean.
+/// Design tokens for the widget target.
+///
+/// Previously a hand-copied duplicate of the app's Night Flight constants.
+/// Both targets now read one palette definition from
+/// `WorldTrackerKit/Design/ThemePalettes.swift`, so a theme can't drift
+/// between the app and its widgets.
+///
+/// Tokens are computed rather than stored: widget timelines are rendered
+/// fresh in a separate process, so each render picks up whatever theme the app
+/// last wrote to the App Group.
 enum WTheme {
-    static let sky = Color(red: 0.027, green: 0.043, blue: 0.086)        // #070B16
-    static let skyRaised = Color(red: 0.047, green: 0.075, blue: 0.133)  // #0C1322
-    static let card = Color(red: 0.075, green: 0.110, blue: 0.192)       // #131C31
-    static let ink = Color(red: 0.930, green: 0.949, blue: 1.0)          // #EDF2FF
-    static let ink2 = Color(red: 0.557, green: 0.608, blue: 0.753)       // #8E9BC0
-    static let ink3 = Color(red: 0.333, green: 0.384, blue: 0.541)       // #55628A
-    static let aurora1 = Color(red: 0.349, green: 0.890, blue: 0.784)    // #59E3C8
-    static let aurora2 = Color(red: 0.482, green: 0.549, blue: 1.0)      // #7B8CFF
-    static let amber = Color(red: 1.0, green: 0.718, blue: 0.302)        // #FFB74D
+    /// Read per access, not cached — the widget process is short-lived and
+    /// may outlive a theme change the app made in between renders.
+    static var palette: ThemePalette { WidgetThemeReader.current.palette }
 
-    static let auroraGradient = LinearGradient(
-        colors: [aurora1, aurora2],
-        startPoint: .topLeading,
-        endPoint: .bottomTrailing
-    )
+    static var sky: Color { palette.sky.color }
+    static var skyRaised: Color { palette.skyRaised.color }
+    static var card: Color { palette.card.color }
+    static var ink: Color { palette.ink.color }
+    static var ink2: Color { palette.ink2.color }
+    static var ink3: Color { palette.ink3.color }
+    static var aurora1: Color { palette.aurora1.color }
+    static var aurora2: Color { palette.aurora2.color }
+    static var amber: Color { palette.amber.color }
+    static var good: Color { palette.good.color }
+    static var alert: Color { palette.alert.color }
+    static var hairline2: Color { palette.hairline2.color }
+
+    static var isBold: Bool { palette.isBold }
+
+    /// Two-colour sweep on the classic skins, solid ink on the bold ones.
+    /// Mirrors `Theme.auroraGradient` in the app.
+    static var auroraGradient: LinearGradient {
+        LinearGradient(
+            colors: isBold ? [ink, ink] : [aurora1, aurora2],
+            startPoint: .topLeading,
+            endPoint: .bottomTrailing
+        )
+    }
+
+    // Font roles, mirroring the app's `Theme`.
+
+    static func poster(_ size: CGFloat, weight: Font.Weight = .black) -> Font {
+        (palette.posterDesign ?? palette.displayDesign).font(size, weight)
+    }
+
+    static func figure(_ size: CGFloat, weight: Font.Weight = .bold) -> Font {
+        palette.figureDesign.font(size, weight)
+    }
+
+    static func label(_ size: CGFloat, weight: Font.Weight = .bold) -> Font {
+        palette.labelDesign.font(size, weight)
+    }
 
     /// Tiny identity mark for widget corners — a stranger glancing at a
     /// lock screen or home screen should be able to find the app.
     struct Wordmark: View {
         var body: some View {
             Text("BEEN THERE")
-                .font(.system(size: 6.5, weight: .heavy, design: .monospaced))
+                .font(WTheme.palette.numericDesign.font(6.5, .heavy))
                 .tracking(1.6)
                 .foregroundStyle(WTheme.ink3)
         }
     }
 
-    /// The widget canvas: deep sky with a whisper of aurora in the corner.
+    /// The widget canvas. Classic skins: the ground with a whisper of accent
+    /// in the corner. Bold skins: one flat card colour, nothing else.
+    @ViewBuilder
     static var background: some View {
-        LinearGradient(
-            colors: [skyRaised, sky],
-            startPoint: .top,
-            endPoint: .bottom
-        )
-        .overlay(alignment: .topTrailing) {
-            Circle()
-                .fill(
-                    RadialGradient(
-                        colors: [aurora2.opacity(0.35), .clear],
-                        center: .center,
-                        startRadius: 2,
-                        endRadius: 90
+        if isBold {
+            card
+        } else {
+            LinearGradient(
+                colors: [skyRaised, sky],
+                startPoint: .top,
+                endPoint: .bottom
+            )
+            .overlay(alignment: .topTrailing) {
+                Circle()
+                    .fill(
+                        RadialGradient(
+                            colors: [aurora2.opacity(0.35), .clear],
+                            center: .center,
+                            startRadius: 2,
+                            endRadius: 90
+                        )
                     )
-                )
-                .frame(width: 160, height: 160)
-                .offset(x: 50, y: -50)
+                    .frame(width: 160, height: 160)
+                    .offset(x: 50, y: -50)
+            }
+        }
+    }
+}
+
+/// Reads the theme the app selected, out of the shared App Group.
+enum WidgetThemeReader {
+    /// Falls back to the default theme when the App Group isn't in this
+    /// build's signing — same degradation as `WidgetSnapshotReader`, so an
+    /// unthemed widget is a missing capability rather than a crash.
+    static var current: ThemeID {
+        let defaults = UserDefaults(suiteName: WidgetSnapshotReader.appGroupID)
+        return ThemeID(storedValue: defaults?.string(forKey: "themeID"))
+    }
+}
+
+// MARK: - Kit token → SwiftUI bridging
+
+extension ColorToken {
+    var color: Color {
+        Color(.sRGB, red: red, green: green, blue: blue, opacity: alpha)
+    }
+}
+
+extension FontDesignToken {
+    var fontDesign: Font.Design {
+        switch self {
+        case .standard, .expanded, .compressed: .default
+        case .rounded: .rounded
+        case .serif: .serif
+        case .monospaced: .monospaced
+        }
+    }
+
+    func font(_ size: CGFloat, _ weight: Font.Weight) -> Font {
+        switch self {
+        case .expanded: .system(size: size, weight: weight).width(.expanded)
+        case .compressed: .system(size: size, weight: weight).width(.compressed)
+        default: .system(size: size, weight: weight, design: fontDesign)
         }
     }
 }

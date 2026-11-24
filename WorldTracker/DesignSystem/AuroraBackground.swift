@@ -1,18 +1,27 @@
 import SwiftUI
+import WorldTrackerKit
 
 /// The animated aurora that gives the app its identity.
-/// A slowly drifting mesh gradient in the Night Flight palette; colors can be
+/// A slowly drifting mesh gradient in the active theme's palette; colors can be
 /// tinted toward the current country's "mood" color later.
 struct AuroraBackground: View {
     var intensity: Double = 1.0
     /// Pulls the aurora toward a mood color (Wrapped pages shift per scene).
     var tint: Color? = nil
+    /// Override the palette. Defaults to the app theme, which is right for
+    /// every ordinary screen; Wrapped passes `Story.palette` so its full-screen
+    /// story stays dark even when the app theme is light — its white chrome and
+    /// photo pages depend on a dark ground.
+    var palette: ThemePalette = Theme.palette
 
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
 
     var body: some View {
         Group {
-            if reduceMotion {
+            if palette.isBold {
+                // Bold skins have no aurora: one flat ground.
+                sky
+            } else if reduceMotion {
                 mesh(phase: 0.6)
             } else {
                 TimelineView(.animation(minimumInterval: 1.0 / 20.0)) { context in
@@ -20,6 +29,9 @@ struct AuroraBackground: View {
                 }
             }
         }
+        // The mesh's accent vertices are translucent. With nothing behind
+        // them the window showed through as a hard dark wedge.
+        .background(sky)
         .ignoresSafeArea()
     }
 
@@ -39,14 +51,17 @@ struct AuroraBackground: View {
                 [0, 1], [x2, y2], [1, 1],
             ],
             colors: [
-                Theme.sky, Theme.skyRaised, Theme.sky,
-                Theme.skyRaised,
-                tinted(Theme.aurora1).opacity(0.32 * intensity),
-                tinted(Theme.aurora2).opacity(0.30 * intensity),
-                Theme.sky, Theme.skyRaised, Theme.sky,
+                sky, skyRaised, sky,
+                skyRaised,
+                tinted(palette.aurora1.color).opacity(0.32 * intensity),
+                tinted(palette.aurora2.color).opacity(0.30 * intensity),
+                sky, skyRaised, sky,
             ]
         )
     }
+
+    private var sky: Color { palette.sky.color }
+    private var skyRaised: Color { palette.skyRaised.color }
 
     private func tinted(_ base: Color) -> Color {
         guard let tint else { return base }

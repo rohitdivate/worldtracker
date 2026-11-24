@@ -22,6 +22,33 @@ struct SharedSnapshot: Codable {
         let hasPhoto: Bool
     }
 
+    /// One day-limit rule, already evaluated: the widget draws, it never
+    /// recomputes.
+    struct LimitStatus: Codable {
+        let id: String
+        let name: String
+        let used: Int
+        let limit: Int
+        let headline: String
+        let detail: String
+        let level: String
+        let countsToday: Bool
+        let isCeiling: Bool
+    }
+
+    struct Stamp: Codable {
+        let code: String
+        let firstDay: Int
+        let totalDays: Int
+    }
+
+    struct ContinentCount: Codable {
+        let key: String
+        let name: String
+        let visited: Int
+        let total: Int
+    }
+
     var generatedAt: Date
     var currentCountry: String?
     var dayOfStay: Int
@@ -42,6 +69,21 @@ struct SharedSnapshot: Codable {
     var lastNewCountryDay: Int?
     /// Lifetime distinct countries (the %-of-world milestone basis).
     var allTimeCountries: Int?
+    /// Every day-limit rule with its status, in the user's order.
+    var limits: [LimitStatus]?
+    /// Passport stamps, newest first-visit first (capped).
+    var stamps: [Stamp]?
+    var continents: [ContinentCount]?
+    /// Lifetime ranking by days, for the Your Top period toggle.
+    var allTimeTop: [CountryDays]?
+    var allTimeTravelDays: Int?
+    /// Approximate kilometres between countries, lifetime.
+    var totalKm: Int?
+    var badgesUnlocked: Int?
+    var badgesTotal: Int?
+    /// One character per day of the year so far: h home, a away,
+    /// c border crossing, u unknown. Richer than `travelDayFlags`.
+    var dayTones: String?
 }
 
 enum SharedSnapshotStore {
@@ -83,6 +125,18 @@ enum SharedSnapshotStore {
         let memories = onThisDayEntries(store: store, today: today)
         let momentum = momentumFacts(store: store, today: today)
 
+        let limitStatuses = AppContainer.shared.dayLimitStore.statuses(using: store)
+        let summary = AppContainer.shared.insightsStore.summary(using: store)
+        let lifetime = store.stats(in: min(store.earliestDay ?? today, today)...today)
+        let dayTones = String(store.resolvedDays(in: jan1...today).map { day -> Character in
+            switch DayTone.tone(for: day, home: store.homeOn(day.day)) {
+            case .home: "h"
+            case .away: "a"
+            case .crossing: "c"
+            case .unknown, .future: "u"
+            }
+        })
+
         let snapshot = SharedSnapshot(
             generatedAt: Date(),
             currentCountry: stay?.countryCode,
@@ -98,7 +152,40 @@ enum SharedSnapshotStore {
             travelDayFlags: travelDayFlags,
             onThisDay: memories.map(\.entry),
             lastNewCountryDay: momentum.lastNewDay,
-            allTimeCountries: momentum.allTimeCountries
+            allTimeCountries: momentum.allTimeCountries,
+            limits: limitStatuses.map {
+                SharedSnapshot.LimitStatus(
+                    id: $0.id,
+                    name: $0.rule.name,
+                    used: $0.used,
+                    limit: $0.rule.limit,
+                    headline: $0.headline,
+                    detail: $0.detail,
+                    level: $0.level.rawValue,
+                    countsToday: $0.countsToday,
+                    isCeiling: $0.rule.goal == .stayUnder
+                )
+            },
+            stamps: summary.stamps.prefix(24).map {
+                SharedSnapshot.Stamp(code: $0.code, firstDay: $0.firstDay, totalDays: $0.totalDays)
+            },
+            continents: summary.continents.map {
+                SharedSnapshot.ContinentCount(
+                    key: $0.continent.rawValue,
+                    name: $0.continent.displayName,
+                    visited: $0.visited,
+                    total: $0.total
+                )
+            },
+            allTimeTop: lifetime.daysPerCountry
+                .sorted { ($0.value, $1.key) > ($1.value, $0.key) }
+                .prefix(12)
+                .map { SharedSnapshot.CountryDays(code: $0.key, days: $0.value) },
+            allTimeTravelDays: lifetime.travelDays,
+            totalKm: summary.insights.totalKm,
+            badgesUnlocked: summary.unlockedCount,
+            badgesTotal: summary.achievements.count,
+            dayTones: dayTones
         )
 
         let encoder = JSONEncoder()

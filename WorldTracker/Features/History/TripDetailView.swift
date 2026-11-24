@@ -45,14 +45,14 @@ struct TripDetailView: View {
                     FlagChip(code: displayed.countryCode, size: 64)
                         .shadow(color: Theme.aurora1.opacity(0.3), radius: 12)
                     Text(countryName(displayed.countryCode))
-                        .font(.system(size: 26, weight: .heavy, design: .rounded))
+                        .font(Theme.display(26, weight: .heavy))
                         .foregroundStyle(Theme.ink)
                     HStack(spacing: 8) {
                         Text(DayFormat.shortRange(displayed.startDay, displayed.endDay, todayYear: todayYear))
                             .font(.system(size: 12.5, weight: .semibold, design: .monospaced))
                             .foregroundStyle(Theme.ink2)
                         Text(isNow ? "NOW" : "\(displayed.dayCount) \(displayed.dayCount == 1 ? "DAY" : "DAYS")")
-                            .font(.system(size: 10, weight: .heavy, design: .monospaced))
+                            .font(Theme.numeric(10, weight: .heavy))
                             .tracking(1)
                             .padding(.horizontal, 8)
                             .padding(.vertical, 3)
@@ -75,7 +75,7 @@ struct TripDetailView: View {
                 if !photos.isEmpty {
                     VStack(alignment: .leading, spacing: 8) {
                         Text("PHOTOS FROM THIS TRIP")
-                            .font(.system(size: 10, weight: .bold))
+                            .font(Theme.label(10, weight: .bold))
                             .tracking(1.8)
                             .foregroundStyle(Theme.ink3)
                         LazyVGrid(
@@ -87,6 +87,10 @@ struct TripDetailView: View {
                                     .onTapGesture {
                                         lightbox = LightboxSelection(id: photoIndex)
                                     }
+                                    .accessibilityElement(children: .ignore)
+                                    .accessibilityLabel("Photo \(photoIndex + 1) of \(photos.count)")
+                                    .accessibilityAddTraits([.isButton, .isImage])
+                                    .accessibilityHint("Opens the photo full screen")
                             }
                         }
                     }
@@ -133,7 +137,7 @@ struct TripDetailView: View {
             .padding(.horizontal, 18)
         }
         .background(Theme.sky)
-        .navigationTitle("Trip")
+        .navigationTitle(Theme.title("Trip"))
         .navigationBarTitleDisplayMode(.inline)
         .toolbar {
             ToolbarItem(placement: .primaryAction) {
@@ -143,6 +147,7 @@ struct TripDetailView: View {
                     Image(systemName: "square.and.arrow.up")
                         .foregroundStyle(Theme.aurora1)
                 }
+                .accessibilityLabel("Share trip card")
             }
         }
         .sheet(item: $shareItem) { item in
@@ -175,7 +180,18 @@ struct TripDetailView: View {
                     startDay: displayed.startDay,
                     endDay: displayed.endDay
                 ),
-                onDelete: { confirmDelete = true }
+                onDelete: { confirmDelete = true },
+                onSaved: { code, range in
+                    // Re-aim at the saved trip so rederive() (which matches
+                    // by overlap with `displayed`) latches onto it even
+                    // after a disjoint move or a country change, instead of
+                    // silently popping.
+                    displayed = TripSegment(
+                        countryCode: code,
+                        startDay: range.lowerBound,
+                        endDay: range.upperBound
+                    )
+                }
             )
         }
         .confirmationDialog(
@@ -236,7 +252,7 @@ struct TripDetailView: View {
             }
             if photo.photoCount > 1 {
                 Text("\(photo.photoCount)")
-                    .font(.system(size: 9, weight: .bold, design: .rounded))
+                    .font(Theme.figure(9, weight: .bold))
                     .padding(.horizontal, 5)
                     .padding(.vertical, 2)
                     .background(.black.opacity(0.55), in: Capsule())
@@ -321,24 +337,14 @@ struct TripDetailView: View {
     }
 
     private func performDelete() {
-        var clearDays: [Int] = []
-        var overrideDays: [(day: Int, codes: [String])] = []
-        for day in displayed.startDay...displayed.endDay {
-            let codes = store.day(day).countryCodes
-            if codes == [displayed.countryCode] {
-                clearDays.append(day)
-            } else if codes.contains(displayed.countryCode) {
-                overrideDays.append((day: day, codes: codes.filter { $0 != displayed.countryCode }))
-            }
-        }
-        edit.deleteTrip(
-            .init(
-                countryCode: displayed.countryCode,
-                range: displayed.startDay...displayed.endDay,
-                clearDays: clearDays,
-                overrideDays: overrideDays
-            )
+        let range = displayed.startDay...displayed.endDay
+        let plan = TripEditPlanner.plan(
+            removingCountry: displayed.countryCode,
+            from: range,
+            keeping: nil,
+            resolvedCodes: { store.day($0).countryCodes }
         )
+        edit.deleteTrip(range: range, plan: plan)
         dismiss()
     }
 }
